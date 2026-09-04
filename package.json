@@ -4,7 +4,7 @@
   "description": "Cadastro Inicial + Perfil Acadêmico conectado ao Postgres (Neon)",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "..\node server.js"
   },
   "dependencies": {
     "express": "^4.19.2",

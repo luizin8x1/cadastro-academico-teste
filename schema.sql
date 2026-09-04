@@ -66,3 +66,4 @@ CREATE TABLE IF NOT EXISTS sugestoes_ia (
 -- duracao_foco (smallint):
 --   1 = 15 minutos   2 = 25 minutos   3 = 30 minutos
 --   4 = 45 minutos   5 = 1 hora ou mais
+    

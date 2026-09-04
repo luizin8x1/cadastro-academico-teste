@@ -363,6 +363,266 @@ app.post("/api/cronograma/:usuarioId", async (req, res) => {
   }
 });
 
+// ---------- ASSISTENTE IA (cronograma personalizado, sem chat) ----------
+// Mapas para transformar os códigos salvos no banco em texto legível para o prompt.
+const SERIE_LABELS = {
+  1: "5º Ano - Ensino Fundamental",
+  2: "6º Ano - Ensino Fundamental",
+  3: "7º Ano - Ensino Fundamental",
+  4: "8º Ano - Ensino Fundamental",
+  5: "9º Ano - Ensino Fundamental",
+  6: "1º Ano - Ensino Médio",
+  7: "2º Ano - Ensino Médio",
+  8: "3º Ano - Ensino Médio",
+};
+const REDE_LABELS = { 1: "Pública", 2: "Particular" };
+const OBJETIVO_LABELS = {
+  1: "Passar no ENEM",
+  2: "Passar no vestibular",
+  3: "Melhorar as notas",
+  4: "Organizar os estudos",
+  5: "Recuperação escolar",
+  6: "Concurso",
+  7: "Outro",
+};
+const PERIODO_LABELS = { 1: "Manhã", 2: "Tarde", 3: "Noite", 4: "Madrugada" };
+const DURACAO_LABELS = {
+  1: "15 minutos",
+  2: "25 minutos",
+  3: "30 minutos",
+  4: "45 minutos",
+  5: "1 hora ou mais",
+};
+const DIA_LABELS = {
+  seg: "Segunda-feira",
+  ter: "Terça-feira",
+  qua: "Quarta-feira",
+  qui: "Quinta-feira",
+  sex: "Sexta-feira",
+  sab: "Sábado",
+  dom: "Domingo",
+};
+const DIAS_ORDEM = ["seg", "ter", "qua", "qui", "sex", "sab", "dom"];
+const MATERIA_LABELS = {
+  matematica: "Matemática",
+  portugues: "Português",
+  fisica: "Física",
+  quimica: "Química",
+  biologia: "Biologia",
+  historia: "História",
+  geografia: "Geografia",
+  ingles: "Inglês",
+  redacao: "Redação",
+  outra: "Outra",
+};
+
+function montarPromptAssistente(perfil, cronograma) {
+  const serieTexto = SERIE_LABELS[perfil.serie] || "não informado";
+  const redeTexto = REDE_LABELS[perfil.rede_de_ensino] || "não informado";
+  const objetivoTexto =
+    perfil.objetivo === 7
+      ? `Outro (${perfil.objetivo_outro || "não especificado"})`
+      : OBJETIVO_LABELS[perfil.objetivo] || "não informado";
+
+  const diasTexto = (cronograma.dias_semana || [])
+    .map((d) => DIA_LABELS[d] || d)
+    .join(", ");
+
+  const materiasTexto = (cronograma.materias_dificeis || [])
+    .map((m) =>
+      m === "outra"
+        ? `Outra (${cronograma.materia_dificil_outra || "não especificado"})`
+        : MATERIA_LABELS[m] || m
+    )
+    .join(", ");
+
+  const periodoTexto = PERIODO_LABELS[cronograma.periodo_preferido] || "não informado";
+  const duracaoTexto = DURACAO_LABELS[cronograma.duracao_foco] || "não informado";
+
+  return `Você é um orientador de rotina e produtividade para estudantes.
+Monte uma proposta de cronograma semanal de estudos PERSONALIZADO para este aluno, com base exclusivamente nos dados abaixo (não invente compromissos fixos como escola/trabalho que não foram informados).
+
+Dados do perfil do aluno (criados na conta):
+- Série/ano: ${serieTexto}
+- Rede de ensino: ${redeTexto}
+- Curso/foco: ${perfil.curso || "não informado"}
+- Universidade de interesse: ${perfil.universidade || "não informado"}
+- Tipo de instituição superior desejada: ${
+    perfil.tipo_instituicao_superior != null
+      ? REDE_LABELS[perfil.tipo_instituicao_superior] || "não informado"
+      : "não informado"
+  }
+- Meta/objetivo principal: ${objetivoTexto}
+
+Preferências de estudo (formulário de cronograma personalizado):
+- Horas disponíveis por dia: ${cronograma.horas_por_dia}
+- Dias da semana disponíveis: ${diasTexto || "não informado"}
+- Matérias consideradas mais difíceis (precisam de mais atenção): ${materiasTexto || "não informado"}
+- Período do dia preferido para estudar: ${periodoTexto}
+- Duração ideal de cada bloco de foco: ${duracaoTexto}
+
+Instruções:
+- Distribua os estudos apenas nos dias da semana informados como disponíveis.
+- Priorize as matérias difíceis nos horários de melhor concentração (dentro do período preferido informado).
+- Use blocos de foco com a duração informada, incluindo pequenas pausas entre eles.
+- Respeite o total de horas por dia informado (não ultrapasse).
+- A rotina deve ajudar o aluno a atingir a meta/objetivo informado no perfil.
+- Se algum dado estiver "não informado", monte algo simples e equilibrado para aquele ponto, sem inventar detalhes específicos.
+
+Responda SOMENTE com um JSON válido, sem markdown, sem crases, no seguinte formato exato (inclua apenas os dias informados como disponíveis; para os demais dias, retorne "rotina": [] e um "resumo" curto dizendo que é um dia de descanso):
+{
+  "Segunda-feira": {
+    "resumo": "uma frase curta explicando o foco do dia",
+    "rotina": [
+      { "horario": "19:00", "atividade": "Matemática - revisão de funções" }
+    ]
+  },
+  "Terça-feira": { "resumo": "...", "rotina": [ ... ] },
+  "Quarta-feira": { "resumo": "...", "rotina": [ ... ] },
+  "Quinta-feira": { "resumo": "...", "rotina": [ ... ] },
+  "Sexta-feira": { "resumo": "...", "rotina": [ ... ] },
+  "Sábado": { "resumo": "...", "rotina": [ ... ] },
+  "Domingo": { "resumo": "...", "rotina": [ ... ] }
+}`;
+}
+
+// Gera (ou regenera) o cronograma personalizado via IA e salva em sugestoes_ia.
+app.post("/api/assistente-ia/:usuarioId", async (req, res) => {
+  const usuarioId = parseInt(req.params.usuarioId, 10);
+
+  if (isNaN(usuarioId)) {
+    return res.status(400).json({ erro: "ID de usuário inválido." });
+  }
+
+  if (!process.env.GEMINI_API_KEY) {
+    return res
+      .status(500)
+      .json({ erro: "GEMINI_API_KEY não configurada no servidor." });
+  }
+
+  try {
+    const perfilResultado = await pool.query(
+      `SELECT serie, rede_de_ensino, curso, universidade,
+              tipo_instituicao_superior, objetivo, objetivo_outro
+       FROM usuario WHERE id = $1`,
+      [usuarioId]
+    );
+
+    if (perfilResultado.rows.length === 0) {
+      return res.status(404).json({ erro: "Usuário não encontrado." });
+    }
+
+    const cronogramaResultado = await pool.query(
+      `SELECT horas_por_dia, dias_semana, materias_dificeis,
+              materia_dificil_outra, periodo_preferido, duracao_foco
+       FROM cronograma_preferencias WHERE usuario_id = $1`,
+      [usuarioId]
+    );
+
+    if (cronogramaResultado.rows.length === 0) {
+      return res.status(404).json({
+        erro: "Preencha o Cronograma Personalizado antes de gerar o Assistente IA.",
+      });
+    }
+
+    const perfil = perfilResultado.rows[0];
+    const cronograma = cronogramaResultado.rows[0];
+    const prompt = montarPromptAssistente(perfil, cronograma);
+
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${process.env.GEMINI_API_KEY}`;
+
+    const respostaGemini = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+      }),
+    });
+
+    if (!respostaGemini.ok) {
+      const erroAPI = await respostaGemini.json().catch(() => ({}));
+      console.error("Erro da API Gemini:", erroAPI);
+      return res.status(502).json({
+        erro: `Erro ${respostaGemini.status} ao chamar a IA: ${
+          erroAPI.error?.message || "Falha na requisição"
+        }`,
+      });
+    }
+
+    const data = await respostaGemini.json();
+
+    if (!data.candidates || !data.candidates[0]?.content) {
+      return res.status(502).json({ erro: "A IA não retornou uma resposta válida." });
+    }
+
+    const textoResposta = data.candidates[0].content.parts[0].text.trim();
+    const limpo = textoResposta
+      .replace(/^```json/i, "")
+      .replace(/^```/, "")
+      .replace(/```$/, "")
+      .trim();
+
+    let plano;
+    try {
+      plano = JSON.parse(limpo);
+    } catch (e) {
+      console.error("Erro no JSON retornado pela IA:", limpo);
+      return res
+        .status(502)
+        .json({ erro: "A IA não respondeu no formato JSON correto." });
+    }
+
+    await pool.query(
+      `INSERT INTO sugestoes_ia (usuario_id, sugestao)
+       VALUES ($1, $2)
+       ON CONFLICT (usuario_id) DO UPDATE SET
+         sugestao = EXCLUDED.sugestao,
+         gerado_em = NOW()`,
+      [usuarioId, JSON.stringify(plano)]
+    );
+
+    res.json({ sucesso: true, plano });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ erro: "Erro ao gerar cronograma com IA." });
+  }
+});
+
+// Busca a última sugestão de IA já gerada e salva para este usuário.
+app.get("/api/assistente-ia/:usuarioId", async (req, res) => {
+  const usuarioId = parseInt(req.params.usuarioId, 10);
+
+  if (isNaN(usuarioId)) {
+    return res.status(400).json({ erro: "ID de usuário inválido." });
+  }
+
+  try {
+    const resultado = await pool.query(
+      `SELECT sugestao, gerado_em FROM sugestoes_ia WHERE usuario_id = $1`,
+      [usuarioId]
+    );
+
+    if (resultado.rows.length === 0) {
+      return res.status(404).json({ erro: "Nenhuma sugestão gerada ainda." });
+    }
+
+    let plano;
+    try {
+      plano = JSON.parse(resultado.rows[0].sugestao);
+    } catch (e) {
+      return res.status(500).json({ erro: "Sugestão salva está corrompida." });
+    }
+
+    res.json({
+      plano,
+      geradoEm: resultado.rows[0].gerado_em,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ erro: "Erro ao buscar sugestão salva." });
+  }
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Servidor rodando em http://localhost:${PORT}`);

@@ -93,6 +93,13 @@
                     </div>
                 </a>
             </div>
+            <button
+                            @click="sair"
+                            class="w-full flex items-center gap-3 p-3 rounded-xl text-red-600 dark:text-red-400 hc:text-white hover:bg-red-50 dark:hover:bg-red-900/20 hc:hover:bg-white hc:hover:text-black transition"
+                        >
+                            <i class="ph-bold ph-sign-out text-lg"></i>
+                            <span class="text-sm font-medium">Sair</span>
+                        </button>
         </aside>
 
         <!-- MAIN CONTENT -->
@@ -1010,6 +1017,11 @@
             // Monitora e salva automaticamente as preferências quando alteradas
             this.$watch('theme', value => localStorage.setItem('theme', value));
             this.$watch('accentColor', value => localStorage.setItem('accentColor', value));
+        },
+
+        sair() {
+            sessionStorage.removeItem('usuarioId');
+            window.location.href = 'login.html';
         },
 
         async carregarUsuario() {

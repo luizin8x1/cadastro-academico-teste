@@ -67,39 +67,124 @@
                 <img src="img/horizontallogotransline.png" alt="Rota Do Sucesso" class="h-20 w-auto object-contain">
             </a>
             </div>
-            
-            <nav class="flex-1 py-6 px-4 space-y-2 overflow-y-auto">
-                <template x-for="item in menuItems" :key="item.id">
-                    <button 
-                        @click="currentTab = item.id"
-                        class="w-full flex items-center px-4 py-3 rounded-xl transition-all duration-200 group"
-                        :class="currentTab === item.id 
-                            ? `${accentBgBase} font-medium shadow-sm` 
-                            : 'hover:bg-slate-100 dark:hover:bg-slate-800 hc:hover:bg-white hc:hover:text-black text-slate-600 dark:text-slate-300 hc:text-white'"
+
+            <!-- Atalhos Rápidos -->
+            <div class="px-4 pt-4">
+                <div class="grid grid-cols-3 gap-1.5">
+                    <button
+                        @click="currentTab = 'dashboard'"
+                        class="flex flex-col items-center justify-center gap-1 py-2.5 rounded-xl transition-all duration-200 hover:bg-slate-100 dark:hover:bg-slate-800 hc:hover:bg-white hc:hover:text-black text-slate-600 dark:text-slate-300 hc:text-white"
+                        title="Home"
                     >
-                        <i :class="`ph ph-${item.icon} text-xl transition-transform duration-200 group-hover:scale-110`" 
-                           :class="currentTab === item.id ? 'ph-fill' : ''"></i>
-                        <span class="ml-3" x-text="item.label"></span>
+                        <i class="ph-bold ph-house text-lg"></i>
+                        <span class="text-[10px] font-semibold">Home</span>
                     </button>
+                    <a
+                        href="perfil-visualizar.html"
+                        class="flex flex-col items-center justify-center gap-1 py-2.5 rounded-xl transition-all duration-200 hover:bg-slate-100 dark:hover:bg-slate-800 hc:hover:bg-white hc:hover:text-black text-slate-600 dark:text-slate-300 hc:text-white"
+                        title="Editar Perfil"
+                    >
+                        <i class="ph-bold ph-pencil-simple text-lg"></i>
+                        <span class="text-[10px] font-semibold">Editar Perfil</span>
+                    </a>
+                    <button
+                        @click="sair"
+                        class="flex flex-col items-center justify-center gap-1 py-2.5 rounded-xl transition-all duration-200 hover:bg-red-50 dark:hover:bg-red-900/20 hc:hover:bg-white hc:hover:text-black text-red-600 dark:text-red-400 hc:text-white"
+                        title="Sair"
+                    >
+                        <i class="ph-bold ph-sign-out text-lg"></i>
+                        <span class="text-[10px] font-semibold">Sair</span>
+                    </button>
+                </div>
+            </div>
+            
+            <nav class="flex-1 py-5 px-4 space-y-5 overflow-y-auto">
+                <template x-for="group in menuGroups" :key="group.id">
+                    <div>
+                        <p class="px-3 mb-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 hc:text-yellow-300 flex items-center gap-1.5">
+                            <i :class="`ph-bold ph-${group.icon}`"></i>
+                            <span x-text="group.label"></span>
+                        </p>
+                        <div class="space-y-1">
+                            <template x-for="item in group.items" :key="item.id">
+                                <button
+                                    @click="currentTab = item.id"
+                                    class="w-full flex items-center pl-7 pr-4 py-2.5 rounded-xl transition-all duration-200 group/item text-sm"
+                                    :class="currentTab === item.id
+                                        ? `${accentBgBase} font-medium shadow-sm`
+                                        : 'hover:bg-slate-100 dark:hover:bg-slate-800 hc:hover:bg-white hc:hover:text-black text-slate-600 dark:text-slate-300 hc:text-white'"
+                                >
+                                    <i :class="`ph ph-${item.icon} text-base transition-transform duration-200 group-hover/item:scale-110`"
+                                       :class="currentTab === item.id ? 'ph-fill' : ''"></i>
+                                    <span class="ml-3" x-text="item.label"></span>
+                                </button>
+                            </template>
+                        </div>
+                    </div>
                 </template>
+
+                <!-- Assistente IA (item avulso, fora dos grupos) -->
+                <button
+                    @click="currentTab = 'assistente'"
+                    class="w-full flex items-center px-4 py-3 rounded-xl transition-all duration-200 group/item"
+                    :class="currentTab === 'assistente'
+                        ? `${accentBgBase} font-medium shadow-sm`
+                        : 'hover:bg-slate-100 dark:hover:bg-slate-800 hc:hover:bg-white hc:hover:text-black text-slate-600 dark:text-slate-300 hc:text-white'"
+                >
+                    <i class="ph ph-sparkle text-xl transition-transform duration-200 group-hover/item:scale-110" :class="currentTab === 'assistente' ? 'ph-fill' : ''"></i>
+                    <span class="ml-3">Assistente IA</span>
+                </button>
             </nav>
 
-            <div class="p-4 border-t border-slate-100 dark:border-slate-800 hc:border-white">
-                <a href="perfil-visualizar.html" class="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 hc:hover:bg-white hc:hover:text-black transition cursor-pointer group block">
+            <div class="p-4 border-t border-slate-100 dark:border-slate-800 hc:border-white relative" x-data="{ profileMenuOpen: false }" @click.outside="profileMenuOpen = false">
+                <button
+                    @click="profileMenuOpen = !profileMenuOpen"
+                    class="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 hc:hover:bg-white hc:hover:text-black transition cursor-pointer group"
+                >
                     <div class="w-10 h-10 rounded-full bg-blue-600 hc:bg-yellow-400 hc:text-black text-white flex items-center justify-center text-sm font-bold border-2 border-transparent group-hover:border-slate-300 hc:border-white flex-shrink-0" x-text="nome ? nome.charAt(0).toUpperCase() : '?'"></div>
-                    <div>
-                        <p class="text-sm font-semibold text-slate-900 dark:text-white" x-text="nome || 'Carregando...'"></p>
-                        <p class="text-xs text-slate-500 dark:text-slate-400 group-hover:text-current group-[.hc]:text-yellow-300" x-text="email"></p>
+                    <div class="flex-1 min-w-0 text-left">
+                        <p class="text-sm font-semibold text-slate-900 dark:text-white truncate" x-text="nome || 'Carregando...'"></p>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 group-hover:text-current group-[.hc]:text-yellow-300 truncate" x-text="email"></p>
                     </div>
-                </a>
+                    <i class="ph-bold ph-caret-up text-sm text-slate-400 hc:text-white transition-transform duration-200 flex-shrink-0" :class="profileMenuOpen ? '' : 'rotate-180'"></i>
+                </button>
+
+                <!-- Dropdown do Perfil -->
+                <div
+                    x-show="profileMenuOpen"
+                    x-transition:enter="transition ease-out duration-150"
+                    x-transition:enter-start="opacity-0 translate-y-1"
+                    x-transition:enter-end="opacity-100 translate-y-0"
+                    x-cloak
+                    class="absolute bottom-full left-4 right-4 mb-2 bg-white dark:bg-slate-800 hc:bg-black hc:border-2 hc:border-white rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden z-30"
+                >
+                    <button
+                        @click="currentTab = 'settings'; profileMenuOpen = false"
+                        class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 hc:text-white hover:bg-slate-100 dark:hover:bg-slate-700 hc:hover:bg-white hc:hover:text-black transition"
+                    >
+                        <i class="ph ph-gear text-base"></i> Configurações
+                    </button>
+                    <a
+                        href="editar-dados.html"
+                        class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 hc:text-white hover:bg-slate-100 dark:hover:bg-slate-700 hc:hover:bg-white hc:hover:text-black transition"
+                    >
+                        <i class="ph ph-user-circle-gear text-base"></i> Editar dados
+                    </a>
+                    <a
+                        href="perfil-visualizar.html"
+                        class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 hc:text-white hover:bg-slate-100 dark:hover:bg-slate-700 hc:hover:bg-white hc:hover:text-black transition"
+                    >
+                        <i class="ph ph-graduation-cap text-base"></i> Perfil Acadêmico
+                    </a>
+                    <div class="border-t border-slate-100 dark:border-slate-700 hc:border-white"></div>
+                    <button
+                        @click="sair"
+                        class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hc:text-white hover:bg-red-50 dark:hover:bg-red-900/20 hc:hover:bg-white hc:hover:text-black transition"
+                    >
+                        <i class="ph-bold ph-sign-out text-base"></i> Sair
+                    </button>
+                </div>
             </div>
-            <button
-                            @click="sair"
-                            class="w-full flex items-center gap-3 p-3 rounded-xl text-red-600 dark:text-red-400 hc:text-white hover:bg-red-50 dark:hover:bg-red-900/20 hc:hover:bg-white hc:hover:text-black transition"
-                        >
-                            <i class="ph-bold ph-sign-out text-lg"></i>
-                            <span class="text-sm font-medium">Sair</span>
-                        </button>
         </aside>
 
         <!-- MAIN CONTENT -->
@@ -114,6 +199,112 @@
                     <i class="ph ph-list text-2xl"></i>
                 </button>
             </header>
+
+            <!-- MENU MOBILE (Off-canvas) -->
+            <div x-show="mobileMenuOpen" x-cloak class="md:hidden fixed inset-0 z-40">
+                <!-- Fundo escurecido -->
+                <div
+                    @click="mobileMenuOpen = false"
+                    x-show="mobileMenuOpen"
+                    x-transition:enter="transition ease-out duration-200"
+                    x-transition:enter-start="opacity-0"
+                    x-transition:enter-end="opacity-100"
+                    x-transition:leave="transition ease-in duration-150"
+                    x-transition:leave-start="opacity-100"
+                    x-transition:leave-end="opacity-0"
+                    class="absolute inset-0 bg-black/50"
+                ></div>
+
+                <!-- Painel lateral -->
+                <div
+                    x-show="mobileMenuOpen"
+                    x-transition:enter="transition ease-out duration-200"
+                    x-transition:enter-start="opacity-0 -translate-x-4"
+                    x-transition:enter-end="opacity-100 translate-x-0"
+                    x-transition:leave="transition ease-in duration-150"
+                    x-transition:leave-start="opacity-100 translate-x-0"
+                    x-transition:leave-end="opacity-0 -translate-x-4"
+                    class="absolute left-0 top-0 h-full w-72 max-w-[85%] bg-white dark:bg-slate-900 hc:bg-black hc:border-r-2 hc:border-white flex flex-col overflow-y-auto"
+                >
+                    <div class="h-16 flex items-center justify-between px-5 border-b border-slate-100 dark:border-slate-800 hc:border-white flex-shrink-0">
+                        <img src="img/horizontallogotransline.png" alt="Rota Do Sucesso" class="h-10 w-auto object-contain">
+                        <button @click="mobileMenuOpen = false" class="text-slate-500 dark:text-slate-300 hc:text-white">
+                            <i class="ph ph-x text-2xl"></i>
+                        </button>
+                    </div>
+
+                    <!-- Atalhos -->
+                    <div class="px-4 pt-4 flex-shrink-0">
+                        <div class="grid grid-cols-3 gap-1.5">
+                            <button @click="currentTab = 'dashboard'; mobileMenuOpen = false" class="flex flex-col items-center justify-center gap-1 py-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 hc:hover:bg-white hc:hover:text-black text-slate-600 dark:text-slate-300 hc:text-white">
+                                <i class="ph-bold ph-house text-lg"></i>
+                                <span class="text-[10px] font-semibold">Home</span>
+                            </button>
+                            <a href="perfil-visualizar.html" class="flex flex-col items-center justify-center gap-1 py-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 hc:hover:bg-white hc:hover:text-black text-slate-600 dark:text-slate-300 hc:text-white">
+                                <i class="ph-bold ph-pencil-simple text-lg"></i>
+                                <span class="text-[10px] font-semibold">Editar Perfil</span>
+                            </a>
+                            <button @click="sair" class="flex flex-col items-center justify-center gap-1 py-2.5 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 hc:hover:bg-white hc:hover:text-black text-red-600 dark:text-red-400 hc:text-white">
+                                <i class="ph-bold ph-sign-out text-lg"></i>
+                                <span class="text-[10px] font-semibold">Sair</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Navegação agrupada -->
+                    <nav class="flex-1 py-5 px-4 space-y-5">
+                        <template x-for="group in menuGroups" :key="group.id">
+                            <div>
+                                <p class="px-3 mb-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 hc:text-yellow-300 flex items-center gap-1.5">
+                                    <i :class="`ph-bold ph-${group.icon}`"></i>
+                                    <span x-text="group.label"></span>
+                                </p>
+                                <div class="space-y-1">
+                                    <template x-for="item in group.items" :key="item.id">
+                                        <button
+                                            @click="currentTab = item.id; mobileMenuOpen = false"
+                                            class="w-full flex items-center pl-7 pr-4 py-2.5 rounded-xl transition-all duration-200 text-sm"
+                                            :class="currentTab === item.id
+                                                ? `${accentBgBase} font-medium shadow-sm`
+                                                : 'hover:bg-slate-100 dark:hover:bg-slate-800 hc:hover:bg-white hc:hover:text-black text-slate-600 dark:text-slate-300 hc:text-white'"
+                                        >
+                                            <i :class="`ph ph-${item.icon} text-base`" :class="currentTab === item.id ? 'ph-fill' : ''"></i>
+                                            <span class="ml-3" x-text="item.label"></span>
+                                        </button>
+                                    </template>
+                                </div>
+                            </div>
+                        </template>
+
+                        <button
+                            @click="currentTab = 'assistente'; mobileMenuOpen = false"
+                            class="w-full flex items-center px-4 py-3 rounded-xl transition-all duration-200"
+                            :class="currentTab === 'assistente'
+                                ? `${accentBgBase} font-medium shadow-sm`
+                                : 'hover:bg-slate-100 dark:hover:bg-slate-800 hc:hover:bg-white hc:hover:text-black text-slate-600 dark:text-slate-300 hc:text-white'"
+                        >
+                            <i class="ph ph-sparkle text-xl" :class="currentTab === 'assistente' ? 'ph-fill' : ''"></i>
+                            <span class="ml-3">Assistente IA</span>
+                        </button>
+                    </nav>
+
+                    <!-- Perfil -->
+                    <div class="p-4 border-t border-slate-100 dark:border-slate-800 hc:border-white space-y-1 flex-shrink-0">
+                        <button @click="currentTab = 'settings'; mobileMenuOpen = false" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-700 dark:text-slate-200 hc:text-white hover:bg-slate-100 dark:hover:bg-slate-800 hc:hover:bg-white hc:hover:text-black transition">
+                            <i class="ph ph-gear text-base"></i> Configurações
+                        </button>
+                        <a href="editar-dados.html" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-700 dark:text-slate-200 hc:text-white hover:bg-slate-100 dark:hover:bg-slate-800 hc:hover:bg-white hc:hover:text-black transition">
+                            <i class="ph ph-user-circle-gear text-base"></i> Editar dados
+                        </a>
+                        <a href="perfil-visualizar.html" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-700 dark:text-slate-200 hc:text-white hover:bg-slate-100 dark:hover:bg-slate-800 hc:hover:bg-white hc:hover:text-black transition">
+                            <i class="ph ph-graduation-cap text-base"></i> Perfil Acadêmico
+                        </a>
+                        <button @click="sair" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-red-600 dark:text-red-400 hc:text-white hover:bg-red-50 dark:hover:bg-red-900/20 hc:hover:bg-white hc:hover:text-black transition">
+                            <i class="ph-bold ph-sign-out text-base"></i> Sair
+                        </button>
+                    </div>
+                </div>
+            </div>
 
             <!-- SCROLLABLE AREA -->
             <div class="flex-1 overflow-y-auto p-4 md:p-8 pb-24 md:pb-8">
@@ -662,6 +853,199 @@
                     </div>
                 </div>
 
+                <!-- CRONOGRAMA PERSONALIZADO TAB -->
+                <div x-show="currentTab === 'cronograma'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4" x-transition:enter-end="opacity-100 translate-y-0" class="max-w-3xl mx-auto space-y-6" x-cloak>
+                    <div>
+                        <h1 class="text-3xl font-bold tracking-tight text-slate-900 dark:text-white hc:text-white">Meu Plano de Estudos</h1>
+                        <p class="text-slate-500 dark:text-slate-400 hc:text-yellow-300">Responda com sinceridade — quanto mais realista, melhor o plano fica.</p>
+                    </div>
+
+                    <div x-show="cronCarregando" class="text-center text-sm text-slate-500 dark:text-slate-400 hc:text-white py-16">
+                        Carregando...
+                    </div>
+
+                    <div x-show="!cronCarregando" x-cloak class="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 hc:bg-black hc:border-2 hc:border-white shadow-sm">
+                        <form @submit.prevent="cronSalvar" class="space-y-6">
+
+                            <!-- Horas por dia -->
+                            <div>
+                                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300 hc:text-white mb-1.5">Quantas horas por dia você tem disponível para estudar?</label>
+                                <div class="relative flex items-center">
+                                    <i class="ph ph-clock absolute left-3.5 text-slate-400 text-lg pointer-events-none"></i>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        max="12"
+                                        step="0.5"
+                                        required
+                                        x-model="cronHoras"
+                                        placeholder="Ex: 2"
+                                        class="w-full pl-10 pr-4 py-3 bg-white dark:bg-slate-900 hc:bg-black border border-slate-200 dark:border-slate-800 hc:border-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 hc:focus:ring-yellow-400 transition-all text-slate-700 dark:text-slate-200 hc:text-white"
+                                    />
+                                </div>
+                            </div>
+
+                            <!-- Dias da semana -->
+                            <div>
+                                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300 hc:text-white mb-2">Em quais dias da semana você pode estudar?</label>
+                                <div class="grid grid-cols-4 sm:grid-cols-7 gap-2">
+                                    <template x-for="dia in cronDiasOptions" :key="dia.id">
+                                        <label
+                                            class="flex flex-col items-center justify-center gap-1 p-2 bg-white dark:bg-slate-900 hc:bg-black border rounded-xl cursor-pointer transition-all text-center"
+                                            :class="cronDias.includes(dia.id) ? 'border-blue-500 ring-1 ring-blue-500 hc:border-yellow-400 hc:ring-yellow-400' : 'border-slate-200 dark:border-slate-800 hc:border-white hover:border-blue-400'"
+                                        >
+                                            <input type="checkbox" :value="dia.id" x-model="cronDias" class="sr-only">
+                                            <span class="text-xs font-semibold text-slate-700 dark:text-slate-200 hc:text-white" x-text="dia.label"></span>
+                                        </label>
+                                    </template>
+                                </div>
+                            </div>
+
+                            <!-- Rotina semanal: aparece só para os dias marcados acima -->
+                            <div x-show="cronDiasSelecionados.length > 0" x-cloak>
+                                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300 hc:text-white mb-1">Como é sua rotina hoje?</label>
+                                <p class="text-xs text-slate-500 dark:text-slate-400 hc:text-gray-300 mb-3">
+                                    Conte o que você já faz em cada dia (aula, trabalho, sono...), com o horário. Assim os estudos não batem com seus compromissos. Este campo é opcional.
+                                </p>
+
+                                <div class="space-y-3">
+                                    <template x-for="dia in cronDiasSelecionados" :key="dia.id">
+                                        <div class="p-3 bg-white dark:bg-slate-900 hc:bg-black border border-slate-200 dark:border-slate-800 hc:border-white rounded-xl">
+                                            <div class="text-sm font-semibold text-slate-700 dark:text-slate-200 hc:text-white mb-2" x-text="dia.nome"></div>
+
+                                            <div class="space-y-2">
+                                                <template x-for="(linha, idx) in cronRotina[dia.id]" :key="linha.uid">
+                                                    <div class="flex flex-wrap items-center gap-2">
+                                                        <!-- Caixinha 1: horário (de / até) -->
+                                                        <div class="flex items-center gap-1.5 shrink-0">
+                                                            <input
+                                                                type="time"
+                                                                x-model="linha.inicio"
+                                                                aria-label="Início"
+                                                                class="w-[6.25rem] px-2 py-2 bg-white dark:bg-slate-900 hc:bg-black border border-slate-200 dark:border-slate-800 hc:border-white rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 hc:focus:ring-yellow-400 transition-all text-slate-700 dark:text-slate-200 hc:text-white"
+                                                            />
+                                                            <span class="text-xs text-slate-500 dark:text-slate-400 hc:text-white">até</span>
+                                                            <input
+                                                                type="time"
+                                                                x-model="linha.fim"
+                                                                aria-label="Fim"
+                                                                class="w-[6.25rem] px-2 py-2 bg-white dark:bg-slate-900 hc:bg-black border border-slate-200 dark:border-slate-800 hc:border-white rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 hc:focus:ring-yellow-400 transition-all text-slate-700 dark:text-slate-200 hc:text-white"
+                                                            />
+                                                        </div>
+
+                                                        <!-- Caixinha 2: o que você faz -->
+                                                        <input
+                                                            type="text"
+                                                            maxlength="100"
+                                                            x-model="linha.descricao"
+                                                            placeholder="O que você faz?"
+                                                            class="min-w-[10rem] flex-1 px-3 py-2 bg-white dark:bg-slate-900 hc:bg-black border border-slate-200 dark:border-slate-800 hc:border-white rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 hc:focus:ring-yellow-400 transition-all text-slate-700 dark:text-slate-200 hc:text-white"
+                                                        />
+
+                                                        <button
+                                                            type="button"
+                                                            @click="cronRemoverLinha(dia.id, idx)"
+                                                            title="Remover"
+                                                            aria-label="Remover atividade"
+                                                            class="p-2 text-slate-400 hover:text-red-500 hc:text-white hc:hover:text-yellow-300 rounded-lg transition-all"
+                                                        >
+                                                            <i class="ph-bold ph-x"></i>
+                                                        </button>
+                                                    </div>
+                                                </template>
+                                            </div>
+
+                                            <button
+                                                type="button"
+                                                @click="cronAdicionarLinha(dia.id)"
+                                                class="mt-2 flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 hc:text-yellow-300"
+                                            >
+                                                <i class="ph-bold ph-plus"></i>
+                                                <span>Adicionar atividade</span>
+                                            </button>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+
+                            <!-- Matérias com mais dificuldade -->
+                            <div>
+                                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300 hc:text-white mb-2">Em quais matérias você tem mais dificuldade?</label>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <template x-for="materia in cronMateriasOptions" :key="materia.id">
+                                        <label
+                                            class="flex items-center gap-2 p-3 bg-white dark:bg-slate-900 hc:bg-black border rounded-xl cursor-pointer transition-all"
+                                            :class="cronMaterias.includes(materia.id) ? 'border-blue-500 ring-1 ring-blue-500 hc:border-yellow-400 hc:ring-yellow-400' : 'border-slate-200 dark:border-slate-800 hc:border-white hover:border-blue-400'"
+                                        >
+                                            <input type="checkbox" :value="materia.id" x-model="cronMaterias" class="accent-blue-600 hc:accent-yellow-400">
+                                            <span class="text-sm font-medium text-slate-700 dark:text-slate-200 hc:text-white" x-text="materia.label"></span>
+                                        </label>
+                                    </template>
+                                </div>
+
+                                <!-- Campo adicional se marcar 'Outra' -->
+                                <div x-show="cronMaterias.includes('outra')" x-collapse x-cloak class="pt-2">
+                                    <input
+                                        type="text"
+                                        maxlength="100"
+                                        x-model="cronMateriaOutra"
+                                        placeholder="Qual outra matéria?"
+                                        class="w-full px-4 py-3 bg-white dark:bg-slate-900 hc:bg-black border border-slate-200 dark:border-slate-800 hc:border-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 hc:focus:ring-yellow-400 transition-all text-slate-700 dark:text-slate-200 hc:text-white"
+                                    />
+                                </div>
+                            </div>
+
+                            <!-- Período do dia -->
+                            <div>
+                                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300 hc:text-white mb-2">Em qual período do dia você rende mais?</label>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <template x-for="periodo in cronPeriodoOptions" :key="periodo.id">
+                                        <label class="flex items-center gap-2 p-3 bg-white dark:bg-slate-900 hc:bg-black border border-slate-200 dark:border-slate-800 hc:border-white rounded-xl cursor-pointer hover:border-blue-500 transition-all">
+                                            <input type="radio" name="periodo_preferido" :value="periodo.id" x-model="cronPeriodo" class="accent-blue-600 hc:accent-yellow-400">
+                                            <span class="text-sm font-medium text-slate-700 dark:text-slate-200 hc:text-white" x-text="periodo.label"></span>
+                                        </label>
+                                    </template>
+                                </div>
+                            </div>
+
+                            <!-- Duração de foco -->
+                            <div>
+                                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300 hc:text-white mb-1.5">Quanto tempo você consegue manter o foco antes de precisar de uma pausa?</label>
+                                <div class="relative flex items-center">
+                                    <i class="ph ph-timer absolute left-3.5 text-slate-400 text-lg pointer-events-none"></i>
+                                    <select
+                                        required
+                                        x-model="cronFoco"
+                                        class="w-full pl-10 pr-4 py-3 bg-white dark:bg-slate-900 hc:bg-black border border-slate-200 dark:border-slate-800 hc:border-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 hc:focus:ring-yellow-400 transition-all text-slate-700 dark:text-slate-200 hc:text-white appearance-none"
+                                    >
+                                        <option value="" disabled>Selecione...</option>
+                                        <option value="1">15 minutos</option>
+                                        <option value="2">25 minutos</option>
+                                        <option value="3">30 minutos</option>
+                                        <option value="4">45 minutos</option>
+                                        <option value="5">1 hora ou mais</option>
+                                    </select>
+                                    <i class="ph ph-caret-down absolute right-3.5 text-slate-400 text-lg pointer-events-none"></i>
+                                </div>
+                            </div>
+
+                            <!-- Mensagens -->
+                            <p x-show="cronErro" x-cloak class="text-sm text-red-600 hc:text-yellow-300" x-text="cronErro"></p>
+                            <p x-show="cronSucesso" x-cloak class="text-sm text-green-600 hc:text-yellow-300" x-text="cronSucesso"></p>
+
+                            <!-- Botão de Envio -->
+                            <button
+                                type="submit"
+                                :disabled="cronSalvando"
+                                class="w-full mt-2 py-3.5 px-4 font-medium rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 flex items-center justify-center gap-2 disabled:opacity-60 disabled:hover:translate-y-0" :class="accentBg"
+                            >
+                                <span x-text="cronSalvando ? 'Salvando...' : 'Salvar cronograma'"></span>
+                                <i class="ph-bold ph-check-circle text-lg" x-show="!cronSalvando"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
                 <!-- CONFIGURAÇÕES TAB -->
                 <div x-show="currentTab === 'settings'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4" x-transition:enter-end="opacity-100 translate-y-0" class="max-w-3xl mx-auto space-y-6" x-cloak>
                     <h1 class="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Personalização e Ajustes</h1>
@@ -743,6 +1127,87 @@
                             </div>
                         </div>
 
+                    </div>
+                </div>
+
+                <!-- ROTINA DIÁRIA TAB (novo) -->
+                <div x-show="currentTab === 'rotina'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4" x-transition:enter-end="opacity-100 translate-y-0" class="max-w-3xl mx-auto space-y-6" x-cloak>
+                    <div>
+                        <h1 class="text-3xl font-bold tracking-tight text-slate-900 dark:text-white hc:text-white">Rotina Diária</h1>
+                        <p class="text-slate-500 dark:text-slate-400 hc:text-yellow-300">Organize seus horários fixos do dia a dia.</p>
+                    </div>
+                    <div class="bg-white dark:bg-slate-900 rounded-2xl p-10 border border-slate-200 dark:border-slate-800 hc:bg-black hc:border-2 hc:border-white shadow-sm text-center">
+                        <i class="ph-fill ph-calendar-check text-4xl mb-3" :class="accentText"></i>
+                        <h3 class="font-semibold text-lg text-slate-900 dark:text-white mb-1">Em breve</h3>
+                        <p class="text-sm text-slate-500 dark:text-slate-400 hc:text-yellow-300 max-w-md mx-auto mb-5">
+                            Estamos preparando esta área para você visualizar sua rotina fixa do dia a dia. Enquanto isso, configure suas preferências no Plano de Estudos.
+                        </p>
+                        <button @click="currentTab = 'cronograma'" class="px-5 py-2.5 rounded-xl font-medium shadow-sm inline-flex items-center gap-2 hover:-translate-y-0.5 transition-transform" :class="accentBg">
+                            <i class="ph-bold ph-arrow-right"></i> Ir para Plano de Estudos
+                        </button>
+                    </div>
+                </div>
+
+                <!-- DICAS DE ESTUDO TAB (novo) -->
+                <div x-show="currentTab === 'dicas'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4" x-transition:enter-end="opacity-100 translate-y-0" class="max-w-3xl mx-auto space-y-6" x-cloak>
+                    <div>
+                        <h1 class="text-3xl font-bold tracking-tight text-slate-900 dark:text-white hc:text-white">Dicas de Estudo</h1>
+                        <p class="text-slate-500 dark:text-slate-400 hc:text-yellow-300">Técnicas e conteúdos para estudar melhor.</p>
+                    </div>
+                    <div class="bg-white dark:bg-slate-900 rounded-2xl p-10 border border-slate-200 dark:border-slate-800 hc:bg-black hc:border-2 hc:border-white shadow-sm text-center">
+                        <i class="ph-fill ph-lightbulb text-4xl mb-3" :class="accentText"></i>
+                        <h3 class="font-semibold text-lg text-slate-900 dark:text-white mb-1">Em breve</h3>
+                        <p class="text-sm text-slate-500 dark:text-slate-400 hc:text-yellow-300 max-w-md mx-auto">
+                            Estamos preparando artigos e técnicas de estudo (como Pomodoro, revisão espaçada e mapas mentais) para você aplicar na sua rotina.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- VÍDEOS DOS PROFESSORES TAB (novo) -->
+                <div x-show="currentTab === 'videos'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4" x-transition:enter-end="opacity-100 translate-y-0" class="max-w-3xl mx-auto space-y-6" x-cloak>
+                    <div>
+                        <h1 class="text-3xl font-bold tracking-tight text-slate-900 dark:text-white hc:text-white">Vídeos dos Professores</h1>
+                        <p class="text-slate-500 dark:text-slate-400 hc:text-yellow-300">Aulas e explicações em vídeo por disciplina.</p>
+                    </div>
+                    <div class="bg-white dark:bg-slate-900 rounded-2xl p-10 border border-slate-200 dark:border-slate-800 hc:bg-black hc:border-2 hc:border-white shadow-sm text-center">
+                        <i class="ph-fill ph-video-camera text-4xl mb-3" :class="accentText"></i>
+                        <h3 class="font-semibold text-lg text-slate-900 dark:text-white mb-1">Em breve</h3>
+                        <p class="text-sm text-slate-500 dark:text-slate-400 hc:text-yellow-300 max-w-md mx-auto">
+                            Em breve você poderá assistir aqui às videoaulas dos professores, organizadas por disciplina e por tópico.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- PROGRESSO TAB (novo) -->
+                <div x-show="currentTab === 'progresso'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4" x-transition:enter-end="opacity-100 translate-y-0" class="max-w-3xl mx-auto space-y-6" x-cloak>
+                    <div>
+                        <h1 class="text-3xl font-bold tracking-tight text-slate-900 dark:text-white hc:text-white">Progresso</h1>
+                        <p class="text-slate-500 dark:text-slate-400 hc:text-yellow-300">Sua evolução ao longo do tempo, disciplina por disciplina.</p>
+                    </div>
+                    <div class="bg-white dark:bg-slate-900 rounded-2xl p-10 border border-slate-200 dark:border-slate-800 hc:bg-black hc:border-2 hc:border-white shadow-sm text-center">
+                        <i class="ph-fill ph-gauge text-4xl mb-3" :class="accentText"></i>
+                        <h3 class="font-semibold text-lg text-slate-900 dark:text-white mb-1">Em breve</h3>
+                        <p class="text-sm text-slate-500 dark:text-slate-400 hc:text-yellow-300 max-w-md mx-auto mb-5">
+                            Estamos preparando uma visão detalhada da sua evolução por disciplina. Enquanto isso, confira suas Estatísticas gerais.
+                        </p>
+                        <button @click="currentTab = 'stats'" class="px-5 py-2.5 rounded-xl font-medium shadow-sm inline-flex items-center gap-2 hover:-translate-y-0.5 transition-transform" :class="accentBg">
+                            <i class="ph-bold ph-arrow-right"></i> Ver Estatísticas
+                        </button>
+                    </div>
+                </div>
+
+                <!-- METAS TAB (novo) -->
+                <div x-show="currentTab === 'metas'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4" x-transition:enter-end="opacity-100 translate-y-0" class="max-w-3xl mx-auto space-y-6" x-cloak>
+                    <div>
+                        <h1 class="text-3xl font-bold tracking-tight text-slate-900 dark:text-white hc:text-white">Metas</h1>
+                        <p class="text-slate-500 dark:text-slate-400 hc:text-yellow-300">Defina e acompanhe seus objetivos de estudo.</p>
+                    </div>
+                    <div class="bg-white dark:bg-slate-900 rounded-2xl p-10 border border-slate-200 dark:border-slate-800 hc:bg-black hc:border-2 hc:border-white shadow-sm text-center">
+                        <i class="ph-fill ph-flag-checkered text-4xl mb-3" :class="accentText"></i>
+                        <h3 class="font-semibold text-lg text-slate-900 dark:text-white mb-1">Em breve</h3>
+                        <p class="text-sm text-slate-500 dark:text-slate-400 hc:text-yellow-300 max-w-md mx-auto">
+                            Em breve você poderá criar metas de estudo (ex: horas por semana, tópicos a dominar) e acompanhar o quanto já avançou.
+                        </p>
                     </div>
                 </div>
 
@@ -1003,14 +1468,12 @@
 
         initApp() {
             // Exige login — sem usuarioId salvo, volta para a tela de entrada.
-            const usuarioId = sessionStorage.getItem('usuarioId');
-            if (!usuarioId) {
-                window.location.href = 'login.html';
-                return;
-            }
+            
             this.usuarioId = usuarioId;
             this.carregarUsuario();
             this.carregarSugestaoIA();
+            this.cronDiasOptions.forEach(d => this.cronAdicionarLinha(d.id));
+            this.cronCarregar();
 
             this.timeLeft = this.pomodoroTime * 60;
             
@@ -1039,6 +1502,144 @@
                 this.email = dados.email;
             } catch (err) {
                 // Se a busca falhar, os textos de fallback ("Estudante", "Carregando...") ficam no lugar.
+            }
+        },
+
+        // Dias marcados, na ordem da semana (não na ordem em que foram clicados).
+        get cronDiasSelecionados() {
+            return this.cronDiasOptions.filter(d => this.cronDias.includes(d.id));
+        },
+
+        cronNovaLinha(dados = {}) {
+            return {
+                uid: this.cronProximoUid++,
+                inicio: dados.inicio || '',
+                fim: dados.fim || '',
+                descricao: dados.descricao || '',
+            };
+        },
+
+        cronAdicionarLinha(diaId) {
+            this.cronRotina[diaId].push(this.cronNovaLinha());
+        },
+
+        cronRemoverLinha(diaId, idx) {
+            this.cronRotina[diaId].splice(idx, 1);
+            // Mantém sempre pelo menos uma linha em branco para preencher.
+            if (this.cronRotina[diaId].length === 0) this.cronAdicionarLinha(diaId);
+        },
+
+        async cronCarregar() {
+            this.cronCarregando = true;
+
+            try {
+                const resposta = await fetch(`/api/cronograma/${this.usuarioId}`);
+
+                if (resposta.status === 404) {
+                    // Ainda não preencheu — formulário fica em branco, tudo bem.
+                    this.cronCarregando = false;
+                    return;
+                }
+
+                const dados = await resposta.json();
+                this.cronCarregando = false;
+
+                if (!resposta.ok) {
+                    this.cronErro = dados.erro || 'Erro ao carregar cronograma.';
+                    return;
+                }
+
+                this.cronHoras = dados.horasPorDia;
+                this.cronDias = dados.diasSemana || [];
+                this.cronMaterias = dados.materiasDificeis || [];
+                this.cronMateriaOutra = dados.materiaDificilOutra || '';
+                this.cronPeriodo = String(dados.periodoPreferido || '');
+                this.cronFoco = String(dados.duracaoFoco || '');
+
+                // Rotina semanal salva: troca a linha em branco pelas atividades do banco.
+                const rotinaSalva = dados.rotina || {};
+                this.cronDiasOptions.forEach(d => {
+                    const linhas = rotinaSalva[d.id] || [];
+                    this.cronRotina[d.id] = linhas.length
+                        ? linhas.map(l => this.cronNovaLinha(l))
+                        : [this.cronNovaLinha()];
+                });
+            } catch (err) {
+                this.cronCarregando = false;
+                this.cronErro = 'Erro de conexão com o servidor.';
+            }
+        },
+
+        async cronSalvar() {
+            this.cronErro = '';
+            this.cronSucesso = '';
+
+            if (this.cronDias.length === 0) {
+                this.cronErro = 'Selecione pelo menos um dia da semana.';
+                return;
+            }
+            if (this.cronMaterias.length === 0) {
+                this.cronErro = 'Selecione pelo menos uma matéria.';
+                return;
+            }
+
+            // Monta a rotina só com os dias marcados; linhas 100% vazias são ignoradas.
+            const rotinaEnvio = {};
+            for (const dia of this.cronDiasSelecionados) {
+                const linhas = [];
+                for (const l of this.cronRotina[dia.id]) {
+                    const inicio = (l.inicio || '').trim();
+                    const fim = (l.fim || '').trim();
+                    const descricao = (l.descricao || '').trim();
+
+                    if (!inicio && !fim && !descricao) continue;
+
+                    if (!inicio || !fim) {
+                        this.cronErro = `Informe o horário de início e de fim em ${dia.nome}.`;
+                        return;
+                    }
+                    if (inicio === fim) {
+                        this.cronErro = `Em ${dia.nome}, o início e o fim não podem ser iguais.`;
+                        return;
+                    }
+                    if (!descricao) {
+                        this.cronErro = `Escreva o que você faz no horário das ${inicio} em ${dia.nome}.`;
+                        return;
+                    }
+                    linhas.push({ inicio, fim, descricao });
+                }
+                rotinaEnvio[dia.id] = linhas;
+            }
+
+            this.cronSalvando = true;
+
+            try {
+                const resposta = await fetch(`/api/cronograma/${this.usuarioId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        horasPorDia: this.cronHoras,
+                        diasSemana: this.cronDias,
+                        materiasDificeis: this.cronMaterias,
+                        materiaDificilOutra: this.cronMaterias.includes('outra') ? this.cronMateriaOutra : null,
+                        periodoPreferido: this.cronPeriodo,
+                        duracaoFoco: this.cronFoco,
+                        rotina: rotinaEnvio,
+                    }),
+                });
+
+                const dados = await resposta.json();
+                this.cronSalvando = false;
+
+                if (!resposta.ok) {
+                    this.cronErro = dados.erro || 'Erro ao salvar cronograma.';
+                    return;
+                }
+
+                this.cronSucesso = 'Cronograma salvo com sucesso!';
+            } catch (err) {
+                this.cronSalvando = false;
+                this.cronErro = 'Erro de conexão com o servidor.';
             }
         },
 
@@ -1126,15 +1727,93 @@
             }
         },
 
-        menuItems: [
-            { id: 'dashboard', label: 'Dashboard', icon: 'squares-four' },
-            { id: 'timer', label: 'Foco & Timer', icon: 'timer' },
-            { id: 'tasks', label: 'Tarefas', icon: 'check-square-offset' },
-            { id: 'calendar', label: 'Calendário', icon: 'calendar-blank' },
-            { id: 'subjects', label: 'Matérias', icon: 'books' },
-            { id: 'stats', label: 'Estatísticas', icon: 'chart-line-up' },
-            { id: 'assistente', label: 'Assistente IA', icon: 'sparkle' },
-            { id: 'settings', label: 'Configurações', icon: 'gear' },
+        // ---- Cronograma Personalizado (aba) ----
+        cronCarregando: true,
+        cronSalvando: false,
+        cronErro: '',
+        cronSucesso: '',
+        cronHoras: '',
+        cronDias: [],
+        cronMaterias: [],
+        cronMateriaOutra: '',
+        cronPeriodo: '',
+        cronFoco: '',
+        // Rotina semanal: { seg: [{ uid, inicio, fim, descricao }], ... }
+        // Guarda todos os dias, mas só os marcados aparecem/são enviados.
+        cronRotina: { seg: [], ter: [], qua: [], qui: [], sex: [], sab: [], dom: [] },
+        cronProximoUid: 1,
+        cronDiasOptions: [
+            { id: 'seg', label: 'Seg', nome: 'Segunda-feira' },
+            { id: 'ter', label: 'Ter', nome: 'Terça-feira' },
+            { id: 'qua', label: 'Qua', nome: 'Quarta-feira' },
+            { id: 'qui', label: 'Qui', nome: 'Quinta-feira' },
+            { id: 'sex', label: 'Sex', nome: 'Sexta-feira' },
+            { id: 'sab', label: 'Sáb', nome: 'Sábado' },
+            { id: 'dom', label: 'Dom', nome: 'Domingo' },
+        ],
+        cronMateriasOptions: [
+            { id: 'matematica', label: 'Matemática' },
+            { id: 'portugues', label: 'Português' },
+            { id: 'fisica', label: 'Física' },
+            { id: 'quimica', label: 'Química' },
+            { id: 'biologia', label: 'Biologia' },
+            { id: 'historia', label: 'História' },
+            { id: 'geografia', label: 'Geografia' },
+            { id: 'ingles', label: 'Inglês' },
+            { id: 'redacao', label: 'Redação' },
+            { id: 'outra', label: 'Outra' },
+        ],
+        cronPeriodoOptions: [
+            { id: '1', label: 'Manhã' },
+            { id: '2', label: 'Tarde' },
+            { id: '3', label: 'Noite' },
+            { id: '4', label: 'Madrugada' },
+        ],
+
+        // Navegação principal, reorganizada em categorias na linguagem do estudante.
+        // "Assistente IA" fica fora dos grupos (item avulso) e "Configurações" saiu
+        // do menu principal — agora só aparece no dropdown do perfil.
+        menuGroups: [
+            {
+                id: 'rota',
+                label: 'Minha Rota',
+                icon: 'map-pin',
+                items: [
+                    { id: 'dashboard', label: 'Hoje', icon: 'sun' },
+                    { id: 'rotina', label: 'Rotina diária', icon: 'calendar-check' },
+                    { id: 'cronograma', label: 'Plano de estudos', icon: 'map-trifold' },
+                ]
+            },
+            {
+                id: 'foco',
+                label: 'Foco',
+                icon: 'target',
+                items: [
+                    { id: 'timer', label: 'Timer', icon: 'timer' },
+                    { id: 'tasks', label: 'Tarefas', icon: 'check-square-offset' },
+                    { id: 'calendar', label: 'Calendário', icon: 'calendar-blank' },
+                ]
+            },
+            {
+                id: 'aprender',
+                label: 'Aprender',
+                icon: 'book-open-text',
+                items: [
+                    { id: 'subjects', label: 'Disciplinas', icon: 'books' },
+                    { id: 'dicas', label: 'Dicas de estudo', icon: 'lightbulb' },
+                    { id: 'videos', label: 'Vídeos dos professores', icon: 'video-camera' },
+                ]
+            },
+            {
+                id: 'evolucao',
+                label: 'Minha Evolução',
+                icon: 'chart-line-up',
+                items: [
+                    { id: 'progresso', label: 'Progresso', icon: 'gauge' },
+                    { id: 'stats', label: 'Estatísticas', icon: 'chart-bar' },
+                    { id: 'metas', label: 'Metas', icon: 'flag-checkered' },
+                ]
+            },
         ],
 
         schedule: [

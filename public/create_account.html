@@ -253,48 +253,143 @@
 
     <!-- Lógica Alpine.js -->
     <script>
-    function registerApp() {
-        return {
-            showPassword: false,
-            showConfirmPassword: false,
-            theme: 'auto',
-            isSystemDark: window.matchMedia('(prefers-color-scheme: dark)').matches,
-            nome: '',
-            email: '',
-            senha: '',
-            confirmarSenha: '',
-            erro: '',
-
-            get isDarkClass() {
-                return this.theme === 'dark' || (this.theme === 'auto' && this.isSystemDark) || this.theme === 'hc';
-            },
-
-            handleSubmit() {
-                this.erro = '';
-
-                if (this.senha !== this.confirmarSenha) {
-                    this.erro = 'As senhas não conferem.';
-                    return;
+        // Provedores mais comuns: verificados primeiro, então erros de digitação
+        // nesses domínios ganham prioridade nas sugestões de correção.
+        const DOMINIOS_PRIORITARIOS = [
+            'gmail.com',
+            'hotmail.com', 'hotmail.com.br',
+            'yahoo.com', 'yahoo.com.br'
+        ];
+ 
+        // Demais provedores aceitos, além dos prioritários
+        const DOMINIOS_ACEITOS = [
+            ...DOMINIOS_PRIORITARIOS,
+            'outlook.com', 'outlook.com.br', 'live.com', 'live.com.br', 'msn.com',
+            'icloud.com', 'me.com',
+            'uol.com.br', 'bol.com.br', 'terra.com.br', 'ig.com.br', 'globo.com', 'globomail.com',
+            'protonmail.com', 'proton.me', 'aol.com'
+        ];
+ 
+        // Valida a SINTAXE do e-mail. Mais rígida que a versão anterior: rejeita
+        // pontos duplos ("a..b@gmail.com"), ponto/hífen no início ou fim de cada
+        // parte, domínio sem TLD alfabético e espaços/símbolos inválidos.
+        function emailFormatoValido(email) {
+            return /^(?!.*\.\.)[a-zA-Z0-9](?:[a-zA-Z0-9._%+-]*[a-zA-Z0-9])?@(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$/.test(email);
+        }
+ 
+        function distanciaLevenshtein(a, b) {
+            const custos = [];
+            for (let i = 0; i <= a.length; i++) {
+                let ultimoValor = i;
+                for (let j = 0; j <= b.length; j++) {
+                    if (i === 0) {
+                        custos[j] = j;
+                    } else if (j > 0) {
+                        let novoValor = custos[j - 1];
+                        if (a[i - 1] !== b[j - 1]) {
+                            novoValor = Math.min(novoValor, ultimoValor, custos[j]) + 1;
+                        }
+                        custos[j - 1] = ultimoValor;
+                        ultimoValor = novoValor;
+                    }
                 }
-                if (this.senha.length < 6) {
-                    this.erro = 'A senha deve ter pelo menos 6 caracteres.';
-                    return;
+                if (i > 0) custos[b.length] = ultimoValor;
+            }
+            return custos[b.length];
+        }
+ 
+        // Sugere uma correção quando o domínio digitado é parecido com um domínio
+        // aceito. Verifica a lista inteira (não só os 3 prioritários) para pegar
+        // typos em qualquer provedor aceito; em caso de empate na distância,
+        // prioriza gmail/hotmail/yahoo.
+        function sugerirDominio(dominio) {
+            let melhor = null;
+            let menorDistancia = Infinity;
+            for (const candidato of DOMINIOS_ACEITOS) {
+                const distancia = distanciaLevenshtein(dominio, candidato);
+                const ehPrioritario = DOMINIOS_PRIORITARIOS.includes(candidato);
+                const melhorEhPrioritario = melhor && DOMINIOS_PRIORITARIOS.includes(melhor);
+                if (distancia < menorDistancia || (distancia === menorDistancia && ehPrioritario && !melhorEhPrioritario)) {
+                    menorDistancia = distancia;
+                    melhor = candidato;
                 }
-
-                // A tabela "usuario" exige todos os campos de uma vez, então os dados
-                // desta etapa ficam guardados no navegador até a etapa 2 (perfil
-                // acadêmico) ser concluída — é ali que o cadastro é enviado ao banco.
-                sessionStorage.setItem('cadastroPendente', JSON.stringify({
-                    nome: this.nome,
-                    email: this.email,
-                    senha: this.senha,
-                }));
-
-                // Redireciona para o Perfil Acadêmico após a criação da conta
-                window.location.href = "perfil_academico.html";
+            }
+            return menorDistancia > 0 && menorDistancia <= 2 ? melhor : null;
+        }
+ 
+        function registerApp() {
+            return {
+                showPassword: false,
+                showConfirmPassword: false,
+                theme: 'auto',
+                isSystemDark: window.matchMedia('(prefers-color-scheme: dark)').matches,
+                nome: '',
+                email: '',
+                senha: '',
+                confirmarSenha: '',
+                erro: '',
+ 
+                get isDarkClass() {
+                    return this.theme === 'dark' || (this.theme === 'auto' && this.isSystemDark) || this.theme === 'hc';
+                },
+ 
+                handleSubmit() {
+                    this.erro = '';
+ 
+                    const nomeLimpo = this.nome.trim().replace(/\s+/g, ' ');
+                    const emailLimpo = this.email.trim().toLowerCase();
+ 
+                    if (!nomeLimpo || !/^[\p{L}\p{M}][\p{L}\p{M} .’'’-]*$/u.test(nomeLimpo)) {
+                        this.erro = 'Informe um nome válido, sem números.';
+                        return;
+                    }
+ 
+                    // 1) Formato do e-mail
+                    if (!emailFormatoValido(emailLimpo)) {
+                        this.erro = 'Informe um e-mail em formato válido.';
+                        return;
+                    }
+ 
+                    // 2) Domínio precisa ser de um provedor aceito (prioridade: Gmail, Hotmail e Yahoo)
+                    const dominio = emailLimpo.split('@')[1];
+                    if (!DOMINIOS_ACEITOS.includes(dominio)) {
+                        const sugestao = sugerirDominio(dominio);
+                        this.erro = sugestao
+                            ? `E-mail inválido. Você quis dizer "@${sugestao}"?`
+                            : 'Use um e-mail válido (Gmail, Hotmail, Yahoo ou outro provedor conhecido).';
+                        return;
+                    }
+ 
+                    if (this.senha.length < 8 ||
+                        !/[a-z]/.test(this.senha) ||
+                        !/[A-Z]/.test(this.senha) ||
+                        !/[0-9]/.test(this.senha) ||
+                        !/[^A-Za-z0-9]/.test(this.senha)) {
+                        this.erro = 'A senha é fraca. Use no mínimo 8 caracteres, com maiúscula, minúscula, número e símbolo.';
+                        return;
+                    }
+                    if (this.senha !== this.confirmarSenha) {
+                        this.erro = 'As senhas não conferem.';
+                        return;
+                    }
+ 
+                    this.nome = nomeLimpo;
+                    this.email = emailLimpo;
+ 
+                    // A tabela "usuario" exige todos os campos de uma vez, então os dados
+                    // desta etapa ficam guardados no navegador até a etapa 2 (perfil
+                    // acadêmico) ser concluída — é ali que o cadastro é enviado ao banco.
+                    sessionStorage.setItem('cadastroPendente', JSON.stringify({
+                        nome: this.nome,
+                        email: this.email,
+                        senha: this.senha,
+                    }));
+ 
+                    // Redireciona para o Perfil Acadêmico após a criação da conta
+                    window.location.href = "perfil_academico.html";
+                }
             }
         }
-    }
     </script>
 </body>
 </html>

@@ -1,69 +1,65 @@
--- Rode este script UMA VEZ no SQL Editor do Neon (ou pela extensão do VS Code).
--- Ele NÃO cria a tabela "usuario" (ela já existe no banco) — apenas:
---   1) remove as tabelas antigas (usuarios / perfil_academico), que não são mais usadas
---   2) ajusta duas coisas na tabela "usuario" que já existe, para o site funcionar
-
-DROP TABLE IF EXISTS perfil_academico;
-DROP TABLE IF EXISTS usuarios;
-
-ALTER TABLE public.usuario
-    ALTER COLUMN senha TYPE character varying(60);
-
-ALTER TABLE public.usuario
-    ADD COLUMN IF NOT EXISTS objetivo_outro character varying(150);
-
--- Referência dos códigos numéricos usados pelo site nesta tabela:
+-- =====================================================================
+-- ROTA DO SUCESSO — Schema PostgreSQL
+-- Módulos: Rotina Diária | Objetivos e Dificuldades de Estudo
 --
--- serie (integer):
---   1 = 5º Ano - Ensino Fundamental      5 = 9º Ano - Ensino Fundamental
---   2 = 6º Ano - Ensino Fundamental      6 = 1º Ano - Ensino Médio
---   3 = 7º Ano - Ensino Fundamental      7 = 2º Ano - Ensino Médio
---   4 = 8º Ano - Ensino Fundamental      8 = 3º Ano - Ensino Médio
---
--- rede_de_ensino / tipo_instituicao_superior (smallint):
---   1 = Pública     2 = Particular
---
--- objetivo (integer):
---   1 = Passar no ENEM              5 = Recuperação escolar
---   2 = Passar no vestibular        6 = Concurso
---   3 = Melhorar minhas notas       7 = Outro (ver objetivo_outro)
---   4 = Organizar meus estudos
+-- Pressupõe que já existe uma tabela `usuarios(id SERIAL PRIMARY KEY, ...)`
+-- criada pelo módulo de login/criação de conta. Ajuste o nome/tipo da FK
+-- (usuario_id) se a tabela de usuários usar outro nome ou UUID.
+-- =====================================================================
 
--- Tabela do "Cronograma Personalizado" — uma linha por aluno (usuario_id é
--- UNIQUE), guardando as respostas do questionário usado para montar o plano
--- de estudos. Rode isso também no SQL Editor do Neon.
-CREATE TABLE IF NOT EXISTS cronograma_preferencias (
-    id SERIAL PRIMARY KEY,
-    usuario_id INTEGER NOT NULL UNIQUE REFERENCES usuario(id) ON DELETE CASCADE,
-    horas_por_dia NUMERIC(3,1) NOT NULL,
-    dias_semana TEXT[] NOT NULL,
-    materias_dificeis TEXT[] NOT NULL,
-    materia_dificil_outra VARCHAR(100),
-    periodo_preferido SMALLINT NOT NULL,
-    duracao_foco SMALLINT NOT NULL,
-    atualizado_em TIMESTAMP DEFAULT NOW()
+-- =====================================================================
+-- MÓDULO 2 — ROTINA DIÁRIA
+-- =====================================================================
+
+-- Preferências gerais do aluno em relação aos estudos (1 registro por aluno).
+CREATE TABLE IF NOT EXISTS rotina_preferencias (
+    usuario_id          INTEGER PRIMARY KEY REFERENCES usuarios(id) ON DELETE CASCADE,
+    horas_por_dia       NUMERIC(4,1) NOT NULL CHECK (horas_por_dia >= 0 AND horas_por_dia <= 24),
+    dias_semana         TEXT[] NOT NULL DEFAULT '{}',      -- ex: {seg,ter,qua}
+    periodo_preferido   SMALLINT,                          -- 1=Manhã 2=Tarde 3=Noite 4=Madrugada
+    duracao_foco        SMALLINT,                          -- 1=15min 2=25min 3=30min 4=45min 5=1h+
+    criado_em           TIMESTAMPTZ NOT NULL DEFAULT now(),
+    atualizado_em       TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- Tabela da Sugestão de Estudos gerada por IA — uma linha por aluno
--- (guarda sempre a sugestão mais recente; gerar de novo substitui a anterior).
-CREATE TABLE IF NOT EXISTS sugestoes_ia (
-    id SERIAL PRIMARY KEY,
-    usuario_id INTEGER NOT NULL UNIQUE REFERENCES usuario(id) ON DELETE CASCADE,
-    sugestao TEXT NOT NULL,
-    gerado_em TIMESTAMP DEFAULT NOW()
+-- Compromissos fixos da semana (escola, cursos, esportes, deslocamento,
+-- sono, horários livres etc). Um compromisso é sempre amarrado a UM dia
+-- da semana — dias diferentes podem ter rotinas totalmente diferentes.
+CREATE TABLE IF NOT EXISTS rotina_compromissos (
+    id              SERIAL PRIMARY KEY,
+    usuario_id      INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+    dia_semana      VARCHAR(3) NOT NULL CHECK (dia_semana IN ('seg','ter','qua','qui','sex','sab','dom')),
+    hora_inicio     TIME NOT NULL,
+    hora_fim        TIME NOT NULL,
+    descricao       VARCHAR(100) NOT NULL,
+    tipo            VARCHAR(20) CHECK (tipo IN (
+                        'escola','deslocamento','curso','esporte',
+                        'atividade_fixa','horario_livre','sono','outro'
+                    )),
+    criado_em       TIMESTAMPTZ NOT NULL DEFAULT now(),
+    atualizado_em   TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CHECK (hora_fim <> hora_inicio)
 );
---
--- dias_semana (cada item do array): 'seg','ter','qua','qui','sex','sab','dom'
---
--- materias_dificeis (cada item do array):
---   'matematica','portugues','fisica','quimica','biologia',
---   'historia','geografia','ingles','redacao','outra'
---   (se incluir 'outra', o texto fica em materia_dificil_outra)
---
--- periodo_preferido (smallint):
---   1 = Manhã   2 = Tarde   3 = Noite   4 = Madrugada
---
--- duracao_foco (smallint):
---   1 = 15 minutos   2 = 25 minutos   3 = 30 minutos
---   4 = 45 minutos   5 = 1 hora ou mais
-    
+
+CREATE INDEX IF NOT EXISTS idx_rotina_compromissos_usuario_dia
+    ON rotina_compromissos (usuario_id, dia_semana);
+
+-- =====================================================================
+-- MÓDULO 3 — OBJETIVOS E DIFICULDADES DE ESTUDO
+-- =====================================================================
+
+CREATE TABLE IF NOT EXISTS objetivos_estudo (
+    usuario_id                   INTEGER PRIMARY KEY REFERENCES usuarios(id) ON DELETE CASCADE,
+    objetivos                    TEXT[] NOT NULL DEFAULT '{}',   -- ex: {"passar no ENEM","subir a média em matemática"}
+    disciplinas_dificuldade      TEXT[] NOT NULL DEFAULT '{}',
+    disciplina_dificuldade_outra VARCHAR(100),
+    prioridades                  TEXT[] NOT NULL DEFAULT '{}',   -- o que o aluno quer atacar primeiro
+    tem_prova_marcada            BOOLEAN NOT NULL DEFAULT false,
+    data_prova                   DATE,
+    detalhes_prova               VARCHAR(255),
+    tipo_vestibular              VARCHAR(30) CHECK (tipo_vestibular IN ('enem','vestibular','concurso','nenhum','outro')),
+    vestibular_outro             VARCHAR(100),
+    observacoes                  TEXT,
+    criado_em                    TIMESTAMPTZ NOT NULL DEFAULT now(),
+    atualizado_em                TIMESTAMPTZ NOT NULL DEFAULT now()
+);

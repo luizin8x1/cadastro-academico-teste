@@ -170,7 +170,25 @@
                         </div>
                     </div>
 
-                    <!-- Série/Ano Escolar -->
+                   
+
+                    <!-- Escola - Rede de ensino -->
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300 hc:text-white mb-2">Escola - Rede de ensino</label>
+                        <div class="grid grid-cols-2 gap-3">
+                            <label class="flex items-center gap-2 p-3 bg-white dark:bg-slate-900 hc:bg-black border border-slate-200 dark:border-slate-800 hc:border-white rounded-xl cursor-pointer hover:border-blue-500 transition-all">
+                                <input type="radio" name="rede_ensino" value="publica" required x-model="redeEnsino" class="accent-blue-600 hc:accent-yellow-400">
+                                <span class="text-sm font-medium text-slate-700 dark:text-slate-200 hc:text-white">Pública</span>
+                            </label>
+                            <label class="flex items-center gap-2 p-3 bg-white dark:bg-slate-900 hc:bg-black border border-slate-200 dark:border-slate-800 hc:border-white rounded-xl cursor-pointer hover:border-blue-500 transition-all">
+                                <input type="radio" name="rede_ensino" value="particular" required x-model="redeEnsino" class="accent-blue-600 hc:accent-yellow-400">
+                                <span class="text-sm font-medium text-slate-700 dark:text-slate-200 hc:text-white">Particular</span>
+                            </label>
+                        </div>
+                    </div>
+
+
+ <!-- Série/Ano Escolar -->
                     <div>
                         <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300 hc:text-white mb-1.5">Série/Ano escolar (<span x-text="anoAtual"></span>)</label>
                         <div class="relative flex items-center">
@@ -195,20 +213,12 @@
                         </div>
                     </div>
 
-                    <!-- Escola - Rede de ensino -->
-                    <div>
-                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300 hc:text-white mb-2">Escola - Rede de ensino</label>
-                        <div class="grid grid-cols-2 gap-3">
-                            <label class="flex items-center gap-2 p-3 bg-white dark:bg-slate-900 hc:bg-black border border-slate-200 dark:border-slate-800 hc:border-white rounded-xl cursor-pointer hover:border-blue-500 transition-all">
-                                <input type="radio" name="rede_ensino" value="publica" required x-model="redeEnsino" class="accent-blue-600 hc:accent-yellow-400">
-                                <span class="text-sm font-medium text-slate-700 dark:text-slate-200 hc:text-white">Pública</span>
-                            </label>
-                            <label class="flex items-center gap-2 p-3 bg-white dark:bg-slate-900 hc:bg-black border border-slate-200 dark:border-slate-800 hc:border-white rounded-xl cursor-pointer hover:border-blue-500 transition-all">
-                                <input type="radio" name="rede_ensino" value="particular" required x-model="redeEnsino" class="accent-blue-600 hc:accent-yellow-400">
-                                <span class="text-sm font-medium text-slate-700 dark:text-slate-200 hc:text-white">Particular</span>
-                            </label>
-                        </div>
-                    </div>
+<div
+    x-show="serie.endsWith('_em')"
+    x-cloak
+    x-transition
+    class="space-y-5"
+>
 
                     <!-- Qual curso pretende fazer? -->
                     <div>
@@ -286,7 +296,7 @@
                             </div>
                         </div>
                     </div>
-
+</div>
                     <!-- Mensagem de erro -->
                     <p x-show="erro" x-cloak class="text-sm text-red-600 hc:text-yellow-300" x-text="erro"></p>
 
@@ -309,6 +319,18 @@
                             </span>
                         </template>
                     </button>
+
+                        <!-- Botão cancelar cadastro -->
+                 <div class="flex justify-center mt-3">
+                    <button
+                         type="button"
+                        @click="confirmarCancelamento = true"
+                        class="w-1/2 py-2.5 px-4 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-semibold transition"
+                    >
+                    Cancelar cadastro
+                    </button>
+</div>
+
                 </form>
 
             </div>
@@ -334,6 +356,7 @@
                 isSystemDark: window.matchMedia('(prefers-color-scheme: dark)').matches,
                 anoAtual: new Date().getFullYear(),
                 isSubmitting: false,
+                confirmarCancelamento: false,
                 selectedObjetivo: '',
                 objetiveOptions: [
                     { id: 'enem', label: 'Passar no ENEM' },
@@ -503,5 +526,48 @@
             }
         }
     </script>
+
+<!-- Modal de confirmação de cancelamento -->
+<div
+    x-show="confirmarCancelamento"
+    x-cloak
+    x-transition.opacity
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4"
+>
+    <div
+        @click.outside="confirmarCancelamento = false"
+        x-transition
+        class="w-full max-w-md rounded-2xl bg-slate-900 border border-slate-700 p-6 shadow-2xl"
+    >
+        <h2 class="text-xl font-bold text-white mb-2">
+            Cancelar cadastro?
+        </h2>
+
+        <p class="text-slate-300 text-sm mb-6">
+            Tem certeza de que deseja cancelar seu cadastro?
+            Todos os dados preenchidos até agora serão descartados.
+        </p>
+
+        <div class="flex gap-3">
+            <button
+                type="button"
+                @click="confirmarCancelamento = false"
+                class="flex-1 py-2.5 px-4 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-semibold transition"
+            >
+                Continuar cadastro
+            </button>
+
+            <button
+                type="button"
+                @click="sessionStorage.removeItem('cadastroPendente'); window.location.href='index.html'"
+                class="flex-1 py-2.5 px-4 rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold transition"
+            >
+                Sim, cancelar
+            </button>
+        </div>
+    </div>
+</div>
+
+
 </body>
 </html>

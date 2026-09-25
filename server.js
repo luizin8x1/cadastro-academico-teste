@@ -1,5 +1,7 @@
 
 
+require("dotenv").config();
+
 const express = require("express");
 const { Pool } = require("pg");
 const bcrypt = require("bcryptjs");
@@ -80,28 +82,70 @@ app.post("/api/cadastro", async (req, res) => {
 
     const hash = await bcrypt.hash(senha, 10);
 
-    const resultado = await pool.query(
-      `INSERT INTO usuario
-        (nome, email, senha, data_nascimento, serie, rede_de_ensino,
-         curso, universidade, tipo_instituicao_superior, objetivo, objetivo_outro)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-       RETURNING id`,
-      [
-        nome,
-        email,
-        hash,
-        dataNascimento,
-        serie,
-        redeEnsino,
-        curso,
-        universidade,
-        tipoInstituicao,
-        objetivo,
-        objetivoOutro || null,
-      ]
-    );
+const redeEnsinoBanco =
+  String(redeEnsino) === "1" ? "publica" :
+  String(redeEnsino) === "2" ? "particular" :
+  redeEnsino;
 
-    res.json({ sucesso: true, usuarioId: resultado.rows[0].id });
+const tipoInstituicaoBanco =
+  String(tipoInstituicao) === "1" ? "publica" :
+  String(tipoInstituicao) === "2" ? "particular" :
+  tipoInstituicao;
+
+ const client = await pool.connect();
+
+try {
+  await client.query("BEGIN");
+
+  // 1º INSERT: dados de acesso do usuário
+  const resultadoUsuario = await client.query(
+    `INSERT INTO usuario
+      (nome, email, senha_hash)
+     VALUES ($1, $2, $3)
+     RETURNING id`,
+    [
+      nome,
+      email,
+      hash
+    ]
+  );
+
+  const usuarioId = resultadoUsuario.rows[0].id;
+
+  // 2º INSERT: perfil acadêmico
+  await client.query(
+    `INSERT INTO perfil_academico
+      (usuario_id, data_nascimento, serie, rede_ensino,
+       curso_desejado, universidade_desejada,
+       tipo_universidade, objetivo_geral)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+[
+  usuarioId,
+  dataNascimento,
+  serie,
+  redeEnsinoBanco,
+  curso,
+  universidade,
+  tipoInstituicaoBanco,
+  objetivo
+]
+  );
+
+  await client.query("COMMIT");
+
+  res.json({
+    sucesso: true,
+    usuarioId: usuarioId
+  });
+
+} catch (erro) {
+  await client.query("ROLLBACK");
+  throw erro;
+
+} finally {
+  client.release();
+}
+
   } catch (err) {
     console.error(err);
     res.status(500).json({ erro: "Erro ao cadastrar usuário." });

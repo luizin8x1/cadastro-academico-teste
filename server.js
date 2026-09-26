@@ -157,30 +157,53 @@ app.post("/api/login", async (req, res) => {
   const { email, senha } = req.body;
 
   if (!email || !senha) {
-    return res.status(400).json({ erro: "Preencha e-mail e senha." });
+    return res.status(400).json({
+      erro: "Preencha e-mail e senha."
+    });
   }
 
   try {
+
     const resultado = await pool.query(
-      "SELECT id, senha FROM usuario WHERE email = $1",
-      [email]
+      `SELECT id, nome, email, senha_hash
+       FROM usuario
+       WHERE LOWER(email) = LOWER($1)`,
+      [email.trim()]
     );
 
     if (resultado.rows.length === 0) {
-      return res.status(401).json({ erro: "E-mail ou senha inválidos." });
+      return res.status(401).json({
+        erro: "E-mail ou senha inválidos."
+      });
     }
 
     const usuario = resultado.rows[0];
-    const senhaCorreta = await bcrypt.compare(senha, usuario.senha);
+
+    const senhaCorreta = await bcrypt.compare(
+      senha,
+      usuario.senha_hash
+    );
 
     if (!senhaCorreta) {
-      return res.status(401).json({ erro: "E-mail ou senha inválidos." });
+      return res.status(401).json({
+        erro: "E-mail ou senha inválidos."
+      });
     }
 
-    res.json({ sucesso: true, usuarioId: usuario.id });
+    return res.json({
+      sucesso: true,
+      usuarioId: usuario.id,
+      nome: usuario.nome,
+      email: usuario.email
+    });
+
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ erro: "Erro ao entrar." });
+
+    console.error("Erro no login:", err);
+
+    return res.status(500).json({
+      erro: "Erro ao entrar."
+    });
   }
 });
 
@@ -632,6 +655,88 @@ app.post("/api/assistente-ia/:usuarioId", async (req, res) => {
   }
 });
 
+
+// =====================================================
+// CONTATO - SALVAR MENSAGEM
+// =====================================================
+app.post('/api/contato', async (req, res) => {
+    try {
+        const { nome, email, telefone, assunto, mensagem } = req.body;
+
+        // Campos obrigatórios
+        if (!nome || !email || !assunto || !mensagem) {
+            return res.status(400).json({
+                success: false,
+                erro: 'Preencha todos os campos obrigatórios.'
+            });
+        }
+
+        // Validação básica de e-mail
+        const emailValido = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+        if (!emailValido.test(email)) {
+            return res.status(400).json({
+                success: false,
+                erro: 'Informe um e-mail válido.'
+            });
+        }
+
+        // Validação do telefone, caso tenha sido preenchido
+        if (telefone) {
+            const somenteNumeros = telefone.replace(/\D/g, '');
+
+            if (somenteNumeros.length !== 10 && somenteNumeros.length !== 11) {
+                return res.status(400).json({
+                    success: false,
+                    erro: 'Informe um telefone válido com DDD.'
+                });
+            }
+        }
+
+        // Limite da mensagem
+        if (mensagem.length > 1500) {
+            return res.status(400).json({
+                success: false,
+                erro: 'A mensagem deve possuir no máximo 1500 caracteres.'
+            });
+        }
+
+        // Salva no banco
+        const resultado = await pool.query(
+            `
+            INSERT INTO mensagens_contato
+                (nome, email, telefone, assunto, mensagem)
+            VALUES
+                ($1, $2, $3, $4, $5)
+            RETURNING id, criado_em
+            `,
+            [
+                nome.trim(),
+                email.trim().toLowerCase(),
+                telefone ? telefone.trim() : null,
+                assunto,
+                mensagem.trim()
+            ]
+        );
+
+        return res.status(201).json({
+            success: true,
+            mensagem: 'Mensagem enviada com sucesso!',
+            id: resultado.rows[0].id
+        });
+
+    } catch (erro) {
+        console.error('Erro ao salvar mensagem de contato:', erro);
+
+        return res.status(500).json({
+            success: false,
+            erro: 'Não foi possível enviar a mensagem.'
+        });
+    }
+});
+
+
+
 // Busca a última sugestão de IA já gerada e salva para este usuário.
 app.get("/api/assistente-ia/:usuarioId", async (req, res) => {
   const usuarioId = parseInt(req.params.usuarioId, 10);
@@ -668,6 +773,49 @@ app.get("/api/assistente-ia/:usuarioId", async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
+
+// ======================================================
+// ESTATÍSTICAS PÚBLICAS DO ROTA DO SUCESSO
+// ======================================================
+
+app.get("/api/estatisticas", async (req, res) => {
+  try {
+
+    // Total de usuários ativos
+    const resultadoUsuarios = await pool.query(`
+      SELECT COUNT(*)::int AS total_usuarios
+      FROM usuario
+      WHERE status = 'ativo'
+    `);
+
+    // Total de horas planejadas nos planos de estudo
+    const resultadoHoras = await pool.query(`
+      SELECT
+        COALESCE(
+          ROUND(SUM(duracao_min)::numeric / 60, 1),
+          0
+        ) AS total_horas
+      FROM plano_estudo_item
+    `);
+
+    res.json({
+      sucesso: true,
+      totalUsuarios: resultadoUsuarios.rows[0].total_usuarios,
+      horasPlanejadas: Number(resultadoHoras.rows[0].total_horas)
+    });
+
+  } catch (erro) {
+
+    console.error("Erro ao buscar estatísticas:", erro);
+
+    res.status(500).json({
+      sucesso: false,
+      erro: "Erro ao buscar estatísticas."
+    });
+
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Servidor rodando em http://localhost:${PORT}`);
 });

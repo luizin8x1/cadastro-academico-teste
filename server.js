@@ -365,6 +365,205 @@ app.put("/api/perfil/:usuarioId", async (req, res) => {
   }
 });
 
+
+// =====================================================
+// PERFIL ACADÊMICO - DIFICULDADES
+// =====================================================
+
+
+// =====================================================
+// BUSCAR DIFICULDADES DO ALUNO
+// =====================================================
+
+app.get("/api/perfil-dificuldades/:usuarioId", async (req, res) => {
+
+    const usuarioId = parseInt(req.params.usuarioId, 10);
+
+    if (isNaN(usuarioId)) {
+        return res.status(400).json({
+            sucesso: false,
+            erro: "ID de usuário inválido."
+        });
+    }
+
+    try {
+
+        const resultado = await pool.query(
+            `
+            SELECT
+                pd.id,
+                pd.disciplina_id,
+                d.nome AS disciplina,
+                pd.conteudo_1,
+                pd.conteudo_2,
+                pd.conteudo_3
+
+            FROM perfil_dificuldade pd
+
+            INNER JOIN disciplina d
+                ON d.id = pd.disciplina_id
+
+            WHERE pd.usuario_id = $1
+
+            ORDER BY d.nome
+            `,
+            [usuarioId]
+        );
+
+        return res.json({
+            sucesso: true,
+            dificuldades: resultado.rows
+        });
+
+    } catch (erro) {
+
+        console.error("❌ Erro ao buscar dificuldades:", erro);
+
+        return res.status(500).json({
+            sucesso: false,
+            erro: "Erro ao buscar dificuldades do aluno."
+        });
+    }
+});
+
+
+// =====================================================
+// SALVAR / ATUALIZAR DIFICULDADES DO ALUNO
+// =====================================================
+
+app.put("/api/perfil-dificuldades/:usuarioId", async (req, res) => {
+
+    const usuarioId = parseInt(req.params.usuarioId, 10);
+
+    if (isNaN(usuarioId)) {
+        return res.status(400).json({
+            sucesso: false,
+            erro: "ID de usuário inválido."
+        });
+    }
+
+    const { dificuldades } = req.body;
+
+    if (!Array.isArray(dificuldades)) {
+        return res.status(400).json({
+            sucesso: false,
+            erro: "Lista de dificuldades inválida."
+        });
+    }
+
+    // Máximo de 3 disciplinas
+    if (dificuldades.length > 3) {
+        return res.status(400).json({
+            sucesso: false,
+            erro: "Selecione no máximo 3 disciplinas."
+        });
+    }
+
+    const client = await pool.connect();
+
+    try {
+
+        await client.query("BEGIN");
+
+        // Remove os registros antigos do aluno.
+        // Depois recriamos de acordo com o formulário atual.
+        await client.query(
+            `
+            DELETE FROM perfil_dificuldade
+            WHERE usuario_id = $1
+            `,
+            [usuarioId]
+        );
+
+        for (const item of dificuldades) {
+
+            const disciplinaId = parseInt(item.disciplinaId, 10);
+
+            if (isNaN(disciplinaId)) {
+                throw new Error("Disciplina inválida.");
+            }
+
+            await client.query(
+                `
+                INSERT INTO perfil_dificuldade (
+                    usuario_id,
+                    disciplina_id,
+                    conteudo_1,
+                    conteudo_2,
+                    conteudo_3,
+                    atualizado_em
+                )
+                VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)
+                `,
+                [
+                    usuarioId,
+                    disciplinaId,
+                    item.conteudo1?.trim() || null,
+                    item.conteudo2?.trim() || null,
+                    item.conteudo3?.trim() || null
+                ]
+            );
+        }
+
+        await client.query("COMMIT");
+
+        return res.json({
+            sucesso: true,
+            mensagem: "Dificuldades salvas com sucesso."
+        });
+
+    } catch (erro) {
+
+        await client.query("ROLLBACK");
+
+        console.error("❌ Erro ao salvar dificuldades:", erro);
+
+        return res.status(500).json({
+            sucesso: false,
+            erro: "Erro ao salvar dificuldades."
+        });
+
+    } finally {
+
+        client.release();
+    }
+});
+
+
+// =====================================================
+// LISTAR DISCIPLINAS
+// =====================================================
+
+app.get("/api/disciplinas", async (req, res) => {
+
+    try {
+
+        const resultado = await pool.query(`
+            SELECT
+                id,
+                nome
+            FROM disciplina
+            ORDER BY nome
+        `);
+
+        return res.json({
+            sucesso: true,
+            disciplinas: resultado.rows
+        });
+
+    } catch (erro) {
+
+        console.error("❌ Erro ao buscar disciplinas:", erro);
+
+        return res.status(500).json({
+            sucesso: false,
+            erro: "Erro ao buscar disciplinas."
+        });
+    }
+});
+
+
+
 // ---------- CRONOGRAMA PERSONALIZADO ----------
 app.get("/api/cronograma/:usuarioId", async (req, res) => {
   const usuarioId = parseInt(req.params.usuarioId, 10);
@@ -1212,6 +1411,46 @@ app.post("/api/frases-motivacionais", async (req, res) => {
         });
     }
 
+});
+
+// =====================================================
+// FRASE MOTIVACIONAL ALEATÓRIA
+// =====================================================
+
+app.get("/api/frase-aleatoria", async (req, res) => {
+  try {
+
+    const resultado = await pool.query(`
+      SELECT id, frase, autor
+      FROM frase_motivacional
+      WHERE ativa = true
+      ORDER BY RANDOM()
+      LIMIT 1
+    `);
+
+    if (resultado.rows.length === 0) {
+      return res.status(404).json({
+        sucesso: false,
+        erro: "Nenhuma frase motivacional disponível."
+      });
+    }
+
+    return res.json({
+      sucesso: true,
+      frase: resultado.rows[0]
+    });
+
+  } catch (erro) {
+
+    console.error("❌ ERRO AO BUSCAR FRASE MOTIVACIONAL:");
+    console.error(erro);
+
+    return res.status(500).json({
+      sucesso: false,
+      erro: "Erro ao buscar frase motivacional.",
+      detalhe: erro.message
+    });
+  }
 });
 
 // =====================================================

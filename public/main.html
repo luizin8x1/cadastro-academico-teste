@@ -364,6 +364,198 @@
             </div>
         </a>
 
+        
+
+<!-- ========================================= -->
+<!-- DIFICULDADES ACADÊMICAS -->
+<!-- ========================================= -->
+
+<div class="mt-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden">
+
+    <!-- Cabeçalho -->
+    <div class="px-6 py-5 border-b border-slate-100 dark:border-slate-800">
+        <div class="flex items-center gap-3">
+
+            <div class="w-10 h-10 rounded-xl bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center">
+                <i class="ph ph-warning-circle text-orange-500 text-xl"></i>
+            </div>
+
+            <div>
+                <h2 class="text-lg font-bold text-slate-900 dark:text-white">
+                    Dificuldades acadêmicas
+                </h2>
+
+                <p class="text-sm text-slate-500 dark:text-slate-400">
+                    Conte para o Rota do Sucesso quais conteúdos precisam de mais atenção.
+                </p>
+            </div>
+
+        </div>
+    </div>
+
+
+    <div class="p-6">
+
+        <!-- PERGUNTA -->
+        <div class="mb-5">
+
+            <div class="flex items-center justify-between gap-4">
+
+                <div>
+                    <h3 class="font-semibold text-slate-800 dark:text-slate-100">
+                        Quais são as 3 disciplinas em que você possui maior dificuldade?
+                    </h3>
+
+                    <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                        Selecione no máximo 3 disciplinas.
+                    </p>
+                </div>
+
+                <!-- CONTADOR -->
+                <div
+                    class="text-sm font-semibold px-3 py-1.5 rounded-lg"
+                    :class="disciplinasSelecionadas.length === 3
+                        ? 'bg-blue-50 text-blue-600'
+                        : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-300'"
+                >
+                    <span x-text="disciplinasSelecionadas.length"></span>/3
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- DISCIPLINAS -->
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+
+            <template x-for="disciplina in disciplinas" :key="disciplina.id">
+
+                <button
+                    type="button"
+                    @click="alternarDisciplinaDificuldade(disciplina)"
+                    class="relative flex items-center gap-3 px-4 py-3 rounded-xl border text-left transition-all"
+                    :class="
+                        disciplinasSelecionadas.includes(Number(disciplina.id))
+                        ? 'border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-900/20'
+                        : 'border-slate-200 bg-white text-slate-700 hover:border-blue-300 hover:bg-blue-50/40 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-200'
+                    "
+                >
+
+                    <!-- CHECK -->
+                    <div
+                        class="w-5 h-5 rounded-md border flex items-center justify-center flex-shrink-0"
+                        :class="
+                            disciplinasSelecionadas.includes(Number(disciplina.id))
+                            ? 'bg-blue-600 border-blue-600 text-white'
+                            : 'border-slate-300 dark:border-slate-600'
+                        "
+                    >
+                        <i
+                            x-show="disciplinasSelecionadas.includes(Number(disciplina.id))"
+                            class="ph-bold ph-check text-xs"
+                        ></i>
+                    </div>
+
+                    <span
+                        class="text-sm font-medium"
+                        x-text="disciplina.nome"
+                    ></span>
+
+                </button>
+
+            </template>
+
+        </div>
+
+
+        <!-- ========================================= -->
+        <!-- CONTEÚDOS DE DIFICULDADE -->
+        <!-- ========================================= -->
+
+        <div
+            x-show="disciplinasSelecionadas.length > 0"
+            x-transition
+            class="mt-7 pt-6 border-t border-slate-100 dark:border-slate-800"
+        >
+
+            <h3 class="font-semibold text-slate-800 dark:text-slate-100">
+                Em quais conteúdos você possui mais dificuldade?
+            </h3>
+
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1 mb-5">
+                Informe até 3 conteúdos para cada disciplina selecionada.
+            </p>
+
+
+            <div class="space-y-5">
+
+                <template
+                    x-for="disciplina in disciplinas.filter(d =>
+                        disciplinasSelecionadas.includes(Number(d.id))
+                    )"
+                    :key="'conteudo-' + disciplina.id"
+                >
+
+                    <div class="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4">
+
+                        <!-- Nome disciplina -->
+                        <div class="flex items-center gap-2 mb-3">
+
+                            <div class="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                                <i class="ph ph-book-open text-blue-600"></i>
+                            </div>
+
+                            <span
+                                class="font-semibold text-slate-800 dark:text-white"
+                                x-text="disciplina.nome"
+                            ></span>
+
+                        </div>
+
+
+                        <!-- CAMPOS -->
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+
+                            <input
+                                type="text"
+                                maxlength="100"
+                                x-model="conteudosDificuldade[disciplina.id][0]"
+                                placeholder="Conteúdo 1"
+                                class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                            >
+
+                            <input
+                                type="text"
+                                maxlength="100"
+                                x-model="conteudosDificuldade[disciplina.id][1]"
+                                placeholder="Conteúdo 2"
+                                class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                            >
+
+                            <input
+                                type="text"
+                                maxlength="100"
+                                x-model="conteudosDificuldade[disciplina.id][2]"
+                                placeholder="Conteúdo 3"
+                                class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                            >
+
+                        </div>
+
+                    </div>
+
+                </template>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
 
         <!-- CONFIGURAÇÕES -->
         <button
@@ -562,54 +754,68 @@
                 <div x-show="currentTab === 'dashboard'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4" x-transition:enter-end="opacity-100 translate-y-0" x-cloak>
                     
                     <!-- Saudação -->
-                    <div class="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
-                        <div>
-                            <p class="text-sm font-medium text-slate-500 dark:text-slate-400 hc:text-yellow-300 mb-1" x-text="currentDate"></p>
-                            <h1 class="text-3xl font-bold tracking-tight text-slate-900 dark:text-white hc:text-white">Olá, <span x-text="nome ? nome.split(' ')[0] : 'Estudante'"></span>.</h1>
-                            <p class="text-slate-600 dark:text-slate-300 hc:text-white mt-2 flex items-center gap-2">
-                                                            
-                                <!-- FRASE MOTIVACIONAL DO DIA -->
-<div
-    x-show="fraseDoDia"
-    x-cloak
-    class="mt-2 flex items-start gap-2.5"
->
-    <!-- Ícone -->
-    <div class="pt-0.5 flex-shrink-0">
-        <i class="ph-fill ph-sparkle text-blue-500 text-lg"></i>
-    </div>
+<div class="flex flex-col md:flex-row md:items-start justify-between mb-8 gap-6">
 
-    <!-- Frase -->
-    <div class="flex flex-wrap items-baseline gap-x-1.5 leading-relaxed">
+    <!-- LADO ESQUERDO: saudação + frase -->
+    <div class="flex-1 min-w-0">
 
-        <span class="text-base font-bold text-slate-700 dark:text-slate-200">
-            Sua frase do dia:
-        </span>
+        <p
+            class="text-sm font-medium text-slate-500 dark:text-slate-400 hc:text-yellow-300 mb-1"
+            x-text="currentDate">
+        </p>
 
-        <span
-            class="text-base font-medium text-slate-600 dark:text-slate-300"
+        <h1 class="text-3xl font-bold tracking-tight text-slate-900 dark:text-white hc:text-white">
+            Olá,
+            <span x-text="nome ? nome.split(' ')[0] : 'Estudante'"></span>.
+        </h1>
+
+        <!-- FRASE MOTIVACIONAL DO DIA -->
+        <div
+            x-show="fraseDoDia"
+            x-cloak
+            class="mt-2 flex items-start gap-2.5"
         >
-            “<span x-text="fraseDoDia"></span>”
-        </span>
+            <!-- Ícone -->
+            <div class="pt-0.5 flex-shrink-0">
+                <i class="ph-fill ph-sparkle text-blue-500 text-lg"></i>
+            </div>
 
-        <span
-            x-show="autorFraseDoDia"
-            class="text-sm italic font-medium text-slate-500 dark:text-slate-400 ml-1"
+            <!-- Frase -->
+            <div class="min-w-0 flex flex-wrap items-baseline gap-x-1.5 leading-relaxed">
+
+                <span class="text-base font-bold text-slate-700 dark:text-slate-200 flex-shrink-0">
+                    Sua frase do dia:
+                </span>
+
+                <span class="text-base font-medium text-slate-600 dark:text-slate-300 whitespace-normal break-words">
+                    “<span x-text="fraseDoDia"></span>”
+                </span>
+
+                <span
+                    x-show="autorFraseDoDia"
+                    class="text-sm italic font-medium text-slate-500 dark:text-slate-400"
+                >
+                    — <span x-text="autorFraseDoDia"></span>
+                </span>
+
+            </div>
+        </div>
+
+    </div>
+
+    <!-- LADO DIREITO: botão permanece fixo -->
+    <div class="flex-shrink-0 md:pt-1">
+        <button
+            @click="currentTab = 'timer'"
+            class="hidden md:flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5"
+            :class="accentBg"
         >
-            — <span x-text="autorFraseDoDia"></span>
-        </span>
-
+            <i class="ph-bold ph-play"></i>
+            Iniciar Foco
+        </button>
     </div>
-</div>
 
-    </div>
 </div>
-                            </p>
-                        </div>
-                        <button @click="currentTab = 'timer'" class="hidden md:flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5" :class="accentBg">
-                            <i class="ph-bold ph-play"></i> Iniciar Foco
-                        </button>
-                    </div>
 
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
                         <!-- Progresso Card -->
@@ -1414,8 +1620,13 @@
                     </div>
                 </div>
 
-                <!-- ROTINA DIÁRIA TAB -->
-                <div id="pagina-rotina" class="space-y-6">
+<!-- ROTINA DIÁRIA TAB -->
+<div
+    id="pagina-rotina"
+    x-show="currentTab === 'rotina'"
+    x-cloak
+    class="space-y-6"
+>
 
     <!-- Cabeçalho -->
     <div>
@@ -1439,6 +1650,596 @@
     </div>
 
 </div>
+
+<!-- PERFIL ACADÊMICO -->
+<div
+    x-show="currentTab === 'objetivos'"
+    x-cloak
+    x-transition:enter="transition ease-out duration-300"
+    x-transition:enter-start="opacity-0 translate-y-4"
+    x-transition:enter-end="opacity-100 translate-y-0"
+>
+
+    <!-- TÍTULO -->
+    <div class="mb-6">
+        <h1 class="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+            Perfil Acadêmico
+        </h1>
+
+        <p class="mt-2 text-slate-500 dark:text-slate-400">
+            Suas informações acadêmicas ajudam o Rota do Sucesso a criar planos de estudo mais personalizados.
+        </p>
+    </div>
+
+    <!-- STATUS DO PERFIL -->
+    <div class="flex items-center justify-between gap-4
+                bg-amber-50 border border-amber-200
+                rounded-xl px-5 py-4">
+
+        <div class="flex items-center gap-3">
+
+            <div class="w-10 h-10 rounded-xl bg-amber-100
+                        flex items-center justify-center flex-shrink-0">
+                <i class="ph ph-warning-circle text-amber-600 text-xl"></i>
+            </div>
+
+            <div>
+                <p class="font-semibold text-slate-800">
+                    Complete seu Perfil Acadêmico
+                </p>
+
+                <p class="text-sm text-slate-500">
+                    Essas informações serão utilizadas para personalizar
+                    seu plano de estudos.
+                </p>
+            </div>
+
+        </div>
+
+        <span class="text-xs font-semibold text-amber-700
+                     bg-amber-100 px-3 py-1.5 rounded-full">
+            Perfil incompleto
+        </span>
+
+    </div>
+
+<!-- INFORMAÇÕES EDUCACIONAIS -->
+<div class="bg-white dark:bg-slate-900
+            border border-slate-200 dark:border-slate-800
+            rounded-2xl shadow-sm overflow-hidden">
+
+    <!-- Cabeçalho compacto -->
+    <div class="px-5 py-3 border-b border-slate-100 dark:border-slate-800
+                flex items-center gap-2.5">
+
+        <div class="w-8 h-8 rounded-lg
+                    bg-blue-50 dark:bg-blue-900/20
+                    text-blue-600 dark:text-blue-400
+                    flex items-center justify-center flex-shrink-0">
+
+            <i class="ph-bold ph-student text-base"></i>
+        </div>
+
+        <h2 class="text-base font-bold text-slate-900 dark:text-white">
+            Informações educacionais
+        </h2>
+
+    </div>
+
+    <!-- Dados -->
+    <div class="px-5 py-2">
+
+        <!-- LINHA 1 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-10
+                    py-2 border-b border-slate-100 dark:border-slate-800">
+
+            <div class="flex items-baseline gap-2">
+                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wide">
+                    Nome completo:
+                </span>
+
+                <span
+                    class="text-sm font-semibold text-slate-800 dark:text-slate-200"
+                    x-text="nome || 'Não informado'"
+                ></span>
+            </div>
+
+            <div class="flex items-baseline gap-2">
+                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wide">
+                    Data de nascimento:
+                </span>
+
+                <span
+                    class="text-sm font-semibold text-slate-800 dark:text-slate-200"
+                    x-text="dataNascimento || 'Não informado'"
+                ></span>
+            </div>
+
+        </div>
+
+        <!-- LINHA 2 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-10
+                    py-2 border-b border-slate-100 dark:border-slate-800">
+
+            <div class="flex items-baseline gap-2">
+                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wide">
+                    Série/Ano:
+                </span>
+
+                <span
+                    class="text-sm font-semibold text-slate-800 dark:text-slate-200"
+                    x-text="serie || 'Não informado'"
+                ></span>
+            </div>
+
+            <div class="flex items-baseline gap-2">
+                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wide">
+                    Etapa atual:
+                </span>
+
+                <span
+                    class="text-sm font-semibold text-slate-800 dark:text-slate-200"
+                    x-text="etapaAtual || 'Não informado'"
+                ></span>
+            </div>
+
+        </div>
+
+        <!-- LINHA 3 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-10 py-2">
+
+            <div class="flex items-baseline gap-2">
+                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wide">
+                    Escola:
+                </span>
+
+                <span
+                    class="text-sm font-semibold text-slate-800 dark:text-slate-200"
+                    x-text="escola || 'Não informado'"
+                ></span>
+            </div>
+
+            <div class="flex items-baseline gap-2">
+                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wide">
+                    Rede de ensino:
+                </span>
+
+                <span
+                    class="text-sm font-semibold text-slate-800 dark:text-slate-200"
+                    x-text="redeEnsino || 'Não informado'"
+                ></span>
+            </div>
+
+        </div>
+
+    </div>
+</div>
+
+<!-- ===================================================== -->
+<!-- COMPLEMENTO DO PERFIL ACADÊMICO                       -->
+<!-- ===================================================== -->
+
+<div class="mt-6 space-y-6">
+
+
+
+
+    <!-- ================================================= -->
+    <!-- CARD 1 - DIFICULDADES ACADÊMICAS                  -->
+    <!-- ================================================= -->
+
+    <div class="bg-white dark:bg-slate-900
+                border border-slate-200 dark:border-slate-800
+                rounded-2xl overflow-hidden">
+
+        <!-- Cabeçalho -->
+        <div class="px-6 py-4 border-b border-slate-100
+                    dark:border-slate-800">
+
+            <div class="flex items-center gap-3">
+
+                <div class="w-9 h-9 rounded-lg bg-blue-50
+                            flex items-center justify-center">
+
+                    <i class="ph ph-books text-blue-600 text-lg"></i>
+
+                </div>
+
+                <div>
+                    <h2 class="font-bold text-lg text-slate-900 dark:text-white">
+                        Dificuldades acadêmicas
+                    </h2>
+
+                    <p class="text-sm text-slate-500">
+                        Conte quais conteúdos precisam de mais atenção.
+                    </p>
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="p-6 space-y-7">
+
+            <!-- PERGUNTA 1 -->
+
+            <div>
+
+                <label class="block font-semibold text-slate-800
+                              dark:text-slate-200 mb-1">
+                    Quais são suas 3 disciplinas de maior dificuldade?
+                </label>
+
+                <p class="text-sm text-slate-500 mb-4">
+                    Escolha no máximo três disciplinas.
+                </p>
+
+
+                <!-- DISCIPLINAS VINDAS DA API -->
+
+                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+
+                    <template x-for="disciplina in disciplinas"
+                              :key="disciplina.id">
+
+                        <label
+                            class="flex items-center gap-3
+                                   border border-slate-200
+                                   rounded-xl px-4 py-3
+                                   cursor-pointer
+                                   hover:border-blue-400
+                                   hover:bg-blue-50
+                                   transition">
+
+                            <input
+                                type="checkbox"
+                                :value="disciplina.id"
+                                class="w-4 h-4 accent-blue-600"
+                            >
+
+                            <span
+                                class="text-sm font-medium text-slate-700"
+                                x-text="disciplina.nome">
+                            </span>
+
+                        </label>
+
+                    </template>
+
+                </div>
+
+            </div>
+
+
+            <!-- PERGUNTA 2 -->
+
+            <div class="border-t border-slate-100 pt-6">
+
+                <label class="block font-semibold text-slate-800 mb-2">
+                    Existe alguma matéria que você praticamente não estuda?
+                </label>
+
+                <select
+                    class="w-full md:w-1/2
+                           border border-slate-200
+                           rounded-xl px-4 py-3
+                           bg-white
+                           focus:outline-none
+                           focus:ring-2
+                           focus:ring-blue-500">
+
+                    <option value="">
+                        Selecione uma disciplina
+                    </option>
+
+                    <template x-for="disciplina in disciplinas"
+                              :key="'nao-' + disciplina.id">
+
+                        <option
+                            :value="disciplina.id"
+                            x-text="disciplina.nome">
+                        </option>
+
+                    </template>
+
+                </select>
+
+
+                <label class="block font-semibold text-slate-800 mt-5 mb-2">
+                    Por que você quase não estuda essa matéria?
+                </label>
+
+                <textarea
+                    rows="3"
+                    maxlength="300"
+                    placeholder="Ex.: Tenho muita dificuldade para entender o conteúdo e acabo deixando essa matéria de lado."
+                    class="w-full
+                           border border-slate-200
+                           rounded-xl px-4 py-3
+                           resize-none
+                           focus:outline-none
+                           focus:ring-2
+                           focus:ring-blue-500">
+                </textarea>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ================================================= -->
+    <!-- CARD 2 - TEMPO PARA ESTUDOS                       -->
+    <!-- ================================================= -->
+
+    <div class="bg-white dark:bg-slate-900
+                border border-slate-200 dark:border-slate-800
+                rounded-2xl overflow-hidden">
+
+        <!-- Cabeçalho -->
+
+        <div class="px-6 py-4 border-b border-slate-100
+                    dark:border-slate-800">
+
+            <div class="flex items-center gap-3">
+
+                <div class="w-9 h-9 rounded-lg bg-blue-50
+                            flex items-center justify-center">
+
+                    <i class="ph ph-clock text-blue-600 text-lg"></i>
+
+                </div>
+
+                <div>
+
+                    <h2 class="font-bold text-lg text-slate-900 dark:text-white">
+                        Tempo disponível para estudos
+                    </h2>
+
+                    <p class="text-sm text-slate-500">
+                        Informe quanto tempo você realmente consegue dedicar aos estudos.
+                    </p>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="p-6 space-y-7">
+
+
+            <!-- HORAS ATUAIS -->
+
+            <div>
+
+                <label class="block font-semibold text-slate-800 mb-2">
+                    Atualmente, quanto tempo você estuda fora da escola por dia?
+                </label>
+
+                <select
+                    class="w-full md:w-1/2 border border-slate-200
+                           rounded-xl px-4 py-3 bg-white">
+
+                    <option value="">Selecione</option>
+                    <option value="0">Não estudo atualmente</option>
+                    <option value="30">Até 30 minutos</option>
+                    <option value="60">Entre 30 minutos e 1 hora</option>
+                    <option value="120">Entre 1 e 2 horas</option>
+                    <option value="180">Mais de 2 horas</option>
+
+                </select>
+
+            </div>
+
+
+            <!-- DIAS -->
+
+            <div>
+
+                <label class="block font-semibold text-slate-800 mb-3">
+                    Em quais dias você consegue estudar?
+                </label>
+
+                <div class="grid grid-cols-4 md:grid-cols-7 gap-2">
+
+                    <template
+                        x-for="dia in ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom']">
+
+                        <label
+                            class="border border-slate-200
+                                   rounded-xl py-3
+                                   flex items-center justify-center
+                                   gap-2 cursor-pointer
+                                   hover:bg-blue-50
+                                   hover:border-blue-400">
+
+                            <input
+                                type="checkbox"
+                                class="accent-blue-600">
+
+                            <span
+                                class="text-sm font-medium"
+                                x-text="dia">
+                            </span>
+
+                        </label>
+
+                    </template>
+
+                </div>
+
+            </div>
+
+
+            <!-- PERÍODO -->
+
+            <div>
+
+                <label class="block font-semibold text-slate-800 mb-3">
+                    Em qual período você sente que rende melhor?
+                </label>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+
+                    <label class="border rounded-xl px-4 py-3 cursor-pointer">
+                        <input
+                            type="radio"
+                            name="periodoEstudo"
+                            value="manha"
+                            class="mr-2 accent-blue-600">
+                        Manhã
+                    </label>
+
+                    <label class="border rounded-xl px-4 py-3 cursor-pointer">
+                        <input
+                            type="radio"
+                            name="periodoEstudo"
+                            value="tarde"
+                            class="mr-2 accent-blue-600">
+                        Tarde
+                    </label>
+
+                    <label class="border rounded-xl px-4 py-3 cursor-pointer">
+                        <input
+                            type="radio"
+                            name="periodoEstudo"
+                            value="noite"
+                            class="mr-2 accent-blue-600">
+                        Noite
+                    </label>
+
+                </div>
+
+            </div>
+
+
+            <!-- TEMPO REALISTA -->
+
+            <div>
+
+                <label class="block font-semibold text-slate-800 mb-2">
+                    Quanto tempo você conseguiria dedicar aos estudos por dia?
+                </label>
+
+                <select
+                    class="w-full md:w-1/2 border border-slate-200
+                           rounded-xl px-4 py-3 bg-white">
+
+                    <option value="">Selecione</option>
+                    <option value="30">30 minutos</option>
+                    <option value="60">1 hora</option>
+                    <option value="90">1 hora e 30 minutos</option>
+                    <option value="120">2 horas</option>
+                    <option value="180">3 horas</option>
+                    <option value="240">4 horas ou mais</option>
+
+                </select>
+
+            </div>
+
+
+            <!-- FINAL DE SEMANA -->
+
+            <div>
+
+                <label class="block font-semibold text-slate-800 mb-3">
+                    Você consegue estudar aos sábados e domingos?
+                </label>
+
+                <div class="flex flex-wrap gap-3">
+
+                    <label class="border rounded-xl px-4 py-3 cursor-pointer">
+                        <input type="radio"
+                               name="fimSemana"
+                               value="sim"
+                               class="mr-2 accent-blue-600">
+                        Sim
+                    </label>
+
+                    <label class="border rounded-xl px-4 py-3 cursor-pointer">
+                        <input type="radio"
+                               name="fimSemana"
+                               value="somenteSabado"
+                               class="mr-2 accent-blue-600">
+                        Somente sábado
+                    </label>
+
+                    <label class="border rounded-xl px-4 py-3 cursor-pointer">
+                        <input type="radio"
+                               name="fimSemana"
+                               value="somenteDomingo"
+                               class="mr-2 accent-blue-600">
+                        Somente domingo
+                    </label>
+
+                    <label class="border rounded-xl px-4 py-3 cursor-pointer">
+                        <input type="radio"
+                               name="fimSemana"
+                               value="nao"
+                               class="mr-2 accent-blue-600">
+                        Não
+                    </label>
+
+                </div>
+
+            </div>
+
+
+            <!-- DIA LIVRE -->
+
+            <div>
+
+                <label class="block font-semibold text-slate-800 mb-2">
+                    Você precisa reservar algum dia ou período totalmente livre?
+                </label>
+
+                <input
+                    type="text"
+                    placeholder="Ex.: domingo à tarde"
+                    class="w-full border border-slate-200
+                           rounded-xl px-4 py-3
+                           focus:outline-none
+                           focus:ring-2
+                           focus:ring-blue-500">
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ================================================= -->
+    <!-- BOTÃO SALVAR                                     -->
+    <!-- ================================================= -->
+
+    <div class="flex justify-end pb-6">
+
+        <button
+            type="button"
+            class="flex items-center gap-2
+                   bg-blue-600 hover:bg-blue-700
+                   text-white font-semibold
+                   px-6 py-3 rounded-xl
+                   shadow-sm transition">
+
+            <i class="ph-bold ph-floppy-disk"></i>
+
+            Salvar Perfil Acadêmico
+
+        </button>
+
+    </div>
+
+</div>
+
+    
+</div>
+
 
 <script src="https://unpkg.com/lucide@latest"></script>
 
@@ -1769,6 +2570,29 @@
         usuarioId: null,
         nome: '',
         email: '',
+        // Informações acadêmicas
+        dataNascimento: '',
+        serie: '',
+        etapaAtual: '',
+        escola: '',
+        redeEnsino: '',
+        cursoDesejado: '',
+        universidadeDesejada: '',
+        tipoUniversidade: '',
+        objetivoGeral: '',
+        trilhaSesi: '',
+        etapaSesi: '',
+
+        // =====================================================
+        // PERFIL ACADÊMICO - DIFICULDADES
+        // =====================================================
+
+            disciplinas: [],
+            dificuldadesSelecionadas: [],
+            disciplinasSelecionadas: [],
+            conteudosDificuldade: {},
+            carregandoPerfilAcademico: false,
+
         fraseDoDia: '',
         autorFraseDoDia: '',
         fotoMenuOpen: false,
@@ -1786,6 +2610,7 @@
         selectedSubject: 'Matemática',
         pomodoroTime: 25,
 
+        
         // Propriedades do Assistente IA
         planoIA: null,
         iaCarregando: false,
@@ -2049,8 +2874,9 @@
             }
 
             this.usuarioId = usuarioIdSalvo;
-        // Carrega nome e e-mail do usuário
-            this.carregarUsuario();
+
+            // Perfil acadêmico
+            this.carregarPerfilAcademico();
 
             this.carregarFraseDoDia();
             this.carregarSugestaoIA();
@@ -2076,6 +2902,224 @@
             sessionStorage.removeItem('usuarioId');
             window.location.href = 'index.html';
         },
+
+    async carregarDisciplinas() {
+
+    try {
+
+        console.log("📚 Buscando disciplinas...");
+
+        const resposta = await fetch('/api/disciplinas');
+
+        if (!resposta.ok) {
+            throw new Error('Não foi possível carregar as disciplinas.');
+        }
+
+        const dados = await resposta.json();
+
+        this.disciplinas = dados.disciplinas || [];
+
+        this.disciplinas.forEach(disciplina => {
+            const id = Number(disciplina.id);
+            if (!this.conteudosDificuldade[id]) {
+                this.conteudosDificuldade[id] = ['', '', ''];
+            }
+        });
+
+        console.log("✅ Disciplinas carregadas:", this.disciplinas);
+
+    } catch (erro) {
+
+        console.error("❌ Erro ao carregar disciplinas:", erro);
+
+        this.disciplinas = [];
+    }
+    },
+
+    async carregarDificuldades() {
+
+    if (!this.usuarioId) {
+        console.warn("⚠️ Usuário não identificado.");
+        return;
+    }
+
+    try {
+
+        console.log("🎯 Buscando dificuldades do usuário:", this.usuarioId);
+
+        const resposta = await fetch(
+            `/api/perfil-dificuldades/${this.usuarioId}`
+        );
+
+        if (!resposta.ok) {
+            throw new Error(
+                'Não foi possível carregar as dificuldades.'
+            );
+        }
+
+        const dados = await resposta.json();
+
+        this.dificuldadesSelecionadas =
+            (dados.dificuldades || []).map(item => ({
+                disciplinaId: Number(item.disciplina_id),
+                disciplina: item.disciplina,
+
+                conteudo1: item.conteudo_1 || '',
+                conteudo2: item.conteudo_2 || '',
+                conteudo3: item.conteudo_3 || ''
+            }));
+
+        console.log(
+            "✅ Dificuldades carregadas:",
+            this.dificuldadesSelecionadas
+        );
+
+    } catch (erro) {
+
+        console.error(
+            "❌ Erro ao carregar dificuldades:",
+            erro
+        );
+
+        this.dificuldadesSelecionadas = [];
+    }
+    },
+
+alternarDisciplinaDificuldade(disciplina) {
+
+    const id = Number(disciplina.id);
+
+    const indice = this.disciplinasSelecionadas.indexOf(id);
+
+    // Se já estiver selecionada, remove
+    if (indice !== -1) {
+
+        this.disciplinasSelecionadas.splice(indice, 1);
+
+        return;
+    }
+
+    // Limite de 3 disciplinas
+    if (this.disciplinasSelecionadas.length >= 3) {
+
+        alert('Você pode selecionar no máximo 3 disciplinas.');
+
+        return;
+    }
+
+    // Adiciona
+    this.disciplinasSelecionadas.push(id);
+
+    // Cria os três campos da disciplina
+    if (!this.conteudosDificuldade[id]) {
+
+        this.conteudosDificuldade[id] = ['', '', ''];
+
+    }
+
+},
+
+
+async carregarPerfilAcademico() {
+
+    if (this.carregandoPerfilAcademico) {
+        return;
+    }
+
+    if (!this.usuarioId) {
+        console.warn("⚠️ Usuário não identificado.");
+        return;
+    }
+
+    this.carregandoPerfilAcademico = true;
+
+    try {
+
+        console.log("🎓 Buscando Perfil Acadêmico do usuário:", this.usuarioId);
+
+        // =====================================================
+        // 1. BUSCAR DADOS DO PERFIL ACADÊMICO
+        // =====================================================
+
+        const resposta = await fetch(
+            `/api/perfil/${this.usuarioId}`
+        );
+
+        console.log(
+            "Status da API Perfil Acadêmico:",
+            resposta.status
+        );
+
+        if (!resposta.ok) {
+
+            const erro = await resposta.json().catch(() => ({}));
+
+            console.error(
+                "❌ Erro retornado pela API do Perfil Acadêmico:",
+                erro
+            );
+
+            throw new Error(
+                erro.erro || 'Não foi possível carregar o Perfil Acadêmico.'
+            );
+        }
+
+        const dados = await resposta.json();
+
+        console.log(
+            "✅ Dados do Perfil Acadêmico recebidos:",
+            dados
+        );
+
+        // =====================================================
+        // 2. DADOS DA CONTA
+        // =====================================================
+
+        this.nome = dados.nome || '';
+        this.email = dados.email || '';
+
+        // =====================================================
+        // 3. PERFIL ACADÊMICO
+        // =====================================================
+
+        this.dataNascimento = dados.dataNascimento || '';
+        this.serie = dados.serie || '';
+        this.etapaAtual = dados.etapaAtual || '';
+        this.escola = dados.escola || '';
+        this.redeEnsino = dados.redeEnsino || '';
+
+        this.cursoDesejado = dados.cursoDesejado || '';
+        this.universidadeDesejada = dados.universidadeDesejada || '';
+        this.tipoUniversidade = dados.tipoUniversidade || '';
+        this.objetivoGeral = dados.objetivoGeral || '';
+        this.trilhaSesi = dados.trilhaSesi || '';
+        this.etapaSesi = dados.etapaSesi || '';
+
+        // =====================================================
+        // 4. DISCIPLINAS E DIFICULDADES
+        // =====================================================
+
+        await Promise.all([
+            this.carregarDisciplinas(),
+            this.carregarDificuldades()
+        ]);
+
+        console.log("🎓 Perfil Acadêmico carregado completamente.");
+
+    } catch (erro) {
+
+        console.error(
+            "❌ Erro ao carregar Perfil Acadêmico:",
+            erro
+        );
+
+    } finally {
+
+        this.carregandoPerfilAcademico = false;
+    }
+},
+
+
 
 async carregarUsuario() 
 {
@@ -2104,6 +3148,12 @@ async carregarUsuario()
 
         this.nome = dados.nome || '';
         this.email = dados.email || '';
+        // Informações do Perfil Acadêmico
+        this.dataNascimento = dados.dataNascimento || '';
+        this.serie = dados.serie || '';
+        this.etapaAtual = dados.etapaAtual || '';
+        this.escola = dados.escola || '';
+        this.redeEnsino = dados.redeEnsino || '';
 
         console.log("Nome carregado:", this.nome);
         console.log("E-mail carregado:", this.email);
@@ -2160,13 +3210,13 @@ async carregarFraseDoDia() {
         const dados = await resposta.json();
 
         // Coloca a frase no sistema
-        this.fraseDoDia = dados.frase;
-        this.autorFraseDoDia = dados.autor || '';
+        this.fraseDoDia = dados.frase.frase;
+        this.autorFraseDoDia = dados.frase.autor;
 
         // Guarda para permanecer durante todo o dia
+        localStorage.setItem(chaveFrase, this.fraseDoDia);
+        localStorage.setItem(chaveAutor, this.autorFraseDoDia);
         localStorage.setItem(chaveData, hoje);
-        localStorage.setItem(chaveFrase, dados.frase);
-        localStorage.setItem(chaveAutor, dados.autor || '');
 
     } catch (erro) {
 
@@ -2455,7 +3505,7 @@ async carregarFraseDoDia() {
                   items: [
                         { id: 'dashboard', label: 'Hoje', icon: 'sun' },
                         { id: 'rotina', label: 'Rotina Diária', icon: 'calendar-check' },
-                        { id: 'objetivos', label: 'Objetivos da Rota', icon: 'target' },
+                        { id: 'objetivos', label: 'Perfil Acadêmico', icon: 'student' },
                         { id: 'cronograma', label: 'Plano de Estudos', icon: 'map-trifold' },
     ]
             },

@@ -223,10 +223,7 @@
 
                     sessionStorage.setItem("usuarioId", dados.usuarioId);
                     sessionStorage.setItem("tipoUsuario", dados.tipoUsuario);
-                        alert(
-                            "ID: " + dados.usuarioId +
-                            "\nTipo recebido: [" + dados.tipoUsuario + "]"
-                        );
+                        
                     if (dados.tipoUsuario === "administrador") {
                         window.location.href = "admin.html";
                     } else {

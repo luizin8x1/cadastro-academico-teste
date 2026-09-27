@@ -1,0 +1,1267 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel Administrativo | Rota do Sucesso</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif']
+                    }
+                }
+            }
+        };
+    </script>
+
+    <style>
+        [x-cloak] { display: none !important; }
+
+        html, body {
+            height: 100%;
+        }
+
+        body {
+            margin: 0;
+        }
+
+        /* Scroll discreto da lateral */
+        .admin-scroll::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .admin-scroll::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .admin-scroll::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 999px;
+        }
+    </style>
+</head>
+
+<body
+    x-data="adminApp()"
+    x-init="initApp()"
+    class="bg-slate-50 text-slate-800 antialiased"
+>
+    <div class="min-h-screen flex overflow-hidden">
+
+        <!-- =========================================================
+             SIDEBAR DESKTOP
+        ========================================================== -->
+        <aside
+            class="hidden md:flex flex-col w-64 h-screen flex-shrink-0
+                   bg-gradient-to-b from-white via-blue-50/40 to-cyan-50/60
+                   border-r border-blue-100"
+        >
+            <!-- LOGO -->
+            <div class="h-24 flex items-center justify-center px-5 border-b border-slate-100">
+                <img
+                    src="img/logo_1.png"
+                    alt="Rota do Sucesso"
+                    class="h-20 w-auto object-contain"
+                >
+            </div>
+
+            <!-- IDENTIFICAÇÃO DO PAINEL -->
+            <div class="px-5 pt-5 pb-3">
+                <div class="flex items-center gap-3 px-3 py-3 rounded-2xl bg-blue-600 text-white shadow-sm">
+                    <div class="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center flex-shrink-0">
+                        <i class="ph-bold ph-shield-check text-xl"></i>
+                    </div>
+
+                    <div class="min-w-0">
+                        <p class="text-[10px] uppercase tracking-[0.16em] text-blue-100 font-bold">
+                            Rota do Sucesso
+                        </p>
+                        <p class="font-bold text-sm">
+                            Administração
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MENU -->
+            <nav class="flex-1 min-h-0 overflow-y-auto admin-scroll px-4 py-3">
+
+                <!-- PAINEL -->
+                <div class="mb-6">
+                    <p class="px-3 mb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
+                        Painel
+                    </p>
+
+                    <button
+                        @click="selecionarMenu('dashboard')"
+                        :class="classeMenu('dashboard')"
+                        class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition"
+                    >
+                        <i class="ph ph-squares-four text-lg"></i>
+                        <span>Visão geral</span>
+                    </button>
+                </div>
+
+                <!-- GERENCIAMENTO -->
+                <div class="mb-6">
+                    <p class="px-3 mb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
+                        Gerenciamento
+                    </p>
+
+                    <div class="space-y-1">
+                        <button
+                            @click="selecionarMenu('usuarios')"
+                            :class="classeMenu('usuarios')"
+                            class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition"
+                        >
+                            <i class="ph ph-users-three text-lg"></i>
+                            <span>Usuários</span>
+                        </button>
+
+                        <button
+                            @click="selecionarMenu('turmas')"
+                            :class="classeMenu('turmas')"
+                            class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition"
+                        >
+                            <i class="ph ph-chalkboard-teacher text-lg"></i>
+                            <span>Turmas</span>
+                        </button>
+
+                        <button
+                            @click="selecionarMenu('administradores')"
+                            :class="classeMenu('administradores')"
+                            class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition"
+                        >
+                            <i class="ph ph-identification-badge text-lg"></i>
+                            <span>Administradores</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- CONTEÚDO -->
+                <div class="mb-6">
+                    <p class="px-3 mb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
+                        Conteúdo
+                    </p>
+
+                    <div class="space-y-1">
+                        <button
+                            @click="selecionarMenu('disciplinas')"
+                            :class="classeMenu('disciplinas')"
+                            class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition"
+                        >
+                            <i class="ph ph-books text-lg"></i>
+                            <span>Disciplinas</span>
+                        </button>
+
+                        <button
+                            @click="selecionarMenu('videos')"
+                            :class="classeMenu('videos')"
+                            class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition"
+                        >
+                            <i class="ph ph-video-camera text-lg"></i>
+                            <span>Vídeos</span>
+                        </button>
+
+                        <button
+                            @click="selecionarMenu('questoes')"
+                            :class="classeMenu('questoes')"
+                            class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition"
+                        >
+                            <i class="ph ph-question text-lg"></i>
+                            <span>Questões</span>
+                        </button>
+
+                        <button
+                            @click="selecionarMenu('frases')"
+                            :class="classeMenu('frases')"
+                            class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition"
+                        >
+                            <i class="ph ph-quotes text-lg"></i>
+                            <span>Frases motivacionais</span>
+                        </button>
+
+                        <button
+                            @click="selecionarMenu('planos-curso')"
+                            :class="classeMenu('planos-curso')"
+                            class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition"
+                        >
+                            <i class="ph ph-notebook text-lg"></i>
+                            <span>Planos de curso</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- SISTEMA -->
+                <div class="mb-4">
+                    <p class="px-3 mb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
+                        Sistema
+                    </p>
+
+                    <div class="space-y-1">
+                        <button
+                            @click="selecionarMenu('relatorios')"
+                            :class="classeMenu('relatorios')"
+                            class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition"
+                        >
+                            <i class="ph ph-chart-bar text-lg"></i>
+                            <span>Relatórios</span>
+                        </button>
+
+                        <button
+                            @click="selecionarMenu('configuracoes')"
+                            :class="classeMenu('configuracoes')"
+                            class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition"
+                        >
+                            <i class="ph ph-gear-six text-lg"></i>
+                            <span>Configurações</span>
+                        </button>
+                    </div>
+                </div>
+            </nav>
+
+            <!-- PERFIL ADMINISTRADOR -->
+            <div class="p-4 border-t border-slate-200">
+                <div class="flex items-center gap-3 px-2 py-2">
+                    <div
+                        class="w-11 h-11 rounded-full bg-blue-600 text-white
+                               flex items-center justify-center font-bold
+                               border-2 border-white shadow-sm flex-shrink-0"
+                    >
+                        <span x-text="inicialAdministrador"></span>
+                    </div>
+
+                    <div class="flex-1 min-w-0">
+                        <p
+                            class="text-sm font-semibold text-slate-900 truncate"
+                            x-text="primeiroNome"
+                        ></p>
+
+                        <div class="flex items-center gap-1 text-[11px] text-blue-600 font-semibold">
+                            <i class="ph-fill ph-shield-check"></i>
+                            <span>Administrador</span>
+                        </div>
+                    </div>
+
+                    <button
+                        @click="sair()"
+                        type="button"
+                        title="Sair"
+                        class="w-9 h-9 rounded-lg flex items-center justify-center
+                               text-red-500 hover:bg-red-50 transition"
+                    >
+                        <i class="ph-bold ph-sign-out text-lg"></i>
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+
+        <!-- =========================================================
+             ÁREA PRINCIPAL
+        ========================================================== -->
+        <main class="flex-1 min-w-0 h-screen overflow-hidden bg-slate-50">
+
+            <!-- HEADER MOBILE -->
+            <header
+                class="md:hidden h-16 bg-white border-b border-slate-200
+                       flex items-center justify-between px-5"
+            >
+                <img
+                    src="img/horizontallogotrans.png"
+                    alt="Rota do Sucesso"
+                    class="h-9 w-auto object-contain"
+                >
+
+                <button
+                    @click="mobileMenuOpen = true"
+                    class="w-10 h-10 flex items-center justify-center rounded-xl
+                           text-slate-600 hover:bg-slate-100"
+                >
+                    <i class="ph-bold ph-list text-2xl"></i>
+                </button>
+            </header>
+
+            <!-- =========================================================
+     CONTEÚDO ADMINISTRATIVO
+========================================================== -->
+<div class="h-[calc(100vh-4rem)] md:h-screen overflow-y-auto">
+
+    <!-- FRASES MOTIVACIONAIS -->
+    <section
+        x-show="currentTab === 'frases'"
+        x-cloak
+        class="p-6 md:p-10"
+    >
+
+        <!-- CABEÇALHO -->
+        <div class="flex flex-col sm:flex-row sm:items-center
+                    sm:justify-between gap-4 mb-8">
+
+            <div>
+                <h1 class="text-2xl md:text-3xl font-bold text-slate-900">
+                    Frases motivacionais
+                </h1>
+
+                <p class="text-sm text-slate-500 mt-1">
+                    Gerencie as frases exibidas diariamente aos estudantes.
+                </p>
+            </div>
+
+            <button
+                type="button"
+                @click="abrirModalNovaFrase()"
+                class="inline-flex items-center justify-center gap-2
+                       bg-blue-600 hover:bg-blue-700
+                       text-white font-semibold
+                       px-5 py-3 rounded-xl
+                       shadow-sm transition"
+            >
+                <i class="ph-bold ph-plus"></i>
+
+                Nova frase
+            </button>
+
+        </div>
+
+
+        <!-- TABELA -->
+        <div class="bg-white border border-slate-200
+                    rounded-2xl shadow-sm overflow-hidden">
+
+            <div class="overflow-x-auto">
+
+                <table class="w-full">
+
+                    <thead class="bg-slate-50 border-b border-slate-200">
+
+                        <tr class="text-left text-xs uppercase
+                                   tracking-wider text-slate-500">
+
+                            <th class="px-6 py-4 w-20">
+                                Nº
+                            </th>
+
+                            <th class="px-6 py-4">
+                                Frase
+                            </th>
+
+                            <th class="px-6 py-4 w-56">
+                                Autor
+                            </th>
+
+                            <th class="px-6 py-4 w-32 text-center">
+                                Ações
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody class="divide-y divide-slate-100">
+
+                        <template
+                            x-for="(item, index) in frases"
+                            :key="item.id"
+                        >
+
+                            <tr class="hover:bg-slate-50 transition">
+
+                                <!-- NÚMERO -->
+                                <td
+                                    class="px-6 py-5 text-sm
+                                           text-slate-500 font-medium"
+                                    x-text="index + 1"
+                                ></td>
+
+
+                                <!-- FRASE -->
+                                <td class="px-6 py-5">
+
+                                    <p
+                                        class="text-sm text-slate-800
+                                               leading-relaxed"
+                                        x-text="item.frase"
+                                    ></p>
+
+                                </td>
+
+
+                                <!-- AUTOR -->
+                                <td class="px-6 py-5">
+
+                                    <span
+                                        class="text-sm font-medium
+                                               text-slate-600 italic"
+                                        x-text="item.autor"
+                                    ></span>
+
+                                </td>
+
+
+                                <!-- AÇÕES -->
+                                <td class="px-6 py-5">
+
+                                    <div class="flex items-center
+                                                justify-center gap-2">
+
+                                        <!-- EDITAR -->
+                                        <button
+                                            type="button"
+                                            @click="editarFrase(item)"
+                                            title="Editar frase"
+                                            class="w-9 h-9 rounded-lg
+                                                   flex items-center justify-center
+                                                   text-blue-600
+                                                   hover:bg-blue-50
+                                                   transition"
+                                        >
+                                            <i class="ph-bold ph-pencil-simple"></i>
+                                        </button>
+
+
+                                        <!-- EXCLUIR -->
+                                        <button
+                                            type="button"
+                                            @click="excluirFrase(item)"
+                                            title="Excluir frase"
+                                            class="w-9 h-9 rounded-lg
+                                                   flex items-center justify-center
+                                                   text-red-500
+                                                   hover:bg-red-50
+                                                   transition"
+                                        >
+                                            <i class="ph-bold ph-trash"></i>
+                                        </button>
+
+                                    </div>
+
+                                </td>
+
+                            </tr>
+
+                        </template>
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+
+            <!-- NENHUMA FRASE -->
+            <div
+                x-show="frases.length === 0"
+                class="py-16 text-center"
+            >
+
+                <i class="ph ph-quotes text-4xl text-slate-300"></i>
+
+                <p class="mt-3 text-slate-500">
+                    Nenhuma frase motivacional cadastrada.
+                </p>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    
+</div>
+
+        </main>
+
+
+        <!-- =========================================================
+             MENU MOBILE
+        ========================================================== -->
+        <div
+            x-show="mobileMenuOpen"
+            x-cloak
+            class="md:hidden fixed inset-0 z-50"
+        >
+            <!-- FUNDO -->
+            <div
+                @click="mobileMenuOpen = false"
+                class="absolute inset-0 bg-black/50"
+            ></div>
+
+            <!-- PAINEL -->
+            <aside
+                class="absolute left-0 top-0 h-full w-72 max-w-[85vw]
+                       bg-white shadow-2xl flex flex-col"
+            >
+                <div class="h-20 flex items-center justify-between px-5 border-b border-slate-100">
+                    <img
+                        src="img/logo_1.png"
+                        alt="Rota do Sucesso"
+                        class="h-16 w-auto object-contain"
+                    >
+
+                    <button
+                        @click="mobileMenuOpen = false"
+                        class="w-9 h-9 rounded-lg flex items-center justify-center
+                               text-slate-500 hover:bg-slate-100"
+                    >
+                        <i class="ph-bold ph-x text-xl"></i>
+                    </button>
+                </div>
+
+                <div class="px-4 pt-4">
+                    <div class="flex items-center gap-3 px-3 py-3 rounded-2xl bg-blue-600 text-white">
+                        <div class="w-9 h-9 rounded-xl bg-white/15 flex items-center justify-center">
+                            <i class="ph-bold ph-shield-check text-lg"></i>
+                        </div>
+                        <div>
+                            <p class="text-[10px] uppercase tracking-wider text-blue-100 font-bold">
+                                Rota do Sucesso
+                            </p>
+                            <p class="font-bold text-sm">Administração</p>
+                        </div>
+                    </div>
+                </div>
+
+                <nav class="flex-1 overflow-y-auto admin-scroll px-4 py-4">
+
+                    <p class="px-3 mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                        Painel
+                    </p>
+
+                    <button
+                        @click="selecionarMenuMobile('dashboard')"
+                        :class="classeMenu('dashboard')"
+                        class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm mb-5"
+                    >
+                        <i class="ph ph-squares-four text-lg"></i>
+                        Visão geral
+                    </button>
+
+                    <p class="px-3 mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                        Gerenciamento
+                    </p>
+
+                    <div class="space-y-1 mb-5">
+                        <button @click="selecionarMenuMobile('usuarios')" :class="classeMenu('usuarios')" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm">
+                            <i class="ph ph-users-three text-lg"></i> Usuários
+                        </button>
+
+                        <button @click="selecionarMenuMobile('turmas')" :class="classeMenu('turmas')" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm">
+                            <i class="ph ph-chalkboard-teacher text-lg"></i> Turmas
+                        </button>
+
+                        <button @click="selecionarMenuMobile('administradores')" :class="classeMenu('administradores')" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm">
+                            <i class="ph ph-identification-badge text-lg"></i> Administradores
+                        </button>
+                    </div>
+
+                    <p class="px-3 mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                        Conteúdo
+                    </p>
+
+                    <div class="space-y-1 mb-5">
+                        <button @click="selecionarMenuMobile('disciplinas')" :class="classeMenu('disciplinas')" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm">
+                            <i class="ph ph-books text-lg"></i> Disciplinas
+                        </button>
+
+                        <button @click="selecionarMenuMobile('videos')" :class="classeMenu('videos')" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm">
+                            <i class="ph ph-video-camera text-lg"></i> Vídeos
+                        </button>
+
+                        <button @click="selecionarMenuMobile('questoes')" :class="classeMenu('questoes')" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm">
+                            <i class="ph ph-question text-lg"></i> Questões
+                        </button>
+
+                        <button @click="selecionarMenuMobile('frases')" :class="classeMenu('frases')" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm">
+                            <i class="ph ph-quotes text-lg"></i> Frases motivacionais
+                        </button>
+
+                        <button @click="selecionarMenuMobile('planos-curso')" :class="classeMenu('planos-curso')" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm">
+                            <i class="ph ph-notebook text-lg"></i> Planos de curso
+                        </button>
+                    </div>
+
+                    <p class="px-3 mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                        Sistema
+                    </p>
+
+                    <div class="space-y-1">
+                        <button @click="selecionarMenuMobile('relatorios')" :class="classeMenu('relatorios')" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm">
+                            <i class="ph ph-chart-bar text-lg"></i> Relatórios
+                        </button>
+
+                        <button @click="selecionarMenuMobile('configuracoes')" :class="classeMenu('configuracoes')" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm">
+                            <i class="ph ph-gear-six text-lg"></i> Configurações
+                        </button>
+                    </div>
+                </nav>
+
+                <div class="p-4 border-t border-slate-200">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold">
+                            <span x-text="inicialAdministrador"></span>
+                        </div>
+
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-semibold truncate" x-text="primeiroNome"></p>
+                            <p class="text-[11px] text-blue-600 font-semibold">Administrador</p>
+                        </div>
+
+                        <button @click="sair()" class="text-red-500 p-2">
+                            <i class="ph-bold ph-sign-out text-lg"></i>
+                        </button>
+                    </div>
+                </div>
+            </aside>
+        </div>
+
+    </div>
+
+    <!-- =========================================================
+     MODAL - FRASE MOTIVACIONAL
+========================================================== -->
+<div
+    x-show="modalFraseAberto"
+    x-cloak
+    class="fixed inset-0 z-[100]
+           flex items-center justify-center
+           px-4"
+>
+
+    <!-- FUNDO ESCURO -->
+    <div
+        class="absolute inset-0 bg-slate-900/50 backdrop-blur-[2px]"
+        @click="fecharModalFrase()"
+    ></div>
+
+
+    <!-- JANELA -->
+    <div
+        @click.stop
+        class="relative bg-white
+               w-full max-w-xl
+               rounded-2xl shadow-2xl
+               overflow-hidden"
+    >
+
+        <!-- CABEÇALHO -->
+        <div class="flex items-start justify-between
+                    px-6 py-5
+                    border-b border-slate-200">
+
+            <div>
+
+                <h2
+                    class="text-xl font-bold text-slate-900"
+                    x-text="modoEdicaoFrase
+                        ? 'Editar frase'
+                        : 'Nova frase motivacional'"
+                ></h2>
+
+                <p class="text-sm text-slate-500 mt-1">
+                    Informe a frase e o nome do autor.
+                </p>
+
+            </div>
+
+
+            <button
+                type="button"
+                @click="fecharModalFrase()"
+                class="w-9 h-9 rounded-lg
+                       flex items-center justify-center
+                       text-slate-400
+                       hover:bg-slate-100
+                       hover:text-slate-700
+                       transition"
+            >
+                <i class="ph-bold ph-x text-lg"></i>
+            </button>
+
+        </div>
+
+
+        <!-- FORMULÁRIO -->
+        <form
+            @submit.prevent="salvarFrase()"
+            class="p-6"
+        >
+
+            <!-- FRASE -->
+            <div class="mb-5">
+
+                <label class="block text-sm font-semibold
+                              text-slate-700 mb-2">
+                    Frase
+                </label>
+
+                <textarea
+                    x-model="formFrase.frase"
+                    rows="5"
+                    maxlength="500"
+                    required
+                    placeholder="Digite a frase motivacional..."
+                    class="w-full px-4 py-3
+                           border border-slate-300
+                           rounded-xl
+                           text-sm text-slate-800
+                           resize-none
+                           outline-none
+                           focus:border-blue-500
+                           focus:ring-4
+                           focus:ring-blue-100
+                           transition"
+                ></textarea>
+
+            </div>
+
+
+            <!-- AUTOR -->
+            <div>
+
+                <label class="block text-sm font-semibold
+                              text-slate-700 mb-2">
+                    Autor
+                </label>
+
+                <input
+                    type="text"
+                    x-model="formFrase.autor"
+                    maxlength="150"
+                    required
+                    placeholder="Ex.: Albert Einstein"
+                    class="w-full px-4 py-3
+                           border border-slate-300
+                           rounded-xl
+                           text-sm text-slate-800
+                           outline-none
+                           focus:border-blue-500
+                           focus:ring-4
+                           focus:ring-blue-100
+                           transition"
+                >
+
+            </div>
+
+
+            <!-- BOTÕES -->
+            <div class="flex justify-end gap-3 mt-7">
+
+                <button
+                    type="button"
+                    @click="fecharModalFrase()"
+                    class="px-5 py-3
+                           rounded-xl
+                           border border-slate-300
+                           text-slate-700
+                           font-semibold text-sm
+                           hover:bg-slate-50
+                           transition"
+                >
+                    Cancelar
+                </button>
+
+
+                <button
+                    type="submit"
+                    :disabled="salvandoFrase"
+                    class="px-5 py-3
+                           rounded-xl
+                           bg-blue-600
+                           text-white
+                           font-semibold text-sm
+                           hover:bg-blue-700
+                           disabled:opacity-50
+                           transition
+                           flex items-center gap-2"
+                >
+
+                    <i
+                        class="ph-bold"
+                        :class="salvandoFrase
+                            ? 'ph-spinner animate-spin'
+                            : 'ph-check'"
+                    ></i>
+
+                    <span
+                        x-text="salvandoFrase
+                            ? 'Salvando...'
+                            : (modoEdicaoFrase
+                                ? 'Salvar alterações'
+                                : 'Adicionar frase')"
+                    ></span>
+
+                </button>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+<!-- =========================================================
+     MODAL - CONFIRMAR EXCLUSÃO DE FRASE
+========================================================== -->
+
+<div
+    x-show="modalExcluirFraseAberto"
+    x-cloak
+    class="fixed inset-0 z-[110] flex items-center justify-center px-4"
+>
+
+    <!-- FUNDO -->
+    <div
+        class="absolute inset-0 bg-slate-900/50 backdrop-blur-[2px]"
+        @click="fecharModalExcluirFrase()"
+    ></div>
+
+
+    <!-- JANELA -->
+    <div
+        @click.stop
+        class="relative bg-white w-full max-w-md
+               rounded-2xl shadow-2xl overflow-hidden"
+    >
+
+        <!-- CABEÇALHO -->
+        <div class="flex items-center gap-3 px-6 py-5 border-b border-slate-200">
+
+            <div class="w-10 h-10 rounded-xl bg-red-50
+                        flex items-center justify-center
+                        text-red-500">
+
+                <i class="ph-bold ph-trash text-xl"></i>
+
+            </div>
+
+            <div>
+                <h2 class="text-xl font-bold text-slate-900">
+                    Excluir frase
+                </h2>
+
+                <p class="text-sm text-slate-500 mt-1">
+                    Confirme a exclusão da frase motivacional.
+                </p>
+            </div>
+
+        </div>
+
+
+        <!-- CONTEÚDO -->
+        <div class="p-6">
+
+            <p class="text-sm text-slate-600 mb-4">
+                Tem certeza de que deseja excluir esta frase?
+            </p>
+
+
+            <!-- FRASE SELECIONADA -->
+            <div class="bg-slate-50 border border-slate-200
+                        rounded-xl p-4">
+
+                <p
+                    class="text-sm text-slate-800 leading-relaxed"
+                    x-text="fraseParaExcluir
+                        ? '“' + fraseParaExcluir.frase + '”'
+                        : ''"
+                ></p>
+
+                <p
+                    class="text-sm text-slate-500 italic mt-3"
+                    x-text="fraseParaExcluir
+                        ? '— ' + fraseParaExcluir.autor
+                        : ''"
+                ></p>
+
+            </div>
+
+
+            <!-- BOTÕES -->
+            <div class="flex justify-end gap-3 mt-6">
+
+                <button
+                    type="button"
+                    @click="fecharModalExcluirFrase()"
+                    :disabled="excluindoFrase"
+                    class="px-5 py-3 rounded-xl
+                           border border-slate-300
+                           text-slate-700 font-semibold text-sm
+                           hover:bg-slate-50 transition"
+                >
+                    Cancelar
+                </button>
+
+
+                <button
+                    type="button"
+                    @click="confirmarExclusaoFrase()"
+                    :disabled="excluindoFrase"
+                    class="px-5 py-3 rounded-xl
+                           bg-red-500 text-white
+                           font-semibold text-sm
+                           hover:bg-red-600
+                           disabled:opacity-50
+                           transition flex items-center gap-2"
+                >
+
+                    <i
+                        class="ph-bold"
+                        :class="excluindoFrase
+                            ? 'ph-spinner animate-spin'
+                            : 'ph-trash'"
+                    ></i>
+
+                    <span
+                        x-text="excluindoFrase
+                            ? 'Excluindo...'
+                            : 'Excluir frase'"
+                    ></span>
+
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+    <!-- =========================================================
+         JAVASCRIPT
+    ========================================================== -->
+<script>
+        function adminApp() {
+            return {
+                usuarioId: null,
+                nome: 'Administrador',
+                email: '',
+                currentTab: 'dashboard',
+                mobileMenuOpen: false,
+
+                frases: [],
+
+                modalFraseAberto: false,
+                modoEdicaoFrase: false,
+                fraseEditandoId: null,
+                modalExcluirFraseAberto: false,
+                fraseParaExcluir: null,
+                excluindoFrase: false,
+                    formFrase: {
+                        frase: '',
+                        autor: ''
+                    },
+
+                salvandoFrase: false,
+
+                async initApp() {
+                    // Verifica se existe sessão
+                    const usuarioIdSalvo = sessionStorage.getItem('usuarioId');
+                    const tipoUsuarioSalvo = sessionStorage.getItem('tipoUsuario');
+
+                    if (!usuarioIdSalvo) {
+                        window.location.href = 'login.html';
+                        return;
+                    }
+
+                    // Impede usuário comum de abrir admin.html diretamente
+                    if (tipoUsuarioSalvo !== 'administrador') {
+                        window.location.href = 'main.html';
+                        return;
+                    }
+
+                    this.usuarioId = usuarioIdSalvo;
+
+                    await this.carregarAdministrador();
+                },
+
+                async carregarAdministrador() {
+                    try {
+                        const resposta = await fetch(`/api/perfil/${this.usuarioId}`);
+
+                        if (!resposta.ok) {
+                            console.error('Erro ao carregar dados do administrador:', resposta.status);
+                            return;
+                        }
+
+                        const dados = await resposta.json();
+
+                        if (dados.nome) {
+                            this.nome = dados.nome;
+                        }
+
+                        if (dados.email) {
+                            this.email = dados.email;
+                        }
+
+                    } catch (erro) {
+                        console.error('Erro ao carregar administrador:', erro);
+                    }
+                },
+
+            async carregarFrases() {
+    try {
+        const resposta = await fetch('/api/admin/frases');
+
+        if (!resposta.ok) {
+            throw new Error('Erro ao buscar frases.');
+        }
+
+        const dados = await resposta.json();
+
+        if (dados.sucesso) {
+            this.frases = dados.frases;
+        }
+
+    } catch (erro) {
+        console.error('❌ Erro ao carregar frases:', erro);
+        this.frases = [];
+    }
+},
+            abrirModalNovaFrase() {
+
+                this.modoEdicaoFrase = false;
+                this.fraseEditandoId = null;
+                this.formFrase = {
+                    frase: '',
+                    autor: ''
+                };
+                this.modalFraseAberto = true;
+            },
+
+            editarFrase(item) {
+                this.modoEdicaoFrase = true;
+                this.fraseEditandoId = item.id;
+                this.formFrase = 
+                {
+                    frase: item.frase,
+                    autor: item.autor
+                };
+                this.modalFraseAberto = true;
+            },
+
+            async salvarFrase() {
+
+                const frase = this.formFrase.frase.trim();
+                const autor = this.formFrase.autor.trim();
+                if (!frase || !autor) {
+                    alert('Informe a frase e o autor.');
+                    return;
+                }
+            this.salvandoFrase = true;
+            try {
+                let resposta;
+
+        // ===============================
+        // EDITANDO
+        // ===============================
+            if (this.modoEdicaoFrase) {
+                resposta = await fetch(
+                `/api/admin/frases/${this.fraseEditandoId}`,
+                {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        frase,
+                        autor
+                    })
+                }
+            );
+
+        }
+
+
+        // ===============================
+        // NOVA FRASE
+        // ===============================
+        else {
+
+            resposta = await fetch(
+                '/api/admin/frases',
+                {
+                    method: 'POST',
+
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+
+                    body: JSON.stringify({
+                        frase,
+                        autor
+                    })
+                }
+            );
+
+        }
+
+        const dados = await resposta.json();
+
+            if (!resposta.ok) {
+                throw new Error(
+                 dados.erro || 'Não foi possível salvar a frase.'
+                );
+            }
+
+                // Fecha o modal
+                this.modalFraseAberto = false;
+                this.modoEdicaoFrase = false;
+                this.fraseEditandoId = null;
+                this.formFrase = {
+                    frase: '',
+                    autor: ''
+                };
+
+                // Atualiza a tabela
+                await this.carregarFrases();
+
+                } catch (erro) {
+                    onsole.error('❌ Erro ao salvar frase:', erro);
+                    alert(erro.message);
+                } finally {
+                    this.salvandoFrase = false;
+                }
+
+},
+
+excluirFrase(item) {
+    this.fraseParaExcluir = item;
+    this.modalExcluirFraseAberto = true;
+},
+
+async confirmarExclusaoFrase() {
+
+    if (!this.fraseParaExcluir) {
+        return;
+    }
+
+    this.excluindoFrase = true;
+
+    try {
+
+        const resposta = await fetch(
+            `/api/admin/frases/${this.fraseParaExcluir.id}`,
+            {
+                method: 'DELETE'
+            }
+        );
+
+        const dados = await resposta.json();
+
+        if (!resposta.ok) {
+            throw new Error(
+                dados.erro || 'Não foi possível excluir a frase.'
+            );
+        }
+
+        // Fecha o modal
+        this.modalExcluirFraseAberto = false;
+        this.fraseParaExcluir = null;
+
+        // Atualiza a tabela
+        await this.carregarFrases();
+
+    } catch (erro) {
+
+        console.error('❌ Erro ao excluir frase:', erro);
+        alert(erro.message);
+
+    } finally {
+
+        this.excluindoFrase = false;
+
+    }
+},
+
+fecharModalExcluirFrase() {
+
+    if (this.excluindoFrase) {
+        return;
+    }
+
+    this.modalExcluirFraseAberto = false;
+    this.fraseParaExcluir = null;
+},
+
+fecharModalFrase() {
+
+    if (this.salvandoFrase) {
+        return;
+    }
+
+    this.modalFraseAberto = false;
+
+    this.modoEdicaoFrase = false;
+    this.fraseEditandoId = null;
+
+    this.formFrase = {
+        frase: '',
+        autor: ''
+    };
+},
+
+selecionarMenu(menu) {
+
+    this.currentTab = menu;
+
+    if (menu === 'frases') {
+        this.carregarFrases();
+    }
+},
+                selecionarMenuMobile(menu) 
+                {
+                        this.currentTab = menu;
+                        this.mobileMenuOpen = false;
+                    if (menu === 'frases') {
+                        this.carregarFrases();
+                    }
+                },
+
+                classeMenu(menu) {
+                    if (this.currentTab === menu) {
+                        return 'bg-blue-50 text-blue-600 font-semibold border border-blue-100 shadow-sm';
+                    }
+
+                    return 'text-slate-600 hover:bg-white/80 hover:text-slate-900';
+                },
+
+                sair() {
+                    sessionStorage.removeItem('usuarioId');
+                    sessionStorage.removeItem('tipoUsuario');
+                    window.location.href = 'login.html';
+                },
+
+                get primeiroNome() {
+                    if (!this.nome) return 'Administrador';
+                    return this.nome.trim().split(/\s+/)[0];
+                },
+
+                get inicialAdministrador() {
+                    if (!this.nome) return 'A';
+                    return this.nome.trim().charAt(0).toUpperCase();
+                }
+            };
+        }
+    </script>
+
+</body>
+</html>

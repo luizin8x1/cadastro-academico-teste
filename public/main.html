@@ -82,10 +82,10 @@
     <div class="dark:bg-slate-950 min-h-screen flex transition-colors duration-300 overflow-hidden hc:bg-black">
         
         <!-- SIDEBAR (Desktop) -->
-        <aside class="hidden md:flex flex-col w-64 h-screen min-h-0 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 hc:bg-black hc:border-white hc:border-r-2 transition-all duration-300 z-20">
+        <aside class="hidden md:flex flex-col w-64 h-screen min-h-0 bg-gradient-to-b from-white via-blue-50/40 to-cyan-50/60 dark:bg-slate-900 border-r border-blue-100 dark:border-slate-800 hc:bg-black hc:border-white hc:border-r-2 transition-all duration-300 z-20">
             <div class="h-20 flex items-center px-6 border-b border-slate-100 dark:border-slate-800 hc:border-white">
                 <a href="index.html" class="flex items-center">
-                <img src="img/horizontallogotransline.png" alt="Rota Do Sucesso" class="h-20 w-auto object-contain">
+                <img src="img/logo_1.png" alt="Rota Do Sucesso" class="h-20 w-auto object-contain">
             </a>
             </div>
 
@@ -157,55 +157,262 @@
                 </button>
             </nav>
 
-            <div class="p-4 border-t border-slate-100 dark:border-slate-800 hc:border-white relative" x-data="{ profileMenuOpen: false }" @click.outside="profileMenuOpen = false">
-                <button
-                    @click="profileMenuOpen = !profileMenuOpen"
-                    class="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 hc:hover:bg-white hc:hover:text-black transition cursor-pointer group"
-                >
-                    <div class="w-10 h-10 rounded-full bg-blue-600 hc:bg-yellow-400 hc:text-black text-white flex items-center justify-center text-sm font-bold border-2 border-transparent group-hover:border-slate-300 hc:border-white flex-shrink-0" x-text="nome ? nome.charAt(0).toUpperCase() : '?'"></div>
-                    <div class="flex-1 min-w-0 text-left">
-                        <p class="text-sm font-semibold text-slate-900 dark:text-white truncate" x-text="nome || 'Carregando...'"></p>
-                        <p class="text-xs text-slate-500 dark:text-slate-400 group-hover:text-current group-[.hc]:text-yellow-300 truncate" x-text="email"></p>
-                    </div>
-                    <i class="ph-bold ph-caret-up text-sm text-slate-400 hc:text-white transition-transform duration-200 flex-shrink-0" :class="profileMenuOpen ? '' : 'rotate-180'"></i>
-                </button>
+            <div
+    class="p-4 border-t border-slate-100 dark:border-slate-800 hc:border-white relative"
+    x-data="{ profileMenuOpen: false }"
+    @click.outside="profileMenuOpen = false"
+>
 
-                <!-- Dropdown do Perfil -->
-                <div
-                    x-show="profileMenuOpen"
-                    x-transition:enter="transition ease-out duration-150"
-                    x-transition:enter-start="opacity-0 translate-y-1"
-                    x-transition:enter-end="opacity-100 translate-y-0"
-                    x-cloak
-                    class="absolute bottom-full left-4 right-4 mb-2 bg-white dark:bg-slate-800 hc:bg-black hc:border-2 hc:border-white rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden z-30"
-                >
-                    <button
-                        @click="currentTab = 'settings'; profileMenuOpen = false"
-                        class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 hc:text-white hover:bg-slate-100 dark:hover:bg-slate-700 hc:hover:bg-white hc:hover:text-black transition"
-                    >
-                        <i class="ph ph-gear text-base"></i> Configurações
-                    </button>
-                    <a
-                        href="editar-dados.html"
-                        class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 hc:text-white hover:bg-slate-100 dark:hover:bg-slate-700 hc:hover:bg-white hc:hover:text-black transition"
-                    >
-                        <i class="ph ph-user-circle-gear text-base"></i> Editar dados
-                    </a>
-                    <a
-                        href="perfil-visualizar.html"
-                        class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 hc:text-white hover:bg-slate-100 dark:hover:bg-slate-700 hc:hover:bg-white hc:hover:text-black transition"
-                    >
-                        <i class="ph ph-graduation-cap text-base"></i> Perfil Acadêmico
-                    </a>
-                    <div class="border-t border-slate-100 dark:border-slate-700 hc:border-white"></div>
-                    <button
-                        @click="sair"
-                        class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hc:text-white hover:bg-red-50 dark:hover:bg-red-900/20 hc:hover:bg-white hc:hover:text-black transition"
-                    >
-                        <i class="ph-bold ph-sign-out text-base"></i> Sair
-                    </button>
-                </div>
+    <div class="w-full flex items-center gap-3 p-2 rounded-xl
+                hover:bg-white/60 dark:hover:bg-slate-800
+                transition">
+
+        <!-- FOTO DO PERFIL -->
+        <button
+            type="button"
+            onclick="abrirMenuFotoPerfil(event)"
+            class="relative w-11 h-11 rounded-full
+                   bg-blue-600 text-white
+                   flex items-center justify-center
+                   font-bold flex-shrink-0
+                   border-2 border-white
+                   shadow-sm
+                   hover:ring-2 hover:ring-blue-300
+                   transition overflow-hidden"
+            title="Alterar foto do perfil"
+        >
+
+            <!-- Foto -->
+            <img
+                id="fotoPerfilMenu"
+                src=""
+                alt="Foto de perfil"
+                class="hidden w-full h-full object-cover"
+            >
+
+            <!-- Inicial do nome -->
+            <span
+                id="inicialPerfilMenu"
+                x-text="nome ? nome.charAt(0).toUpperCase() : '?'">
+            </span>
+
+            <!-- pequeno ícone da câmera -->
+            <span class="absolute bottom-0 right-0
+                         w-4 h-4 rounded-full
+                         bg-white text-blue-600
+                         flex items-center justify-center
+                         shadow">
+                <i class="ph-bold ph-camera text-[9px]"></i>
+            </span>
+
+        </button>
+
+<!-- MENU DA FOTO DE PERFIL -->
+<div
+    id="menuFotoPerfil"
+    class="hidden absolute bottom-16 left-4
+           w-48 bg-white
+           rounded-xl shadow-xl
+           border border-slate-200
+           overflow-hidden z-50"
+>
+
+    <!-- INSERIR / TROCAR FOTO -->
+    <button
+        type="button"
+        onclick="escolherFotoPerfil()"
+        class="w-full flex items-center gap-3
+               px-4 py-3 text-sm font-medium
+               text-slate-700
+               hover:bg-blue-50 transition"
+    >
+        <i class="ph-bold ph-camera text-blue-600 text-lg"></i>
+
+        <span id="textoAcaoFoto">
+            Inserir foto
+        </span>
+    </button>
+
+
+    <!-- EXCLUIR FOTO -->
+    <button
+        id="btnExcluirFoto"
+        type="button"
+        onclick="excluirFotoPerfil()"
+        class="hidden w-full items-center gap-3
+               px-4 py-3 text-sm font-medium
+               text-red-600
+               hover:bg-red-50 transition
+               border-t border-slate-100"
+    >
+        <i class="ph-bold ph-trash text-lg"></i>
+
+        Excluir foto
+    </button>
+
+</div>
+
+
+        <!-- SELETOR DA FOTO -->
+        <input
+            type="file"
+            id="inputFotoPerfil"
+            accept="image/png,image/jpeg,image/webp"
+            class="hidden"
+            onchange="selecionarFotoPerfil(event)"
+        >
+
+
+        <!-- NOME / EMAIL / SETA -->
+        <button
+            type="button"
+            @click="profileMenuOpen = !profileMenuOpen"
+            class="flex-1 min-w-0 flex items-center gap-2 text-left"
+        >
+
+            <div class="flex-1 min-w-0">
+
+                <p
+                    class="text-sm font-semibold
+                           text-slate-900 dark:text-white truncate"
+                    x-text="nome ? nome.split(' ')[0] : 'Carregando...'">
+                </p>
+
+                <p
+                    class="text-[11px]
+                           text-slate-500 dark:text-slate-400 truncate"
+                    x-text="email">
+                </p>
+
             </div>
+
+            <i
+                class="ph-bold ph-caret-up
+                       text-sm text-slate-400
+                       transition-transform duration-200"
+                :class="profileMenuOpen ? '' : 'rotate-180'">
+            </i>
+
+        </button>
+
+    </div>
+
+
+    <!-- MENU DO PERFIL -->
+    <div
+        x-show="profileMenuOpen"
+        x-transition:enter="transition ease-out duration-150"
+        x-transition:enter-start="opacity-0 translate-y-1"
+        x-transition:enter-end="opacity-100 translate-y-0"
+        x-cloak
+
+        class="absolute bottom-full left-4 right-4 mb-2
+               bg-white dark:bg-slate-800
+               rounded-2xl shadow-xl
+               border border-slate-200 dark:border-slate-700
+               overflow-hidden z-30"
+    >
+
+        <!-- TÍTULO -->
+        <div class="px-4 py-3 border-b
+                    border-slate-100 dark:border-slate-700">
+
+            <p class="text-xs font-bold uppercase tracking-wider
+                      text-slate-400">
+                Minha conta
+            </p>
+
+        </div>
+
+
+        <!-- DADOS DE ACESSO -->
+        <a
+            href="editar-dados.html"
+            class="w-full flex items-center gap-3
+                   px-4 py-3 text-sm
+                   text-slate-700 dark:text-slate-200
+                   hover:bg-blue-50 dark:hover:bg-slate-700
+                   transition"
+        >
+            <i class="ph ph-key text-lg text-blue-600"></i>
+
+            <div>
+                <p class="font-semibold">Dados de acesso</p>
+                <p class="text-xs text-slate-400">
+                    Alterar e-mail ou senha
+                </p>
+            </div>
+        </a>
+
+
+        <!-- PERFIL ACADÊMICO -->
+        <a
+            href="perfil-visualizar.html"
+            class="w-full flex items-center gap-3
+                   px-4 py-3 text-sm
+                   text-slate-700 dark:text-slate-200
+                   hover:bg-blue-50 dark:hover:bg-slate-700
+                   transition"
+        >
+            <i class="ph ph-graduation-cap text-lg text-blue-600"></i>
+
+            <div>
+                <p class="font-semibold">Perfil acadêmico</p>
+                <p class="text-xs text-slate-400">
+                    Informações dos seus estudos
+                </p>
+            </div>
+        </a>
+
+
+        <!-- CONFIGURAÇÕES -->
+        <button
+            type="button"
+            @click="currentTab = 'settings'; profileMenuOpen = false"
+            class="w-full flex items-center gap-3
+                   px-4 py-3 text-sm text-left
+                   text-slate-700 dark:text-slate-200
+                   hover:bg-blue-50 dark:hover:bg-slate-700
+                   transition"
+        >
+            <i class="ph ph-gear-six text-lg text-blue-600"></i>
+
+            <div>
+                <p class="font-semibold">Configurações</p>
+                <p class="text-xs text-slate-400">
+                    Preferências da plataforma
+                </p>
+            </div>
+        </button>
+
+
+        <!-- SEPARADOR -->
+        <div class="border-t border-slate-100 dark:border-slate-700"></div>
+
+
+        <!-- EXCLUIR PERFIL -->
+        <button
+            type="button"
+            onclick="excluirPerfil()"
+            class="w-full flex items-center gap-3
+                   px-4 py-3 text-sm text-left
+                   text-red-600
+                   hover:bg-red-50 dark:hover:bg-red-900/20
+                   transition"
+        >
+            <i class="ph ph-trash text-lg"></i>
+
+            <div>
+                <p class="font-semibold">Excluir perfil</p>
+                <p class="text-xs text-red-400">
+                    Excluir permanentemente minha conta
+                </p>
+            </div>
+        </button>
+
+    </div>
+
+</div>
         </aside>
 
         <!-- MAIN CONTENT -->
@@ -219,6 +426,19 @@
                 <button @click="mobileMenuOpen = !mobileMenuOpen" class="text-slate-600 dark:text-slate-300 hc:text-white">
                     <i class="ph ph-list text-2xl"></i>
                 </button>
+
+
+<!-- Cropper.js -->
+<link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.css"
+>
+
+<script
+    src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js">
+</script>
+
+
             </header>
 
             <!-- MENU MOBILE (Off-canvas) -->
@@ -257,19 +477,27 @@
                     <!-- Atalhos -->
                     <div class="px-4 pt-4 flex-shrink-0">
                         <div class="grid grid-cols-3 gap-1.5">
-                            <button @click="currentTab = 'dashboard'; mobileMenuOpen = false" class="flex flex-col items-center justify-center gap-1 py-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 hc:hover:bg-white hc:hover:text-black text-slate-600 dark:text-slate-300 hc:text-white">
-                                <i class="ph-bold ph-house text-lg"></i>
-                                <span class="text-[10px] font-semibold">Home</span>
-                            </button>
-                            <a href="perfil-visualizar.html" class="flex flex-col items-center justify-center gap-1 py-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 hc:hover:bg-white hc:hover:text-black text-slate-600 dark:text-slate-300 hc:text-white">
-                                <i class="ph-bold ph-pencil-simple text-lg"></i>
-                                <span class="text-[10px] font-semibold">Editar Perfil</span>
-                            </a>
-                            <button @click="sair" class="flex flex-col items-center justify-center gap-1 py-2.5 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 hc:hover:bg-white hc:hover:text-black text-red-600 dark:text-red-400 hc:text-white">
-                                <i class="ph-bold ph-sign-out text-lg"></i>
-                                <span class="text-[10px] font-semibold">Sair</span>
-                            </button>
-                        </div>
+    <button @click="currentTab = 'dashboard'; mobileMenuOpen = false"
+        class="flex flex-col items-center justify-center gap-1 py-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 hc:hover:bg-white hc:hover:text-black text-slate-600 dark:text-slate-300 hc:text-white">
+        
+        <i class="ph-bold ph-house-line text-xl"></i>
+        <span class="text-[10px] font-semibold">Home</span>
+    </button>
+
+    <a href="perfil-visualizar.html"
+        class="flex flex-col items-center justify-center gap-1 py-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 hc:hover:bg-white hc:hover:text-black text-slate-600 dark:text-slate-300 hc:text-white">
+        
+        <i class="ph-bold ph-user-circle-gear text-xl"></i>
+        <span class="text-[10px] font-semibold">Editar Perfil</span>
+    </a>
+
+    <button @click="sair"
+        class="flex flex-col items-center justify-center gap-1 py-2.5 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 hc:hover:bg-white hc:hover:text-black text-red-600 dark:text-red-400 hc:text-white">
+        
+        <i class="ph-bold ph-sign-out text-xl"></i>
+        <span class="text-[10px] font-semibold">Sair</span>
+    </button>
+</div>
                     </div>
 
                     <!-- Navegação agrupada -->
@@ -339,8 +567,43 @@
                             <p class="text-sm font-medium text-slate-500 dark:text-slate-400 hc:text-yellow-300 mb-1" x-text="currentDate"></p>
                             <h1 class="text-3xl font-bold tracking-tight text-slate-900 dark:text-white hc:text-white">Olá, <span x-text="nome ? nome.split(' ')[0] : 'Estudante'"></span>.</h1>
                             <p class="text-slate-600 dark:text-slate-300 hc:text-white mt-2 flex items-center gap-2">
-                                <i class="ph-fill ph-sparkle" :class="accentText"></i>
-                                Você está a 45 minutos de completar sua meta de hoje.
+                                                            
+                                <!-- FRASE MOTIVACIONAL DO DIA -->
+<div
+    x-show="fraseDoDia"
+    x-cloak
+    class="mt-2 flex items-start gap-2.5"
+>
+    <!-- Ícone -->
+    <div class="pt-0.5 flex-shrink-0">
+        <i class="ph-fill ph-sparkle text-blue-500 text-lg"></i>
+    </div>
+
+    <!-- Frase -->
+    <div class="flex flex-wrap items-baseline gap-x-1.5 leading-relaxed">
+
+        <span class="text-base font-bold text-slate-700 dark:text-slate-200">
+            Sua frase do dia:
+        </span>
+
+        <span
+            class="text-base font-medium text-slate-600 dark:text-slate-300"
+        >
+            “<span x-text="fraseDoDia"></span>”
+        </span>
+
+        <span
+            x-show="autorFraseDoDia"
+            class="text-sm italic font-medium text-slate-500 dark:text-slate-400 ml-1"
+        >
+            — <span x-text="autorFraseDoDia"></span>
+        </span>
+
+    </div>
+</div>
+
+    </div>
+</div>
                             </p>
                         </div>
                         <button @click="currentTab = 'timer'" class="hidden md:flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5" :class="accentBg">
@@ -882,7 +1145,7 @@
                     </div>
 
                     <div x-show="cronCarregando" class="text-center text-sm text-slate-500 dark:text-slate-400 hc:text-white py-16">
-                        Carregando...
+                        Carregando2...
                     </div>
 
                     <div x-show="!cronCarregando" x-cloak class="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 hc:bg-black hc:border-2 hc:border-white shadow-sm">
@@ -1152,80 +1415,32 @@
                 </div>
 
                 <!-- ROTINA DIÁRIA TAB -->
-                <div x-show="currentTab === 'rotina'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4" x-transition:enter-end="opacity-100 translate-y-0" class="max-w-4xl mx-auto space-y-6" x-cloak>
-                    <div>
-                        <h1 class="text-3xl font-bold tracking-tight text-slate-900 dark:text-white hc:text-white">Rotina Diária (REPRESENTAÇAO VISUAL)</h1>
-                        <p class="text-slate-500 dark:text-slate-400 hc:text-yellow-300">Uma prévia de como seus horários fixos poderão aparecer aqui.</p>
-                    </div>
+                <div id="pagina-rotina" class="space-y-6">
 
-                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                        <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 hc:bg-black hc:border-2 hc:border-white shadow-sm">
-                            <div class="flex items-center gap-3 mb-4">
-                                <div class="w-10 h-10 rounded-xl flex items-center justify-center" :class="accentBgBase">
-                                    <i class="ph-bold ph-sun text-lg"></i>
-                                </div>
-                                <div>
-                                    <p class="text-xs text-slate-500 dark:text-slate-400 hc:text-yellow-300">Hoje</p>
-                                    <h3 class="font-bold text-slate-900 dark:text-white">Quarta-feira</h3>
-                                </div>
-                            </div>
-                            <p class="text-sm text-slate-500 dark:text-slate-400 hc:text-gray-300">3 compromissos planejados</p>
-                        </div>
+    <!-- Cabeçalho -->
+    <div>
+        <h1 class="text-3xl font-bold text-slate-900 dark:text-white">
+            Rotina Diária
+        </h1>
 
-                        <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 hc:bg-black hc:border-2 hc:border-white shadow-sm">
-                            <p class="text-xs text-slate-500 dark:text-slate-400 hc:text-yellow-300 mb-1">Tempo reservado</p>
-                            <p class="text-2xl font-extrabold text-slate-900 dark:text-white">4h 30m</p>
-                            <div class="mt-3 h-2 rounded-full bg-slate-100 dark:bg-slate-800 hc:bg-gray-800 overflow-hidden">
-                                <div class="h-full rounded-full" :class="accentBg" style="width: 68%"></div>
-                            </div>
-                        </div>
+        <p class="text-slate-500 dark:text-slate-400 mt-1">
+            Organize seus compromissos para que o Rota do Sucesso encontre
+            os melhores horários para seus estudos.
+        </p>
+    </div>
 
-                        <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 hc:bg-black hc:border-2 hc:border-white shadow-sm">
-                            <p class="text-xs text-slate-500 dark:text-slate-400 hc:text-yellow-300 mb-1">Próximo bloco</p>
-                            <p class="text-lg font-bold text-slate-900 dark:text-white">Matemática</p>
-                            <p class="text-sm text-slate-500 dark:text-slate-400 hc:text-gray-300">14:00 · 1h 30m</p>
-                        </div>
-                    </div>
+    <!-- O JavaScript preencherá esta área -->
+    <div id="conteudo-rotina">
+        <div class="flex items-center justify-center py-20">
+            <p class="text-slate-500">
+                Carregando sua rotina...
+            </p>
+        </div>
+    </div>
 
-                    <div class="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 hc:bg-black hc:border-2 hc:border-white shadow-sm">
-                        <div class="flex items-center justify-between mb-5">
-                            <h3 class="text-lg font-bold text-slate-900 dark:text-white">Agenda de hoje</h3>
-                            <span class="text-xs font-semibold px-2.5 py-1 rounded-full" :class="accentBgBase">Prévia</span>
-                        </div>
-                        <div class="space-y-3">
-                            <div class="flex items-center gap-4 p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 hc:bg-transparent hc:border hc:border-gray-700">
-                                <span class="w-14 text-sm font-bold text-slate-600 dark:text-slate-300 hc:text-white">08:00</span>
-                                <div class="w-10 h-10 rounded-xl bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 flex items-center justify-center">
-                                    <i class="ph-fill ph-coffee"></i>
-                                </div>
-                                <div class="flex-1">
-                                    <p class="font-semibold text-slate-900 dark:text-white">Rotina pessoal</p>
-                                    <p class="text-xs text-slate-500 dark:text-slate-400 hc:text-gray-300">08:00 – 09:00</p>
-                                </div>
-                            </div>
-                            <div class="flex items-center gap-4 p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 hc:bg-transparent hc:border hc:border-gray-700">
-                                <span class="w-14 text-sm font-bold text-slate-600 dark:text-slate-300 hc:text-white">14:00</span>
-                                <div class="w-10 h-10 rounded-xl bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400 flex items-center justify-center">
-                                    <i class="ph-fill ph-function"></i>
-                                </div>
-                                <div class="flex-1">
-                                    <p class="font-semibold text-slate-900 dark:text-white">Matemática</p>
-                                    <p class="text-xs text-slate-500 dark:text-slate-400 hc:text-gray-300">Cálculo Diferencial · 1h 30m</p>
-                                </div>
-                            </div>
-                            <div class="flex items-center gap-4 p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 hc:bg-transparent hc:border hc:border-gray-700">
-                                <span class="w-14 text-sm font-bold text-slate-600 dark:text-slate-300 hc:text-white">17:00</span>
-                                <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400 flex items-center justify-center">
-                                    <i class="ph-fill ph-cards"></i>
-                                </div>
-                                <div class="flex-1">
-                                    <p class="font-semibold text-slate-900 dark:text-white">Revisão</p>
-                                    <p class="text-xs text-slate-500 dark:text-slate-400 hc:text-gray-300">Revisão geral · 45m</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+</div>
+
+<script src="https://unpkg.com/lucide@latest"></script>
 
                 <!-- DICAS DE ESTUDO TAB -->
                 <div x-show="currentTab === 'dicas'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4" x-transition:enter-end="opacity-100 translate-y-0" class="max-w-5xl mx-auto space-y-6" x-cloak>
@@ -1442,6 +1657,106 @@
                 </div>
 
             </div>
+
+ <!-- ==========================================
+                 RODAPÉ INSTITUCIONAL
+            =========================================== -->
+         <!-- ==========================================
+     RODAPÉ INSTITUCIONAL COMPACTO
+=========================================== -->
+<footer class="mt-5 border-t border-blue-100
+               bg-gradient-to-r from-white via-blue-50/40 to-cyan-50/50
+               dark:from-slate-950 dark:via-slate-900 dark:to-blue-950/30">
+
+    <div class="px-8 py-3">
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center text-center">
+
+            <!-- ROTA DO SUCESSO -->
+            <div class="flex flex-col items-center justify-center">
+
+                <img
+                    src="img/logo_1.png"
+                    alt="Rota do Sucesso"
+                    class="h-10 w-auto object-contain"
+                >
+
+                <p class="mt-1 text-[10px] leading-tight
+                          text-slate-500 dark:text-slate-400">
+                    Sua rota inteligente para aprender, evoluir<br>
+                    e alcançar seus objetivos.
+                </p>
+
+            </div>
+
+
+            <!-- CENTRO -->
+            <div class="flex flex-col items-center justify-center text-center">
+
+                <p class="text-[10px] font-bold uppercase tracking-wider
+                          text-slate-700 dark:text-slate-300">
+                    Rota do Sucesso
+                </p>
+
+                <p class="mt-1 text-[10px] leading-tight
+                          text-slate-500 dark:text-slate-400">
+                    Plataforma educacional para organização<br>
+                    e planejamento dos estudos.
+                </p>
+
+                <span class="mt-1.5 inline-flex items-center gap-1
+                             px-2 py-0.5 rounded-full
+                             bg-blue-50 border border-blue-100
+                             text-[9px] font-bold text-blue-600">
+
+                    <i class="ph-bold ph-sparkle"></i>
+                    SESIVERSO 2026
+
+                </span>
+
+            </div>
+
+
+            <!-- SESI -->
+            <div class="flex flex-col items-center justify-center text-center">
+
+                <p class="text-[10px] font-bold uppercase tracking-wider
+                          text-slate-700 dark:text-slate-300">
+                    Projeto desenvolvido no
+                </p>
+
+                <img
+                    src="img/SESI_logo.png"
+                    alt="SESI"
+                    class="h-12 w-auto object-contain my-1"
+                >
+
+                <p class="text-[9px] leading-tight
+                          text-slate-500 dark:text-slate-400">
+                    SESI Rinaldo Campos Soares • Ipatinga/MG
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <!-- LINHA FINAL -->
+        <div class="mt-2 pt-1.5 border-t border-blue-100
+                    text-center text-[9px] text-slate-400">
+
+            © 2026 Rota do Sucesso
+            <span class="mx-2">•</span>
+            Educação • Tecnologia • Inovação
+
+        </div>
+
+    </div>
+
+</footer>
+
+
+
         </main>
     </div>
 
@@ -1454,6 +1769,10 @@
         usuarioId: null,
         nome: '',
         email: '',
+        fraseDoDia: '',
+        autorFraseDoDia: '',
+        fotoMenuOpen: false,
+        fotoPerfil: null,
         theme: (() => {
             try {
                 const salvo = localStorage.getItem('theme');
@@ -1720,8 +2039,20 @@
         initApp() {
             // Exige login — sem usuarioId salvo, volta para a tela de entrada.
             
-            this.usuarioId = usuarioId;
+            // Recupera o usuário que fez login
+            const usuarioIdSalvo = sessionStorage.getItem('usuarioId');
+
+            // Se não houver usuário logado, volta para o login
+            if (!usuarioIdSalvo) {
+                 window.location.href = 'login.html';
+                return;
+            }
+
+            this.usuarioId = usuarioIdSalvo;
+        // Carrega nome e e-mail do usuário
             this.carregarUsuario();
+
+            this.carregarFraseDoDia();
             this.carregarSugestaoIA();
             this.cronDiasOptions.forEach(d => this.cronAdicionarLinha(d.id));
             this.cronCarregar();
@@ -1746,23 +2077,107 @@
             window.location.href = 'index.html';
         },
 
-        async carregarUsuario() {
-            try {
-                const resposta = await fetch(`/api/perfil/${this.usuarioId}`);
-                if (!resposta.ok) {
-                    if (resposta.status === 404) {
-                        sessionStorage.removeItem('usuarioId');
-                        window.location.href = 'login.html';
-                    }
-                    return;
-                }
-                const dados = await resposta.json();
-                this.nome = dados.nome;
-                this.email = dados.email;
-            } catch (err) {
-                // Se a busca falhar, os textos de fallback ("Estudante", "Carregando...") ficam no lugar.
+async carregarUsuario() 
+{
+
+    try {
+
+        console.log("ID do usuário:", this.usuarioId);
+
+        const resposta = await fetch(`/api/perfil/${this.usuarioId}`);
+
+        console.log("Status da API perfil:", resposta.status);
+
+        if (!resposta.ok) {
+
+            if (resposta.status === 404) {
+                sessionStorage.removeItem('usuarioId');
+                window.location.href = 'login.html';
             }
-        },
+
+            return;
+        }
+
+        const dados = await resposta.json();
+
+        console.log("Dados recebidos da API:", dados);
+
+        this.nome = dados.nome || '';
+        this.email = dados.email || '';
+
+        console.log("Nome carregado:", this.nome);
+        console.log("E-mail carregado:", this.email);
+
+        } catch (err) {
+
+        console.error("Erro ao carregar usuário:", err);
+
+    }  
+    
+},
+
+async carregarFraseDoDia() {
+
+    // Data de hoje no formato YYYY-MM-DD
+    const hoje = new Date().toLocaleDateString('en-CA');
+
+    // Cada usuário terá suas próprias informações salvas
+    const chaveData = `fraseData_${this.usuarioId}`;
+    const chaveFrase = `fraseTexto_${this.usuarioId}`;
+    const chaveAutor = `fraseAutor_${this.usuarioId}`;
+
+    // Verifica a data da última frase recebida
+    const dataSalva = localStorage.getItem(chaveData);
+
+    // ==========================================
+    // JÁ RECEBEU UMA FRASE HOJE
+    // ==========================================
+
+    if (dataSalva === hoje) {
+
+        this.fraseDoDia =
+            localStorage.getItem(chaveFrase) || '';
+
+        this.autorFraseDoDia =
+            localStorage.getItem(chaveAutor) || '';
+
+        return;
+    }
+
+
+    // ==========================================
+    // AINDA NÃO RECEBEU FRASE HOJE
+    // ==========================================
+
+    try {
+
+        const resposta = await fetch('/api/frase-aleatoria');
+
+        if (!resposta.ok) {
+            throw new Error('Não foi possível buscar a frase do dia.');
+        }
+
+        const dados = await resposta.json();
+
+        // Coloca a frase no sistema
+        this.fraseDoDia = dados.frase;
+        this.autorFraseDoDia = dados.autor || '';
+
+        // Guarda para permanecer durante todo o dia
+        localStorage.setItem(chaveData, hoje);
+        localStorage.setItem(chaveFrase, dados.frase);
+        localStorage.setItem(chaveAutor, dados.autor || '');
+
+    } catch (erro) {
+
+        console.error(
+            'Erro ao carregar frase do dia:',
+            erro
+        );
+
+    }
+
+},
 
         // Dias marcados, na ordem da semana (não na ordem em que foram clicados).
         get cronDiasSelecionados() {
@@ -2033,15 +2448,16 @@
         // "Assistente IA" fica fora dos grupos (item avulso) e "Configurações" saiu
         // do menu principal — agora só aparece no dropdown do perfil.
         menuGroups: [
-            {
+           {
                 id: 'rota',
                 label: 'Minha Rota',
-                icon: 'map-pin',
-                items: [
-                    { id: 'dashboard', label: 'Hoje', icon: 'sun' },
-                    { id: 'rotina', label: 'Rotina diária', icon: 'calendar-check' },
-                    { id: 'cronograma', label: 'Plano de estudos', icon: 'map-trifold' },
-                ]
+                  icon: 'map-pin',
+                  items: [
+                        { id: 'dashboard', label: 'Hoje', icon: 'sun' },
+                        { id: 'rotina', label: 'Rotina Diária', icon: 'calendar-check' },
+                        { id: 'objetivos', label: 'Objetivos da Rota', icon: 'target' },
+                        { id: 'cronograma', label: 'Plano de Estudos', icon: 'map-trifold' },
+    ]
             },
             {
                 id: 'foco',
@@ -2105,6 +2521,1964 @@
         ]
     }
 }
-     </script>   
+
+// ========================================
+// FOTO DE PERFIL
+// ========================================
+
+function abrirMenuFotoPerfil(event) {
+    event.stopPropagation();
+
+    const menu = document.getElementById('menuFotoPerfil');
+
+    if (menu) {
+        menu.classList.toggle('hidden');
+    }
+}
+
+
+function escolherFotoPerfil() {
+    const menu = document.getElementById('menuFotoPerfil');
+    const input = document.getElementById('inputFotoPerfil');
+
+    if (menu) {
+        menu.classList.add('hidden');
+    }
+
+    if (input) {
+        input.click();
+    }
+}
+
+
+// Fecha o menu da foto ao clicar fora
+document.addEventListener('click', function () {
+    const menu = document.getElementById('menuFotoPerfil');
+
+    if (menu) {
+        menu.classList.add('hidden');
+    }
+});
+
+let cropperFoto = null;
+
+function selecionarFotoPerfil(event) {
+
+    const arquivo = event.target.files[0];
+
+    if (!arquivo) return;
+
+
+    // Validação do tipo
+    const tiposPermitidos = [
+        'image/jpeg',
+        'image/png',
+        'image/webp'
+    ];
+
+    if (!tiposPermitidos.includes(arquivo.type)) {
+
+        alert('Escolha uma imagem JPG, PNG ou WEBP.');
+
+        event.target.value = '';
+
+        return;
+    }
+
+
+    // Limite de 10 MB
+    if (arquivo.size > 10 * 1024 * 1024) {
+
+        alert('A imagem deve ter no máximo 10 MB.');
+
+        event.target.value = '';
+
+        return;
+    }
+
+
+    const leitor = new FileReader();
+
+    leitor.onload = function(e) {
+
+        const imagem = document.getElementById('imagemCrop');
+
+        imagem.src = e.target.result;
+
+
+        // Abre modal
+        const modal = document.getElementById('modalCropFoto');
+
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+
+
+        // Aguarda imagem carregar
+        imagem.onload = function() {
+
+            // Destrói Cropper anterior
+            if (cropperFoto) {
+                cropperFoto.destroy();
+            }
+
+
+            cropperFoto = new Cropper(imagem, {
+
+                aspectRatio: 1,
+
+                viewMode: 1,
+
+                dragMode: 'move',
+
+                autoCropArea: 0.85,
+
+                responsive: true,
+
+                background: false,
+
+                guides: false,
+
+                center: true,
+
+                highlight: false,
+
+                cropBoxMovable: false,
+
+                cropBoxResizable: false,
+
+                toggleDragModeOnDblclick: false,
+
+                ready() {
+
+                    const dadosImagem = cropperFoto.getImageData();
+
+                    const dadosCanvas = cropperFoto.getCanvasData();
+
+                    const zoomInicial =
+                        dadosCanvas.width / dadosImagem.naturalWidth;
+
+                    const zoom = document.getElementById('zoomCrop');
+
+                    zoom.dataset.zoomInicial = zoomInicial;
+
+                    zoom.value = 0;
+                }
+            });
+
+        };
+
+    };
+
+    leitor.readAsDataURL(arquivo);
+}
+
+
+document
+    .getElementById('zoomCrop')
+    .addEventListener('input', function() {
+
+        if (!cropperFoto) return;
+
+        const zoomInicial =
+            parseFloat(this.dataset.zoomInicial || 1);
+
+        const aumento =
+            parseFloat(this.value);
+
+        cropperFoto.zoomTo(
+            zoomInicial * (1 + aumento * 2)
+        );
+    });
+
+    function salvarCropFoto() {
+
+    if (!cropperFoto) {
+        console.error('Cropper não foi inicializado.');
+        return;
+    }
+
+    try {
+
+        const canvas = cropperFoto.getCroppedCanvas({
+            width: 400,
+            height: 400,
+            imageSmoothingEnabled: true,
+            imageSmoothingQuality: 'high'
+        });
+
+        if (!canvas) {
+            console.error('Não foi possível gerar o recorte.');
+            return;
+        }
+
+        const imagemFinal = canvas.toDataURL(
+            'image/jpeg',
+            0.90
+        );
+
+        const foto = document.getElementById('fotoPerfilMenu');
+        const inicial = document.getElementById('inicialPerfilMenu');
+
+        if (foto) {
+            foto.src = imagemFinal;
+            foto.classList.remove('hidden');
+        }
+
+        if (inicial) {
+            inicial.classList.add('hidden');
+        }
+
+        const textoAcao = document.getElementById('textoAcaoFoto');
+
+        if (textoAcao) {
+            textoAcao.textContent = 'Trocar foto';
+        }
+
+        const btnExcluir = document.getElementById('btnExcluirFoto');
+
+        if (btnExcluir) {
+            btnExcluir.classList.remove('hidden');
+            btnExcluir.classList.add('flex');
+        }
+
+        // IMPORTANTE:
+        // fecha somente depois de terminar o processamento
+        fecharCropFoto();
+
+        // Limpa o seletor
+        const input = document.getElementById('inputFotoPerfil');
+
+        if (input) {
+            input.value = '';
+        }
+
+    } catch (erro) {
+
+        console.error('Erro ao salvar foto:', erro);
+
+    }
+}
+
+function fecharCropFoto() {
+
+    const modal = document.getElementById('modalCropFoto');
+
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+
+    if (cropperFoto) {
+        cropperFoto.destroy();
+        cropperFoto = null;
+    }
+
+    const imagem = document.getElementById('imagemCrop');
+
+    if (imagem) {
+        imagem.src = '';
+    }
+}
+
+function cancelarCropFoto() {
+
+    fecharCropFoto();
+
+    const input = document.getElementById('inputFotoPerfil');
+
+    if (input) {
+        input.value = '';
+    }
+}
+
+
+function excluirFotoPerfil() {
+
+    const foto = document.getElementById('fotoPerfilMenu');
+    const inicial = document.getElementById('inicialPerfilMenu');
+    const textoAcao = document.getElementById('textoAcaoFoto');
+    const btnExcluir = document.getElementById('btnExcluirFoto');
+    const input = document.getElementById('inputFotoPerfil');
+    const menu = document.getElementById('menuFotoPerfil');
+
+    // Remove a foto
+    foto.src = '';
+    foto.classList.add('hidden');
+
+    // Volta a mostrar a inicial do usuário
+    inicial.classList.remove('hidden');
+
+    // Limpa o input para permitir escolher novamente
+    input.value = '';
+
+    // Volta o texto para Inserir foto
+    textoAcao.textContent = 'Inserir foto';
+
+    // Esconde a opção Excluir foto
+    btnExcluir.classList.add('hidden');
+    btnExcluir.classList.remove('flex');
+
+    // Fecha o menu
+    menu.classList.add('hidden');
+}
+
+     </script>  
+     
+     <script>
+async function carregarRotina() {
+
+    const container = document.getElementById("conteudo-rotina");
+
+    if (!container) return;
+
+    // Recupera o usuário que fez login
+    const usuarioId = sessionStorage.getItem("usuarioId");
+
+    if (!usuarioId) {
+        container.innerHTML = `
+            <div class="bg-white dark:bg-slate-900 border border-slate-200
+                        dark:border-slate-800 rounded-2xl p-10 text-center">
+
+                <p class="text-red-500">
+                    Não foi possível identificar o usuário.
+                </p>
+
+            </div>
+        `;
+        return;
+    }
+
+    try {
+
+        const resposta = await fetch(`/api/rotina/${usuarioId}`);
+        const dados = await resposta.json();
+
+        if (!resposta.ok || !dados.sucesso) {
+            throw new Error(dados.erro || "Erro ao carregar rotina.");
+        }
+
+        // ==========================================
+        // USUÁRIO AINDA NÃO POSSUI ROTINA
+        // ==========================================
+
+        if (!dados.existe) {
+
+            container.innerHTML = `
+                <div class="bg-white dark:bg-slate-900
+                            border border-slate-200 dark:border-slate-800
+                            rounded-3xl px-8 py-16
+                            text-center shadow-sm">
+
+                    <div class="mx-auto mb-6 flex h-16 w-16
+                                items-center justify-center
+                                rounded-2xl bg-blue-50
+                                dark:bg-blue-950">
+
+                        <svg xmlns="http://www.w3.org/2000/svg"
+                             width="30"
+                             height="30"
+                             viewBox="0 0 24 24"
+                             fill="none"
+                             stroke="currentColor"
+                             stroke-width="2"
+                             class="text-blue-600">
+
+                            <rect width="18" height="18"
+                                  x="3" y="4" rx="2"/>
+
+                            <line x1="16" x2="16"
+                                  y1="2" y2="6"/>
+
+                            <line x1="8" x2="8"
+                                  y1="2" y2="6"/>
+
+                            <line x1="3" x2="21"
+                                  y1="10" y2="10"/>
+
+                        </svg>
+
+                    </div>
+
+                    <h2 class="text-2xl font-bold
+                               text-slate-900 dark:text-white">
+                        Crie sua Rotina Diária
+                    </h2>
+
+                    <p class="max-w-xl mx-auto mt-3
+                              text-slate-500 dark:text-slate-400">
+                        Informe seus horários de escola, trabalho, cursos,
+                        atividades e outros compromissos. Assim, o Rota do
+                        Sucesso poderá identificar os melhores momentos
+                        disponíveis para seus estudos.
+                    </p>
+
+                    <button
+                        type="button"
+                        onclick="abrirCriacaoRotina()"
+                        class="mt-8 inline-flex items-center gap-2
+                               bg-blue-600 hover:bg-blue-700
+                               text-white font-semibold
+                               px-8 py-4 rounded-xl
+                               transition shadow-sm">
+
+                        <span class="text-xl">+</span>
+
+                        Criar Rotina Diária
+
+                    </button>
+
+                </div>
+            `;
+
+            return;
+        }
+
+        // Depois construiremos aqui a visualização
+        // de quem JÁ possui uma rotina.
+
+        renderizarRotinaSalva(dados.rotina);
+
+    } catch (erro) {
+
+        console.error(erro);
+
+        container.innerHTML = `
+            <div class="bg-red-50 border border-red-200
+                        rounded-2xl p-6 text-red-700">
+
+                Não foi possível carregar sua rotina.
+
+            </div>
+        `;
+    }
+}
+
+function obterVisualTipoAtividade(tipo) {
+
+    const tipoNormalizado = (tipo || "Outro").toLowerCase();
+
+    const tipos = {
+
+        "escola": {
+            icone: "graduation-cap",
+            classe: "bg-blue-100 text-blue-700 border-blue-200"
+        },
+
+        "trabalho": {
+            icone: "briefcase-business",
+            classe: "bg-indigo-100 text-indigo-700 border-indigo-200"
+        },
+
+        "curso": {
+            icone: "book-open",
+            classe: "bg-cyan-100 text-cyan-700 border-cyan-200"
+        },
+
+        "refeição": {
+            icone: "utensils",
+            classe: "bg-amber-50 text-amber-700 border-amber-200"
+        },
+
+        "atividade física": {
+            icone: "dumbbell",
+            classe: "bg-sky-100 text-sky-700 border-sky-200"
+        },
+
+        "deslocamento": {
+            icone: "bus-front",
+            classe: "bg-slate-100 text-slate-600 border-slate-200"
+        },
+
+        "outro": {
+            icone: "circle-dot",
+            classe: "bg-blue-50 text-blue-600 border-blue-100"
+        }
+
+    };
+
+    return tipos[tipoNormalizado] || tipos["outro"];
+}
+
+
+function renderizarRotinaSalva(rotina) 
+{
+
+    const container = document.getElementById("conteudo-rotina");
+
+    if (!container || !rotina) return;
+
+    const nomesDias = {
+        1: "Segunda-feira",
+        2: "Terça-feira",
+        3: "Quarta-feira",
+        4: "Quinta-feira",
+        5: "Sexta-feira",
+        6: "Sábado",
+        7: "Domingo"
+    };
+
+    // ------------------------------------------------
+    // DATA DA ÚLTIMA ATUALIZAÇÃO
+    // ------------------------------------------------
+
+    let dataAtualizacao = "Não informada";
+
+    const dataBanco =
+        rotina.atualizada_em ||
+        rotina.atualizado_em ||
+        rotina.criada_em;
+
+    if (dataBanco) {
+
+        const data = new Date(dataBanco);
+
+        dataAtualizacao = data.toLocaleString("pt-BR", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit"
+        });
+
+    }
+
+    // ------------------------------------------------
+    // ORGANIZA OS ITENS POR DIA
+    // ------------------------------------------------
+
+    const itensPorDia = {};
+
+    for (let dia = 1; dia <= 7; dia++) {
+        itensPorDia[dia] = [];
+    }
+
+    const itens = rotina.itens || [];
+
+    itens.forEach(item => {
+
+        const dia = Number(item.dia_semana);
+
+        if (itensPorDia[dia]) {
+            itensPorDia[dia].push(item);
+        }
+
+    });
+
+    // Ordena os compromissos pelo horário
+    for (let dia = 1; dia <= 7; dia++) {
+
+        itensPorDia[dia].sort((a, b) => {
+
+            const horaA = a.hora_inicio || "";
+            const horaB = b.hora_inicio || "";
+
+            return horaA.localeCompare(horaB);
+
+        });
+
+    }
+
+    // ------------------------------------------------
+    // MONTA OS DIAS
+    // ------------------------------------------------
+
+    let htmlDias = "";
+
+    for (let dia = 1; dia <= 7; dia++) {
+
+        const compromissos = itensPorDia[dia];
+
+        let htmlCompromissos = "";
+
+        if (compromissos.length === 0) {
+
+            htmlCompromissos = `
+                <div class="py-5 text-sm text-slate-400 dark:text-slate-500">
+                    Nenhum compromisso cadastrado.
+                </div>
+            `;
+
+        } else {
+
+            compromissos.forEach(item => {
+
+                const inicio = formatarHoraRotina(item.hora_inicio);
+                const fim = formatarHoraRotina(item.hora_fim);
+
+                const visualTipo = obterVisualTipoAtividade(item.tipo_atividade);
+
+                let horario = inicio;
+
+                if (fim) {
+                    horario = `${inicio} às ${fim}`;
+                }
+
+                htmlCompromissos += `
+    <div class="group flex items-center gap-5 px-5 py-4
+                bg-gradient-to-r
+                from-blue-50/70
+                via-sky-50/40
+                to-cyan-50/25
+                border-b border-blue-200/80
+                dark:from-slate-900
+                dark:via-blue-950/20
+                dark:to-cyan-950/20
+                dark:border-blue-900/50
+                last:border-b-0
+                transition-all duration-200
+                hover:from-blue-100/80
+                hover:via-sky-100/60
+                hover:to-cyan-100/40">
+
+        <!-- HORÁRIO -->
+        <div class="w-36 shrink-0 whitespace-nowrap">
+            <div class="flex items-center gap-2
+                whitespace-nowrap
+                font-bold text-slate-700
+                dark:text-slate-200">
+
+                <i data-lucide="clock-3"
+                   class="w-4 h-4 text-blue-600"></i>
+
+                ${horario}
+
+            </div>
+        </div>
+
+
+        <!-- ATIVIDADE -->
+        <div class="flex-1">
+
+            <div class="font-bold text-slate-900
+                        dark:text-white">
+                ${escapeHtmlRotina(item.descricao || "Atividade")}
+            </div>
+
+            ${
+                item.tipo_atividade
+                    ? `
+                    <div class="mt-2">
+
+                        <span class="inline-flex items-center gap-1.5
+                                     px-2.5 py-1 rounded-lg
+                                     border text-xs font-semibold
+                                     ${visualTipo.classe}">
+
+                            <i data-lucide="${visualTipo.icone}"
+                               class="w-3.5 h-3.5"></i>
+
+                            ${escapeHtmlRotina(item.tipo_atividade)}
+
+                        </span>
+
+                    </div>
+                    `
+                    : ""
+            }
+
+        </div>
+
+    </div>
+`;
+
+            });
+
+        }
+
+        htmlDias += `
+            <section class="bg-white/80 dark:bg-slate-900/85
+                backdrop-blur-sm
+                border border-blue-100 dark:border-slate-800
+                rounded-2xl overflow-hidden
+                shadow-sm">
+
+                <div class="px-6 py-4
+                    bg-gradient-to-r
+                    from-blue-50/80
+                    to-cyan-50/40
+                    border-b border-blue-100
+                    dark:from-blue-950/30
+                    dark:to-slate-900
+                    dark:border-slate-800">
+
+                    <h3 class="font-bold text-slate-900 dark:text-white">
+                        ${nomesDias[dia]}
+                    </h3>
+
+                </div>
+
+                <div class="mx-5 mb-5
+                    rounded-xl overflow-hidden
+                    border border-blue-100
+                    bg-blue-50/30
+                    dark:border-slate-800
+                    dark:bg-slate-950/30">
+                ${htmlCompromissos}
+                </div>
+
+            </section>
+        `;
+
+    }
+
+    // ------------------------------------------------
+    // TELA COMPLETA
+    // ------------------------------------------------
+
+    container.innerHTML = `
+
+        <div class="relative space-y-6 rounded-3xl p-5
+            bg-gradient-to-br
+            from-slate-50
+            via-blue-100/70
+            to-indigo-100/60
+            dark:from-slate-950
+            dark:via-slate-900
+            dark:to-blue-950/30
+            overflow-hidden">
+
+<div class="pointer-events-none absolute -top-32 -right-32
+            w-96 h-96 rounded-full
+            bg-blue-400/30 blur-3xl">
+</div>
+
+<div class="pointer-events-none absolute top-1/2 -left-32
+            w-80 h-80 rounded-full
+            bg-cyan-400/25 blur-3xl">
+</div>
+
+<div class="relative z-10 space-y-6">
+
+
+            <div class="bg-white/80 dark:bg-slate-900/85
+            backdrop-blur-sm
+            border border-blue-100 dark:border-slate-800
+            rounded-2xl p-6
+            shadow-sm">
+
+                <div class="flex flex-col lg:flex-row
+                            lg:items-center lg:justify-between gap-5">
+
+                    <div>
+
+                        <h2 class="text-xl font-bold
+                                   text-slate-900 dark:text-white">
+                            Sua rotina semanal
+                        </h2>
+
+                        <p class="mt-1 text-sm
+                                  text-slate-500 dark:text-slate-400">
+                            Última atualização:
+                            <span class="font-medium">
+                                ${dataAtualizacao}
+                            </span>
+                        </p>
+
+                    </div>
+
+                    <div class="flex gap-3">
+
+                        <button
+                            type="button"
+                            onclick="alterarRotina()"
+                            class="px-5 py-3 rounded-xl
+                             border border-blue-300
+                            text-blue-600 font-semibold
+                            hover:bg-blue-600
+                            hover:text-white
+                            hover:border-blue-600
+                            hover:shadow-md
+                            transition-all duration-200">
+
+                            Alterar rotina
+
+                        </button>
+
+                        <button
+                            type="button"
+                            onclick="excluirRotina()"
+                            class="px-5 py-3 rounded-xl
+                                border border-red-300
+                                text-red-600 font-semibold
+                                hover:bg-red-600
+                                hover:text-white
+                                hover:border-red-600
+                                hover:shadow-md
+                                transition-all duration-200">
+
+                            Excluir rotina
+
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="border-t border-slate-200 dark:border-slate-800"></div>
+
+            <div class="space-y-4">
+
+                ${htmlDias}
+
+            </div>
+
+        </div>
+        </div>
+    `;
+        // Atualiza os ícones Lucide que foram criados dinamicamente
+    if (window.lucide) {
+        lucide.createIcons();
+    }
+}
+
+
+async function alterarRotina() {
+
+    const usuarioId = sessionStorage.getItem("usuarioId");
+
+    if (!usuarioId) {
+        alert("Não foi possível identificar o usuário.");
+        return;
+    }
+
+    try {
+
+        const resposta = await fetch(`/api/rotina/${usuarioId}`);
+        const dados = await resposta.json();
+
+        if (!resposta.ok || !dados.sucesso || !dados.existe) {
+            throw new Error("Não foi possível carregar a rotina.");
+        }
+
+        // Abre o formulário
+        abrirCriacaoRotina();
+
+        // Aguarda o formulário ser criado no HTML
+        setTimeout(() => {
+
+            preencherFormularioRotina(dados.rotina);
+
+        }, 50);
+
+    } catch (erro) {
+
+        console.error("Erro ao alterar rotina:", erro);
+        alert("Não foi possível abrir a rotina para alteração.");
+
+    }
+}
+
+async function excluirRotina() {
+
+    const usuarioId = sessionStorage.getItem("usuarioId");
+
+    if (!usuarioId) {
+        alert("Não foi possível identificar o usuário.");
+        return;
+    }
+
+    const confirmar = await abrirModalSistema({
+    titulo: "Excluir rotina?",
+    mensagem:
+        "Todos os compromissos cadastrados serão removidos. " +
+        "Esta ação não poderá ser desfeita.",
+    tipo: "perigo",
+    textoConfirmar: "Excluir rotina",
+    textoCancelar: "Cancelar"
+});
+
+if (!confirmar) {
+    return;
+}
+
+    try {
+
+        const resposta = await fetch(`/api/rotina/${usuarioId}`, {
+            method: "DELETE"
+        });
+
+        const dados = await resposta.json();
+
+        if (!resposta.ok || !dados.sucesso) {
+            throw new Error(
+                dados.erro || "Não foi possível excluir a rotina."
+            );
+        }
+
+        await abrirModalSistema({
+                titulo: "Rotina excluída",
+                mensagem: "Sua rotina diária foi excluída com sucesso.",
+                tipo: "sucesso",
+                textoConfirmar: "Entendi",
+                mostrarCancelar: false
+        });
+
+        // Recarrega a área da rotina.
+        // Como não existe mais rotina no banco,
+        // carregarRotina() mostrará a tela "Crie sua Rotina Diária".
+        await carregarRotina();
+
+    } catch (erro) {
+
+        console.error("Erro ao excluir rotina:", erro);
+
+        alert(
+            erro.message ||
+            "Não foi possível excluir sua rotina."
+        );
+    }
+}
+let resolverModalSistema = null;
+
+function abrirModalSistema({
+    titulo = "Confirmação",
+    mensagem = "",
+    tipo = "info",
+    textoConfirmar = "Confirmar",
+    textoCancelar = "Cancelar",
+    mostrarCancelar = true
+}) {
+
+    return new Promise(resolve => {
+
+        resolverModalSistema = resolve;
+
+        const modal = document.getElementById("modal-sistema");
+        const tituloEl = document.getElementById("modal-titulo");
+        const mensagemEl = document.getElementById("modal-mensagem");
+        const confirmar = document.getElementById("modal-confirmar");
+        const cancelar = document.getElementById("modal-cancelar");
+        const iconeContainer =
+            document.getElementById("modal-icone-container");
+        const icone =
+            document.getElementById("modal-icone");
+        const faixa =
+            document.getElementById("modal-faixa");
+
+        tituloEl.textContent = titulo;
+        mensagemEl.textContent = mensagem;
+
+        confirmar.textContent = textoConfirmar;
+        cancelar.textContent = textoCancelar;
+
+        cancelar.classList.toggle("hidden", !mostrarCancelar);
+
+        // ==============================
+        // TIPO: PERIGO
+        // ==============================
+        if (tipo === "perigo") {
+
+            icone.setAttribute("data-lucide", "trash-2");
+
+            iconeContainer.className =
+                `flex h-12 w-12 shrink-0 items-center justify-center
+                 rounded-2xl bg-red-50 text-red-600
+                 dark:bg-red-950/40`;
+
+            confirmar.className =
+                `rounded-xl bg-red-600 px-5 py-2.5
+                 font-semibold text-white shadow-sm
+                 hover:bg-red-700 hover:shadow-md
+                 transition-all`;
+
+            faixa.className =
+                `h-1.5 bg-gradient-to-r
+                 from-red-600 via-orange-400 to-red-600`;
+
+        }
+
+        // ==============================
+        // TIPO: SUCESSO
+        // ==============================
+        else if (tipo === "sucesso") {
+
+            icone.setAttribute("data-lucide", "circle-check");
+
+            iconeContainer.className =
+                `flex h-12 w-12 shrink-0 items-center justify-center
+                 rounded-2xl bg-emerald-50 text-emerald-600`;
+
+            confirmar.className =
+                `rounded-xl bg-blue-600 px-5 py-2.5
+                 font-semibold text-white shadow-sm
+                 hover:bg-blue-700 hover:shadow-md
+                 transition-all`;
+
+            faixa.className =
+                `h-1.5 bg-gradient-to-r
+                 from-blue-600 via-cyan-400 to-blue-600`;
+
+        }
+
+        // ==============================
+        // TIPO: INFORMAÇÃO
+        // ==============================
+        else {
+
+            icone.setAttribute("data-lucide", "info");
+
+            iconeContainer.className =
+                `flex h-12 w-12 shrink-0 items-center justify-center
+                 rounded-2xl bg-blue-50 text-blue-600`;
+
+            confirmar.className =
+                `rounded-xl bg-blue-600 px-5 py-2.5
+                 font-semibold text-white shadow-sm
+                 hover:bg-blue-700 hover:shadow-md
+                 transition-all`;
+
+            faixa.className =
+                `h-1.5 bg-gradient-to-r
+                 from-blue-600 via-cyan-400 to-blue-600`;
+        }
+
+        modal.classList.remove("hidden");
+        modal.classList.add("flex");
+
+        // Recria os ícones Lucide
+        if (window.lucide) {
+            lucide.createIcons();
+        }
+    });
+}
+
+
+function fecharModalSistema(resultado) {
+
+    const modal = document.getElementById("modal-sistema");
+
+    modal.classList.add("hidden");
+    modal.classList.remove("flex");
+
+    if (resolverModalSistema) {
+        resolverModalSistema(resultado);
+        resolverModalSistema = null;
+    }
+}
+
+
+
+function preencherFormularioRotina(rotina) {
+
+    if (!rotina || !rotina.itens) return;
+
+    rotina.itens.forEach(item => {
+
+        const dia = Number(item.dia_semana);
+
+        // Cria o compromisso naquele dia
+        adicionarCompromisso(dia);
+
+        // Busca todos os compromissos daquele dia
+        const compromissosDia = document.querySelectorAll(
+            `.compromisso-rotina[data-dia="${dia}"]`
+        );
+
+        // Pega o último que acabou de ser criado
+        const compromisso =
+            compromissosDia[compromissosDia.length - 1];
+
+        if (!compromisso) return;
+
+        const atividade =
+            compromisso.querySelector(".atividade");
+
+        const horaInicio =
+            compromisso.querySelector(".hora-inicio");
+
+        const horaFim =
+            compromisso.querySelector(".hora-fim");
+
+        const tipo =
+            compromisso.querySelector(".tipo-atividade");
+
+
+        if (atividade) {
+            atividade.value = item.descricao || "";
+        }
+
+        if (horaInicio) {
+            horaInicio.value =
+                formatarHoraRotina(item.hora_inicio);
+        }
+
+        if (horaFim) {
+            horaFim.value =
+                formatarHoraRotina(item.hora_fim);
+        }
+
+        if (tipo) {
+            tipo.value = item.tipo_atividade || "Outro";
+        }
+
+    });
+}
+
+
+function formatarHoraRotina(hora) {
+
+    if (!hora) return "";
+
+    return String(hora).substring(0, 5);
+}
+
+
+function escapeHtmlRotina(texto) {
+
+    const div = document.createElement("div");
+
+    div.textContent = texto;
+
+    return div.innerHTML;
+}
+
+
+
+function abrirCriacaoRotina() {
+
+    const container = document.getElementById("conteudo-rotina");
+
+    const dias = [
+        { id: 1, nome: "Segunda-feira" },
+        { id: 2, nome: "Terça-feira" },
+        { id: 3, nome: "Quarta-feira" },
+        { id: 4, nome: "Quinta-feira" },
+        { id: 5, nome: "Sexta-feira" },
+        { id: 6, nome: "Sábado" },
+        { id: 7, nome: "Domingo" }
+    ];
+
+    container.innerHTML = `
+        <div class="space-y-6">
+
+            <!-- Cabeçalho -->
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+
+                <div>
+                    <h2 class="text-2xl font-bold text-slate-900 dark:text-white">
+                        Criar Rotina Diária
+                    </h2>
+
+                    <p class="mt-1 text-slate-500 dark:text-slate-400">
+                        Cadastre seus compromissos fixos de cada dia da semana.
+                    </p>
+                </div>
+
+                <div class="flex gap-3">
+                    <button
+                        type="button"
+                        onclick="carregarRotina()"
+                        class="px-5 py-3 rounded-xl border border-slate-300
+                               dark:border-slate-700 text-slate-700
+                               dark:text-slate-300 hover:bg-slate-100
+                               dark:hover:bg-slate-800 transition">
+
+                        Cancelar
+                    </button>
+
+                    <button
+                        type="button"
+                        onclick="salvarRotina()"
+                        class="px-6 py-3 rounded-xl bg-blue-600
+                               hover:bg-blue-700 text-white
+                               font-semibold transition shadow-sm">
+
+                        Salvar rotina
+                    </button>
+                </div>
+
+            </div>
+
+            <!-- Orientação -->
+            <div class="bg-blue-50 dark:bg-blue-950/30
+                        border border-blue-100 dark:border-blue-900
+                        rounded-2xl p-5">
+
+                <p class="text-sm text-blue-800 dark:text-blue-300">
+                    💡 Informe primeiro os compromissos que ocupam seu tempo,
+                    como escola, trabalho, cursos, refeições, atividades físicas
+                    e deslocamentos. Depois, o Rota do Sucesso poderá identificar
+                    seus horários disponíveis para estudo.
+                </p>
+
+            </div>
+
+            <!-- Dias -->
+            <div id="dias-rotina" class="space-y-4">
+
+                ${dias.map(dia => `
+                    <div
+                        class="bg-white dark:bg-slate-900
+                               border border-slate-200 dark:border-slate-800
+                               rounded-2xl overflow-hidden shadow-sm">
+
+                        <div class="flex items-center justify-between
+                                    px-6 py-4 border-b border-slate-100
+                                    dark:border-slate-800">
+
+                            <h3 class="font-bold text-slate-900 dark:text-white">
+                                ${dia.nome}
+                            </h3>
+
+                            <button
+                                type="button"
+                                onclick="adicionarCompromisso(${dia.id})"
+                                class="text-sm font-semibold text-blue-600
+                                       hover:text-blue-700">
+
+                                + Adicionar compromisso
+                            </button>
+
+                        </div>
+
+                        <div
+                            id="dia-${dia.id}"
+                            class="p-4 space-y-3">
+
+                            <div
+                                id="vazio-dia-${dia.id}"
+                                class="py-5 text-center text-sm text-slate-400">
+
+                                Nenhum compromisso cadastrado.
+
+                            </div>
+
+                        </div>
+<div
+    id="area-repetir-dia-${dia.id}"
+    class="hidden px-6 py-3 border-t
+           border-slate-100 dark:border-slate-800">
+
+    <button
+        type="button"
+        onclick="abrirRepeticaoDia(${dia.id})"
+        class="inline-flex items-center gap-2
+               text-sm font-semibold text-blue-600
+               hover:text-blue-700 transition">
+
+        <span>↻</span>
+        Repetir a rotina deste dia
+
+    </button>
+
+    <div
+        id="repetir-dia-${dia.id}"
+        class="hidden mt-4">
+    </div>
+
+</div>
+                    </div>
+                `).join("")}
+
+            </div>
+
+            <!-- Salvar inferior -->
+            <div class="flex justify-end gap-3 pt-2 pb-8">
+
+                <button
+                    type="button"
+                    onclick="carregarRotina()"
+                    class="px-6 py-3 rounded-xl border border-slate-300
+                           dark:border-slate-700">
+                    Cancelar
+                </button>
+
+                <button
+                    type="button"
+                    onclick="salvarRotina()"
+                    class="px-8 py-3 rounded-xl bg-blue-600
+                           hover:bg-blue-700 text-white font-semibold">
+                    Salvar rotina
+                </button>
+
+            </div>
+
+        </div>
+    `;
+}
+
+let contadorCompromissos = 0;
+
+function adicionarCompromisso(dia) {
+
+    contadorCompromissos++;
+
+    const containerDia = document.getElementById(`dia-${dia}`);
+    const vazio = document.getElementById(`vazio-dia-${dia}`);
+
+    if (vazio) {
+        vazio.remove();
+    }
+
+    const areaRepetir = document.getElementById(`area-repetir-dia-${dia}`);
+
+        if (areaRepetir) {
+            areaRepetir.classList.remove("hidden");
+        }
+
+    const id = contadorCompromissos;
+
+    const compromisso = document.createElement("div");
+
+    compromisso.id = `compromisso-${id}`;
+    compromisso.dataset.dia = dia;
+
+    compromisso.className = `
+        compromisso-rotina
+        bg-slate-50 dark:bg-slate-800/60
+        border border-slate-200 dark:border-slate-700
+        rounded-xl p-4
+    `;
+
+    compromisso.innerHTML = `
+
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+
+            <!-- Atividade -->
+            <div class="md:col-span-4">
+
+                <label class="block text-xs font-semibold
+                              text-slate-600 dark:text-slate-300 mb-2">
+                    Atividade
+                </label>
+
+                <input
+                    type="text"
+                    class="atividade w-full rounded-lg border
+                           border-slate-300 dark:border-slate-700
+                           dark:bg-slate-900 px-3 py-2.5"
+                    placeholder="Ex.: Escola, trabalho, inglês">
+
+            </div>
+
+            <!-- Início -->
+            <div class="md:col-span-2">
+
+                <label class="block text-xs font-semibold
+                              text-slate-600 dark:text-slate-300 mb-2">
+                    Início
+                </label>
+
+                <input
+                    type="time"
+                    class="hora-inicio w-full rounded-lg border
+                           border-slate-300 dark:border-slate-700
+                           dark:bg-slate-900 px-3 py-2.5">
+
+            </div>
+
+            <!-- Fim -->
+            <div class="md:col-span-2">
+
+                <label class="block text-xs font-semibold
+                              text-slate-600 dark:text-slate-300 mb-2">
+                    Fim
+                </label>
+
+                <input
+                    type="time"
+                    class="hora-fim w-full rounded-lg border
+                           border-slate-300 dark:border-slate-700
+                           dark:bg-slate-900 px-3 py-2.5">
+
+            </div>
+
+            <!-- Tipo -->
+            <div class="md:col-span-3">
+
+                <label class="block text-xs font-semibold
+                              text-slate-600 dark:text-slate-300 mb-2">
+                    Tipo
+                </label>
+
+                <select
+                    class="tipo-atividade w-full rounded-lg border
+                           border-slate-300 dark:border-slate-700
+                           dark:bg-slate-900 px-3 py-2.5">
+
+                    <option value="escola">Escola</option>
+                    <option value="trabalho">Trabalho</option>
+                    <option value="curso">Curso</option>
+                    <option value="atividade_fisica">Atividade física</option>
+                    <option value="refeicao">Refeição</option>
+                    <option value="lazer">Lazer</option>
+                    <option value="sono">Sono</option>
+                    <option value="outro">Outro</option>
+
+                </select>
+
+            </div>
+
+            <!-- Excluir -->
+            <div class="md:col-span-1">
+
+                <button
+                    type="button"
+                    onclick="removerCompromisso(${id}, ${dia})"
+                    title="Excluir compromisso"
+                    class="w-full h-[42px] rounded-lg
+                           text-red-500 hover:bg-red-50
+                           dark:hover:bg-red-950/30 transition">
+
+                    🗑️
+
+                </button>
+
+            </div>
+
+        </div>
+
+    `;
+
+    containerDia.appendChild(compromisso);
+}
+
+function removerCompromisso(id, dia) {
+
+    const compromisso = document.getElementById(`compromisso-${id}`);
+
+    if (compromisso) {
+        compromisso.remove();
+    }
+
+    const containerDia = document.getElementById(`dia-${dia}`);
+
+    if (!containerDia.querySelector(".compromisso-rotina")) {
+
+        containerDia.innerHTML = `
+            <div
+                id="vazio-dia-${dia}"
+                class="py-5 text-center text-sm text-slate-400">
+
+                Nenhum compromisso cadastrado.
+
+            </div>
+        `;
+
+        const areaRepetir =
+            document.getElementById(`area-repetir-dia-${dia}`);
+
+        if (areaRepetir) {
+            areaRepetir.classList.add("hidden");
+        }
+    }
+}
+
+function abrirRepeticaoDia(diaOrigem) {
+
+    const painel = document.getElementById(`repetir-dia-${diaOrigem}`);
+
+    // Se já estiver aberto, fecha
+    if (!painel.classList.contains("hidden")) {
+        painel.classList.add("hidden");
+        painel.innerHTML = "";
+        return;
+    }
+
+    const dias = [
+        { id: 1, nome: "Segunda" },
+        { id: 2, nome: "Terça" },
+        { id: 3, nome: "Quarta" },
+        { id: 4, nome: "Quinta" },
+        { id: 5, nome: "Sexta" },
+        { id: 6, nome: "Sábado" },
+        { id: 7, nome: "Domingo" }
+    ];
+
+    const destinos = dias.filter(dia => dia.id !== diaOrigem);
+
+    painel.innerHTML = `
+        <div class="bg-slate-50 dark:bg-slate-800/60
+                    border border-slate-200 dark:border-slate-700
+                    rounded-xl p-4">
+
+            <div class="flex flex-col lg:flex-row
+                        lg:items-center lg:justify-between gap-4">
+
+                <div>
+
+                    <p class="font-semibold text-slate-800 dark:text-white">
+                        Repetir esta rotina em:
+                    </p>
+
+                    <div class="flex flex-wrap gap-4 mt-3">
+
+                        ${destinos.map(dia => `
+                            <label class="flex items-center gap-2
+                                          text-sm text-slate-600
+                                          dark:text-slate-300 cursor-pointer">
+
+                                <input
+                                    type="checkbox"
+                                    value="${dia.id}"
+                                    class="dia-repeticao-${diaOrigem}
+                                           h-4 w-4 accent-blue-600">
+
+                                ${dia.nome}
+
+                            </label>
+                        `).join("")}
+
+                    </div>
+
+                </div>
+
+                <div class="flex gap-2">
+
+                    <button
+                        type="button"
+                        onclick="fecharRepeticaoDia(${diaOrigem})"
+                        class="px-4 py-2 rounded-lg
+                               border border-slate-300
+                               dark:border-slate-600
+                               text-sm">
+
+                        Cancelar
+
+                    </button>
+
+                    <button
+                        type="button"
+                        onclick="confirmarRepeticaoDia(${diaOrigem})"
+                        class="px-4 py-2 rounded-lg
+                               bg-blue-600 hover:bg-blue-700
+                               text-white text-sm font-semibold">
+
+                        Aplicar
+
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+    `;
+
+    painel.classList.remove("hidden");
+}
+
+function fecharRepeticaoDia(dia) {
+
+    const painel = document.getElementById(`repetir-dia-${dia}`);
+
+    painel.classList.add("hidden");
+    painel.innerHTML = "";
+}
+
+function confirmarRepeticaoDia(diaOrigem) {
+
+    const origem = document.getElementById(`dia-${diaOrigem}`);
+
+    const compromissosOrigem =
+        origem.querySelectorAll(".compromisso-rotina");
+
+    if (compromissosOrigem.length === 0) {
+        alert("Cadastre pelo menos um compromisso antes de repetir este dia.");
+        return;
+    }
+
+    const selecionados = document.querySelectorAll(
+        `.dia-repeticao-${diaOrigem}:checked`
+    );
+
+    if (selecionados.length === 0) {
+        alert("Selecione pelo menos um dia.");
+        return;
+    }
+
+    selecionados.forEach(checkbox => {
+
+        const diaDestino = Number(checkbox.value);
+
+        copiarCompromissosDoDia(
+            diaOrigem,
+            diaDestino
+        );
+
+    });
+
+    fecharRepeticaoDia(diaOrigem);
+}
+
+function copiarCompromissosDoDia(diaOrigem, diaDestino) {
+
+    const origem = document.getElementById(`dia-${diaOrigem}`);
+    const destino = document.getElementById(`dia-${diaDestino}`);
+
+    const compromissos =
+        origem.querySelectorAll(".compromisso-rotina");
+
+    // Remove "Nenhum compromisso cadastrado"
+    const vazio =
+        document.getElementById(`vazio-dia-${diaDestino}`);
+
+    if (vazio) {
+        vazio.remove();
+    }
+
+    compromissos.forEach(compromisso => {
+
+        const atividade =
+            compromisso.querySelector(".atividade").value;
+
+        const horaInicio =
+            compromisso.querySelector(".hora-inicio").value;
+
+        const horaFim =
+            compromisso.querySelector(".hora-fim").value;
+
+        const tipo =
+            compromisso.querySelector(".tipo-atividade").value;
+
+
+        // Cria novo compromisso
+        adicionarCompromisso(diaDestino);
+
+
+        // Recupera o último compromisso criado
+        const compromissosDestino =
+            destino.querySelectorAll(".compromisso-rotina");
+
+        const novo =
+            compromissosDestino[compromissosDestino.length - 1];
+
+
+        // Copia os valores
+        novo.querySelector(".atividade").value = atividade;
+        novo.querySelector(".hora-inicio").value = horaInicio;
+        novo.querySelector(".hora-fim").value = horaFim;
+        novo.querySelector(".tipo-atividade").value = tipo;
+
+    });
+}
+async function salvarRotina() {
+
+    alert("ENTROU NA FUNÇÃO SALVAR ROTINA");
+
+    const usuarioId = sessionStorage.getItem("usuarioId");
+
+    if (!usuarioId) {
+        alert("Não foi possível identificar o usuário.");
+        return;
+    }
+
+    const compromissos =
+        document.querySelectorAll(".compromisso-rotina");
+
+    // TESTE
+    console.log("Usuário:", usuarioId);
+    console.log("Quantidade de compromissos:", compromissos.length);
+
+    if (compromissos.length === 0) {
+        alert("Cadastre pelo menos um compromisso.");
+        return;
+    }
+
+    const itens = [];
+    let possuiErro = false;
+
+    compromissos.forEach(compromisso => {
+
+        const diaSemana = Number(compromisso.dataset.dia);
+
+        const descricao =
+            compromisso.querySelector(".atividade").value.trim();
+
+        const horaInicio =
+            compromisso.querySelector(".hora-inicio").value;
+
+        const horaFim =
+            compromisso.querySelector(".hora-fim").value;
+
+        const tipoAtividade =
+            compromisso.querySelector(".tipo-atividade").value;
+
+        if (!descricao || !horaInicio) {
+            possuiErro = true;
+            return;
+        }
+
+        itens.push({
+            diaSemana,
+            descricao,
+            horaInicio,
+            horaFim: horaFim || null,
+            tipoAtividade
+        });
+    });
+
+    if (possuiErro) {
+        alert(
+            "Preencha pelo menos a atividade e o horário de início de todos os compromissos."
+        );
+        return;
+    }
+
+    console.log("Itens que serão enviados:", itens);
+
+    try {
+
+        const resposta = await fetch("/api/rotina", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                usuarioId: Number(usuarioId),
+                itens
+            })
+        });
+
+        const dados = await resposta.json();
+
+        console.log("Resposta da API:", dados);
+
+        if (!resposta.ok || !dados.sucesso) {
+            throw new Error(
+                dados.erro || "Erro ao salvar rotina."
+            );
+        }
+
+        alert("Rotina salva com sucesso!");
+
+        carregarRotina();
+
+    } catch (erro) {
+
+        console.error("Erro ao salvar rotina:", erro);
+
+        alert(
+            erro.message ||
+            "Não foi possível salvar sua rotina."
+        );
+    }
+}
+
+// Carrega a rotina ao abrir a página
+document.addEventListener("DOMContentLoaded", () => {
+    carregarRotina();
+});
+
+</script>
+
+<!-- =====================================================
+     MODAL PADRÃO - ROTA DO SUCESSO
+===================================================== -->
+<div id="modal-sistema"
+     class="fixed inset-0 z-[9999] hidden items-center justify-center p-4">
+
+    <!-- Fundo escurecido -->
+    <div class="absolute inset-0 bg-slate-950/50 backdrop-blur-sm"
+         onclick="fecharModalSistema(false)">
+    </div>
+
+    <!-- Caixa -->
+    <div class="relative w-full max-w-md overflow-hidden
+                rounded-3xl border border-slate-200
+                bg-white shadow-2xl
+                dark:border-slate-700 dark:bg-slate-900">
+
+        <!-- detalhe superior -->
+        <div id="modal-faixa"
+             class="h-1.5 bg-gradient-to-r
+                    from-blue-600 via-cyan-400 to-blue-600">
+        </div>
+
+        <div class="p-7">
+
+            <div class="flex items-start gap-4">
+
+                <!-- Ícone -->
+                <div id="modal-icone-container"
+                     class="flex h-12 w-12 shrink-0
+                            items-center justify-center
+                            rounded-2xl bg-blue-50
+                            text-blue-600
+                            dark:bg-blue-950/50">
+
+                    <i id="modal-icone"
+                       data-lucide="info"
+                       class="h-6 w-6"></i>
+
+                </div>
+
+                <div class="flex-1">
+
+                    <h3 id="modal-titulo"
+                        class="text-lg font-bold
+                               text-slate-900 dark:text-white">
+                        Confirmação
+                    </h3>
+
+                    <p id="modal-mensagem"
+                       class="mt-2 text-sm leading-6
+                              text-slate-500 dark:text-slate-400">
+                    </p>
+
+                </div>
+
+            </div>
+
+            <!-- Botões -->
+            <div id="modal-botoes"
+                 class="mt-7 flex justify-end gap-3">
+
+                <button id="modal-cancelar"
+                        type="button"
+                        onclick="fecharModalSistema(false)"
+                        class="rounded-xl border border-slate-300
+                               px-5 py-2.5 font-semibold
+                               text-slate-600
+                               hover:bg-slate-100
+                               transition-all">
+                    Cancelar
+                </button>
+
+                <button id="modal-confirmar"
+                        type="button"
+                        onclick="fecharModalSistema(true)"
+                        class="rounded-xl bg-blue-600
+                               px-5 py-2.5 font-semibold text-white
+                               shadow-sm
+                               hover:bg-blue-700 hover:shadow-md
+                               transition-all">
+                    Confirmar
+                </button>
+
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- MODAL PARA AJUSTAR FOTO DE PERFIL -->
+<div
+    id="modalCropFoto"
+    class="hidden fixed inset-0 z-[100] bg-black/60
+           items-center justify-center p-4"
+>
+    <div
+        class="bg-white dark:bg-slate-900
+               w-full max-w-md rounded-2xl shadow-2xl
+               overflow-hidden"
+    >
+
+        <!-- Cabeçalho -->
+        <div class="flex items-center justify-between px-5 py-4
+                    border-b border-slate-200 dark:border-slate-700">
+
+            <div>
+                <h3 class="font-bold text-slate-900 dark:text-white">
+                    Ajustar foto
+                </h3>
+
+                <p class="text-xs text-slate-500 mt-0.5">
+                    Posicione sua foto dentro do círculo
+                </p>
+            </div>
+
+            <button
+                type="button"
+                onclick="cancelarCropFoto()"
+                class="w-9 h-9 rounded-full
+                       flex items-center justify-center
+                       hover:bg-slate-100 dark:hover:bg-slate-800"
+            >
+                <i class="ph-bold ph-x text-lg"></i>
+            </button>
+
+        </div>
+
+
+        <!-- Área da imagem -->
+        <div class="p-5">
+
+            <div class="w-full h-[350px] bg-slate-900 rounded-xl overflow-hidden">
+
+                <img
+                    id="imagemCrop"
+                    src=""
+                    alt="Ajustar foto de perfil"
+                    class="max-w-full"
+                >
+
+            </div>
+
+
+            <!-- Zoom -->
+            <div class="mt-5">
+
+                <div class="flex items-center justify-between mb-2">
+
+                    <span class="text-xs font-semibold text-slate-500">
+                        Zoom
+                    </span>
+
+                    <i class="ph ph-magnifying-glass-plus text-slate-400"></i>
+
+                </div>
+
+                <input
+                    id="zoomCrop"
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.01"
+                    value="0"
+                    class="w-full accent-blue-600"
+                >
+
+            </div>
+
+        </div>
+
+
+        <!-- Botões -->
+        <div class="flex gap-3 px-5 pb-5">
+
+            <!-- X -->
+                <button
+                    type="button"
+                    onclick="cancelarCropFoto()"
+                    class="w-9 h-9 rounded-full flex items-center justify-center
+                    hover:bg-slate-100 dark:hover:bg-slate-800"
+                    >
+                    <i class="ph-bold ph-x text-lg"></i>
+                </button>
+
+            <!-- CANCELAR -->
+                <button
+                    type="button"
+                    onclick="cancelarCropFoto()"
+                    class="flex-1 px-4 py-3 rounded-xl
+                    border border-slate-200
+                    text-slate-700 font-semibold
+                    hover:bg-slate-50"
+                    >
+                    Cancelar
+                </button>
+
+                <!-- SALVAR -->
+                <button
+                    type="button"
+                    onclick="salvarCropFoto()"
+                    class="flex-1 px-4 py-3 rounded-xl
+                    bg-blue-600 text-white font-semibold
+                    hover:bg-blue-700 transition"
+                >
+                <i class="ph-bold ph-check mr-1"></i>
+                Salvar foto
+                </button>
+
+        </div>
+
+    </div>
+</div>
+
+
+
 </body>
 </html>

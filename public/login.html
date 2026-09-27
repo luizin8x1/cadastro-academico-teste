@@ -221,8 +221,17 @@
                         return;
                     }
 
-                    sessionStorage.setItem('usuarioId', dados.usuarioId);
-                    window.location.href = "main.html";
+                    sessionStorage.setItem("usuarioId", dados.usuarioId);
+                    sessionStorage.setItem("tipoUsuario", dados.tipoUsuario);
+                        alert(
+                            "ID: " + dados.usuarioId +
+                            "\nTipo recebido: [" + dados.tipoUsuario + "]"
+                        );
+                    if (dados.tipoUsuario === "administrador") {
+                        window.location.href = "admin.html";
+                    } else {
+                        window.location.href = "main.html";
+                    }
 
                 } catch (err) {
                     this.erro = 'Erro de conexão com o servidor.';

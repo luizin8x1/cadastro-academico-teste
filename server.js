@@ -165,11 +165,11 @@ app.post("/api/login", async (req, res) => {
   try {
 
     const resultado = await pool.query(
-      `SELECT id, nome, email, senha_hash
-       FROM usuario
-       WHERE LOWER(email) = LOWER($1)`,
-      [email.trim()]
-    );
+  `SELECT id, nome, email, senha_hash, tipo_usuario, status
+   FROM usuario
+   WHERE LOWER(email) = LOWER($1)`,
+  [email.trim()]
+);
 
     if (resultado.rows.length === 0) {
       return res.status(401).json({
@@ -191,11 +191,12 @@ app.post("/api/login", async (req, res) => {
     }
 
     return res.json({
-      sucesso: true,
-      usuarioId: usuario.id,
-      nome: usuario.nome,
-      email: usuario.email
-    });
+  sucesso: true,
+  usuarioId: usuario.id,
+  nome: usuario.nome,
+  email: usuario.email,
+  tipoUsuario: usuario.tipo_usuario
+});
 
   } catch (err) {
 
@@ -207,47 +208,91 @@ app.post("/api/login", async (req, res) => {
   }
 });
 
-// ---------- BUSCAR PERFIL ACADÊMICO ----------
+// =====================================================
+// BUSCAR DADOS DO USUÁRIO + PERFIL ACADÊMICO
+// =====================================================
 app.get("/api/perfil/:usuarioId", async (req, res) => {
-  const usuarioId = parseInt(req.params.usuarioId, 10);
 
-  if (isNaN(usuarioId)) {
-    return res.status(400).json({ erro: "ID de usuário inválido." });
-  }
+    const usuarioId = parseInt(req.params.usuarioId, 10);
 
-  try {
-    const resultado = await pool.query(
-      `SELECT nome, email,
-              to_char(data_nascimento, 'YYYY-MM-DD') AS data_nascimento,
-              serie, rede_de_ensino, curso, universidade,
-              tipo_instituicao_superior, objetivo, objetivo_outro
-       FROM usuario
-       WHERE id = $1`,
-      [usuarioId]
-    );
-
-    if (resultado.rows.length === 0) {
-      return res.status(404).json({ erro: "Usuário não encontrado." });
+    if (isNaN(usuarioId)) {
+        return res.status(400).json({
+            erro: "ID de usuário inválido."
+        });
     }
 
-    const linha = resultado.rows[0];
+    try {
 
-    res.json({
-      nome: linha.nome,
-      email: linha.email,
-      dataNascimento: linha.data_nascimento,
-      serie: linha.serie,
-      redeEnsino: linha.rede_de_ensino,
-      curso: linha.curso,
-      universidade: linha.universidade,
-      tipoInstituicao: linha.tipo_instituicao_superior,
-      objetivo: linha.objetivo,
-      objetivoOutro: linha.objetivo_outro,
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ erro: "Erro ao buscar perfil." });
-  }
+        const resultado = await pool.query(
+            `
+            SELECT
+                u.nome,
+                u.email,
+
+                TO_CHAR(pa.data_nascimento, 'YYYY-MM-DD') AS data_nascimento,
+                pa.serie,
+                pa.etapa_atual,
+                pa.escola,
+                pa.rede_ensino,
+                pa.curso_desejado,
+                pa.universidade_desejada,
+                pa.tipo_universidade,
+                pa.objetivo_geral,
+                pa.trilha_sesi,
+                pa.etapa_sesi
+
+            FROM usuario u
+
+            LEFT JOIN perfil_academico pa
+                ON pa.usuario_id = u.id
+
+            WHERE u.id = $1
+            `,
+            [usuarioId]
+        );
+
+        if (resultado.rows.length === 0) {
+            return res.status(404).json({
+                erro: "Usuário não encontrado."
+            });
+        }
+
+        const linha = resultado.rows[0];
+
+        return res.json({
+
+            // Dados da conta
+            nome: linha.nome,
+            email: linha.email,
+
+            // Perfil acadêmico
+            dataNascimento: linha.data_nascimento,
+            serie: linha.serie,
+            etapaAtual: linha.etapa_atual,
+            escola: linha.escola,
+            redeEnsino: linha.rede_ensino,
+            cursoDesejado: linha.curso_desejado,
+            universidadeDesejada: linha.universidade_desejada,
+            tipoUniversidade: linha.tipo_universidade,
+            objetivoGeral: linha.objetivo_geral,
+            trilhaSesi: linha.trilha_sesi,
+            etapaSesi: linha.etapa_sesi
+        });
+
+    } catch (erro) {
+
+        console.error("❌ ERRO AO BUSCAR PERFIL:");
+        console.error("Mensagem:", erro.message);
+        console.error("Código:", erro.code);
+        console.error(erro);
+
+        return res.status(500).json({
+            sucesso: false,
+            erro: "Erro ao buscar perfil do usuário.",
+            detalhe: erro.message,
+            codigo: erro.code
+        });
+    }
 });
 
 // ---------- ATUALIZAR PERFIL ACADÊMICO ----------
@@ -815,6 +860,555 @@ app.get("/api/estatisticas", async (req, res) => {
 
   }
 });
+
+// ======================================================
+// ROTINA DIÁRIA - CONSULTAR ROTINA DO USUÁRIO
+// ======================================================
+
+app.get("/api/rotina/:usuarioId", async (req, res) => {
+  const { usuarioId } = req.params;
+
+  try {
+
+    // Busca a rotina ativa mais recente do usuário
+    const resultadoRotina = await pool.query(
+      `
+      SELECT
+        id,
+        usuario_id,
+        nome,
+        preferencia_periodo,
+        duracao_bloco_min,
+        intervalo_min,
+        rotina_variavel,
+        ativa,
+        criada_em,
+        atualizada_em
+      FROM rotina
+      WHERE usuario_id = $1
+        AND ativa = true
+      ORDER BY atualizada_em DESC, criada_em DESC
+      LIMIT 1
+      `,
+      [usuarioId]
+    );
+
+    // Usuário ainda não possui rotina
+    if (resultadoRotina.rows.length === 0) {
+      return res.json({
+        sucesso: true,
+        existe: false,
+        rotina: null
+      });
+    }
+
+    const rotina = resultadoRotina.rows[0];
+
+    // Busca os compromissos da rotina
+    const resultadoItens = await pool.query(
+      `
+      SELECT
+        id,
+        rotina_id,
+        dia_semana,
+        hora_inicio,
+        hora_fim,
+        tipo_atividade,
+        descricao,
+        tempo_deslocamento_min,
+        fixo,
+        bloqueia_estudo
+      FROM rotina_item
+      WHERE rotina_id = $1
+      ORDER BY dia_semana ASC, hora_inicio ASC
+      `,
+      [rotina.id]
+    );
+
+    return res.json({
+      sucesso: true,
+      existe: true,
+      rotina: {
+        ...rotina,
+        itens: resultadoItens.rows
+      }
+    });
+
+  } catch (erro) {
+
+    console.error("Erro ao consultar rotina:", erro);
+
+    return res.status(500).json({
+      sucesso: false,
+      erro: "Erro ao consultar a rotina diária.",
+      detalhe: erro.message
+    });
+
+  }
+});
+
+// =====================================================
+// SALVAR ROTINA DIÁRIA
+// =====================================================
+
+app.post("/api/rotina", async (req, res) => {
+
+    const { usuarioId, itens } = req.body;
+
+    if (!usuarioId) {
+        return res.status(400).json({
+            sucesso: false,
+            erro: "Usuário não informado."
+        });
+    }
+
+    if (!Array.isArray(itens) || itens.length === 0) {
+        return res.status(400).json({
+            sucesso: false,
+            erro: "Cadastre pelo menos um compromisso."
+        });
+    }
+
+    const client = await pool.connect();
+
+    try {
+
+        await client.query("BEGIN");
+
+        // Verifica se o usuário já possui rotina ativa
+        const rotinaExistente = await client.query(
+            `SELECT id
+             FROM rotina
+             WHERE usuario_id = $1
+             AND ativa = true
+             LIMIT 1`,
+            [usuarioId]
+        );
+
+        let rotinaId;
+
+        if (rotinaExistente.rows.length > 0) {
+
+            rotinaId = rotinaExistente.rows[0].id;
+
+            // Atualiza a data da rotina
+            await client.query(
+                `UPDATE rotina
+                 SET atualizada_em = CURRENT_TIMESTAMP
+                 WHERE id = $1`,
+                [rotinaId]
+            );
+
+            // Remove os itens antigos para gravar a versão atual
+            await client.query(
+                `DELETE FROM rotina_item
+                 WHERE rotina_id = $1`,
+                [rotinaId]
+            );
+
+        } else {
+
+            // Cria a rotina
+            const novaRotina = await client.query(
+                `INSERT INTO rotina
+                    (usuario_id, nome, ativa, criada_em, atualizada_em)
+                 VALUES
+                    ($1, $2, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                 RETURNING id`,
+                [
+                    usuarioId,
+                    "Rotina diária"
+                ]
+            );
+
+            rotinaId = novaRotina.rows[0].id;
+        }
+
+        // Insere todos os compromissos
+        for (const item of itens) {
+
+            await client.query(
+                `INSERT INTO rotina_item
+                    (
+                        rotina_id,
+                        dia_semana,
+                        hora_inicio,
+                        hora_fim,
+                        tipo_atividade,
+                        descricao,
+                        fixo,
+                        bloqueia_estudo
+                    )
+                 VALUES
+                    ($1, $2, $3, $4, $5, $6, true, true)`,
+                [
+                    rotinaId,
+                    item.diaSemana,
+                    item.horaInicio || null,
+                    item.horaFim || null,
+                    item.tipoAtividade,
+                    item.descricao
+                ]
+            );
+        }
+
+        await client.query("COMMIT");
+
+        res.json({
+            sucesso: true,
+            mensagem: "Rotina salva com sucesso!",
+            rotinaId
+        });
+
+    } catch (erro) {
+
+        await client.query("ROLLBACK");
+
+        console.error("Erro ao salvar rotina:", erro);
+
+        res.status(500).json({
+            sucesso: false,
+            erro: "Erro ao salvar rotina."
+        });
+
+    } finally {
+
+        client.release();
+    }
+});
+
+// =====================================================
+// EXCLUIR ROTINA DIÁRIA
+// =====================================================
+
+app.delete("/api/rotina/:usuarioId", async (req, res) => {
+
+    const usuarioId = Number(req.params.usuarioId);
+
+    if (!usuarioId) {
+        return res.status(400).json({
+            sucesso: false,
+            erro: "Usuário não informado."
+        });
+    }
+
+    const client = await pool.connect();
+
+    try {
+
+        await client.query("BEGIN");
+
+        // Procura a rotina ativa do usuário
+        const resultadoRotina = await client.query(
+            `SELECT id
+             FROM rotina
+             WHERE usuario_id = $1
+             AND ativa = true
+             LIMIT 1`,
+            [usuarioId]
+        );
+
+        if (resultadoRotina.rows.length === 0) {
+
+            await client.query("ROLLBACK");
+
+            return res.status(404).json({
+                sucesso: false,
+                erro: "Nenhuma rotina encontrada."
+            });
+        }
+
+        const rotinaId = resultadoRotina.rows[0].id;
+
+        // Primeiro remove os compromissos
+        await client.query(
+            `DELETE FROM rotina_item
+             WHERE rotina_id = $1`,
+            [rotinaId]
+        );
+
+        // Depois remove a rotina
+        await client.query(
+            `DELETE FROM rotina
+             WHERE id = $1`,
+            [rotinaId]
+        );
+
+        await client.query("COMMIT");
+
+        return res.json({
+            sucesso: true,
+            mensagem: "Rotina excluída com sucesso!"
+        });
+
+    } catch (erro) {
+
+        await client.query("ROLLBACK");
+
+        console.error("Erro ao excluir rotina:", erro);
+
+        return res.status(500).json({
+            sucesso: false,
+            erro: "Erro ao excluir rotina."
+        });
+
+    } finally {
+
+        client.release();
+    }
+});
+
+// =====================================================
+// FRASES MOTIVACIONAIS - CADASTRAR NOVA FRASE
+// =====================================================
+app.post("/api/frases-motivacionais", async (req, res) => {
+
+    const { frase, autor } = req.body;
+
+    // Validação
+    if (!frase || !frase.trim()) {
+        return res.status(400).json({
+            sucesso: false,
+            erro: "A frase é obrigatória."
+        });
+    }
+
+    try {
+
+        const resultado = await pool.query(
+            `
+            INSERT INTO frase_motivacional
+                (frase, autor)
+            VALUES
+                ($1, $2)
+            RETURNING
+                id,
+                frase,
+                autor,
+                ativa,
+                criado_em;
+            `,
+            [
+                frase.trim(),
+                autor?.trim() || null
+            ]
+        );
+
+        return res.status(201).json({
+            sucesso: true,
+            mensagem: "Frase cadastrada com sucesso!",
+            frase: resultado.rows[0]
+        });
+
+    } catch (erro) {
+
+        console.error("❌ ERRO AO CADASTRAR FRASE:");
+        console.error(erro);
+
+        return res.status(500).json({
+            sucesso: false,
+            erro: "Erro ao cadastrar a frase.",
+            detalhe: erro.message
+        });
+    }
+
+});
+
+// =====================================================
+// ADMIN - FRASES MOTIVACIONAIS
+// =====================================================
+
+
+// ---------- LISTAR TODAS AS FRASES ----------
+app.get("/api/admin/frases", async (req, res) => {
+  try {
+
+    const resultado = await pool.query(`
+      SELECT id, frase, autor, ativa
+      FROM frase_motivacional
+      ORDER BY id ASC
+    `);
+
+    res.json({
+      sucesso: true,
+      frases: resultado.rows
+    });
+
+  } catch (erro) {
+
+    console.error("❌ ERRO AO LISTAR FRASES:");
+    console.error(erro);
+
+    res.status(500).json({
+      sucesso: false,
+      erro: "Erro ao buscar frases motivacionais.",
+      detalhe: erro.message
+    });
+  }
+});
+
+
+// ---------- ADICIONAR NOVA FRASE ----------
+app.post("/api/admin/frases", async (req, res) => {
+
+  const { frase, autor } = req.body;
+
+  if (!frase || !autor) {
+    return res.status(400).json({
+      sucesso: false,
+      erro: "Informe a frase e o autor."
+    });
+  }
+
+  try {
+
+    const resultado = await pool.query(
+      `
+      INSERT INTO frase_motivacional
+        (frase, autor, ativa)
+      VALUES
+        ($1, $2, true)
+      RETURNING id, frase, autor, ativa
+      `,
+      [
+        frase.trim(),
+        autor.trim()
+      ]
+    );
+
+    res.status(201).json({
+      sucesso: true,
+      mensagem: "Frase cadastrada com sucesso!",
+      frase: resultado.rows[0]
+    });
+
+  } catch (erro) {
+
+    console.error("❌ ERRO AO CADASTRAR FRASE:");
+    console.error(erro);
+
+    res.status(500).json({
+      sucesso: false,
+      erro: "Erro ao cadastrar frase motivacional.",
+      detalhe: erro.message
+    });
+  }
+});
+
+
+// ---------- EDITAR FRASE ----------
+app.put("/api/admin/frases/:id", async (req, res) => {
+
+  const id = parseInt(req.params.id, 10);
+  const { frase, autor } = req.body;
+
+  if (isNaN(id)) {
+    return res.status(400).json({
+      sucesso: false,
+      erro: "ID inválido."
+    });
+  }
+
+  if (!frase || !autor) {
+    return res.status(400).json({
+      sucesso: false,
+      erro: "Informe a frase e o autor."
+    });
+  }
+
+  try {
+
+    const resultado = await pool.query(
+      `
+      UPDATE frase_motivacional
+      SET
+        frase = $1,
+        autor = $2
+      WHERE id = $3
+      RETURNING id, frase, autor, ativa
+      `,
+      [
+        frase.trim(),
+        autor.trim(),
+        id
+      ]
+    );
+
+    if (resultado.rows.length === 0) {
+      return res.status(404).json({
+        sucesso: false,
+        erro: "Frase não encontrada."
+      });
+    }
+
+    res.json({
+      sucesso: true,
+      mensagem: "Frase atualizada com sucesso!",
+      frase: resultado.rows[0]
+    });
+
+  } catch (erro) {
+
+    console.error("❌ ERRO AO EDITAR FRASE:");
+    console.error(erro);
+
+    res.status(500).json({
+      sucesso: false,
+      erro: "Erro ao editar frase motivacional.",
+      detalhe: erro.message
+    });
+  }
+});
+
+
+// ---------- EXCLUIR FRASE ----------
+app.delete("/api/admin/frases/:id", async (req, res) => {
+
+  const id = parseInt(req.params.id, 10);
+
+  if (isNaN(id)) {
+    return res.status(400).json({
+      sucesso: false,
+      erro: "ID inválido."
+    });
+  }
+
+  try {
+
+    const resultado = await pool.query(
+      `
+      DELETE FROM frase_motivacional
+      WHERE id = $1
+      RETURNING id
+      `,
+      [id]
+    );
+
+    if (resultado.rows.length === 0) {
+      return res.status(404).json({
+        sucesso: false,
+        erro: "Frase não encontrada."
+      });
+    }
+
+    res.json({
+      sucesso: true,
+      mensagem: "Frase excluída com sucesso!"
+    });
+
+  } catch (erro) {
+
+    console.error("❌ ERRO AO EXCLUIR FRASE:");
+    console.error(erro);
+
+    res.status(500).json({
+      sucesso: false,
+      erro: "Erro ao excluir frase motivacional.",
+      detalhe: erro.message
+    });
+  }
+});
+
 
 app.listen(PORT, () => {
   console.log(`Servidor rodando em http://localhost:${PORT}`);

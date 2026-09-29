@@ -451,200 +451,7 @@
             </div>
         </a>
 
-        
-
-<!-- ========================================= -->
-<!-- DIFICULDADES ACADÊMICAS -->
-<!-- ========================================= -->
-
-<div class="mt-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden">
-
-    <!-- Cabeçalho -->
-    <div class="px-6 py-5 border-b border-slate-100 dark:border-slate-800">
-        <div class="flex items-center gap-3">
-
-            <div class="w-10 h-10 rounded-xl bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center">
-                <i class="ph ph-warning-circle text-orange-500 text-xl"></i>
-            </div>
-
-            <div>
-                <h2 class="text-lg font-bold text-slate-900 dark:text-white">
-                    Dificuldades acadêmicas
-                </h2>
-
-                <p class="text-sm text-slate-500 dark:text-slate-400">
-                    Conte para o Rota do Sucesso quais conteúdos precisam de mais atenção.
-                </p>
-            </div>
-
-        </div>
-    </div>
-
-
-    <div class="p-6">
-
-        <!-- PERGUNTA -->
-        <div class="mb-5">
-
-            <div class="flex items-center justify-between gap-4">
-
-                <div>
-                    <h3 class="font-semibold text-slate-800 dark:text-slate-100">
-                        Quais são as 3 disciplinas em que você possui maior dificuldade?
-                    </h3>
-
-                    <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                        Selecione no máximo 3 disciplinas.
-                    </p>
-                </div>
-
-                <!-- CONTADOR -->
-                <div
-                    class="text-sm font-semibold px-3 py-1.5 rounded-lg"
-                    :class="disciplinasSelecionadas.length === 3
-                        ? 'bg-blue-50 text-blue-600'
-                        : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-300'"
-                >
-                    <span x-text="disciplinasSelecionadas.length"></span>/3
-                </div>
-
-            </div>
-
-        </div>
-
-
-        <!-- DISCIPLINAS -->
-        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-
-            <template x-for="disciplina in disciplinas" :key="disciplina.id">
-
-                <button
-                    type="button"
-                    @click="alternarDisciplinaDificuldade(disciplina)"
-                    class="relative flex items-center gap-3 px-4 py-3 rounded-xl border text-left transition-all"
-                    :class="
-                        disciplinasSelecionadas.includes(Number(disciplina.id))
-                        ? 'border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-900/20'
-                        : 'border-slate-200 bg-white text-slate-700 hover:border-blue-300 hover:bg-blue-50/40 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-200'
-                    "
-                >
-
-                    <!-- CHECK -->
-                    <div
-                        class="w-5 h-5 rounded-md border flex items-center justify-center flex-shrink-0"
-                        :class="
-                            disciplinasSelecionadas.includes(Number(disciplina.id))
-                            ? 'bg-blue-600 border-blue-600 text-white'
-                            : 'border-slate-300 dark:border-slate-600'
-                        "
-                    >
-                        <i
-                            x-show="disciplinasSelecionadas.includes(Number(disciplina.id))"
-                            class="ph-bold ph-check text-xs"
-                        ></i>
-                    </div>
-
-                    <span
-                        class="text-sm font-medium"
-                        x-text="disciplina.nome"
-                    ></span>
-
-                </button>
-
-            </template>
-
-        </div>
-
-
-        <!-- ========================================= -->
-        <!-- CONTEÚDOS DE DIFICULDADE -->
-        <!-- ========================================= -->
-
-        <div
-            x-show="disciplinasSelecionadas.length > 0"
-            x-transition
-            class="mt-7 pt-6 border-t border-slate-100 dark:border-slate-800"
-        >
-
-            <h3 class="font-semibold text-slate-800 dark:text-slate-100">
-                Em quais conteúdos você possui mais dificuldade?
-            </h3>
-
-            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1 mb-5">
-                Informe até 3 conteúdos para cada disciplina selecionada.
-            </p>
-
-
-            <div class="space-y-5">
-
-                <template
-                    x-for="disciplina in disciplinas.filter(d =>
-                        disciplinasSelecionadas.includes(Number(d.id))
-                    )"
-                    :key="'conteudo-' + disciplina.id"
-                >
-
-                    <div class="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4">
-
-                        <!-- Nome disciplina -->
-                        <div class="flex items-center gap-2 mb-3">
-
-                            <div class="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                                <i class="ph ph-book-open text-blue-600"></i>
-                            </div>
-
-                            <span
-                                class="font-semibold text-slate-800 dark:text-white"
-                                x-text="disciplina.nome"
-                            ></span>
-
-                        </div>
-
-
-                        <!-- CAMPOS -->
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-
-                            <input
-                                type="text"
-                                maxlength="100"
-                                x-model="conteudosDificuldade[disciplina.id][0]"
-                                placeholder="Conteúdo 1"
-                                class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                            >
-
-                            <input
-                                type="text"
-                                maxlength="100"
-                                x-model="conteudosDificuldade[disciplina.id][1]"
-                                placeholder="Conteúdo 2"
-                                class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                            >
-
-                            <input
-                                type="text"
-                                maxlength="100"
-                                x-model="conteudosDificuldade[disciplina.id][2]"
-                                placeholder="Conteúdo 3"
-                                class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                            >
-
-                        </div>
-
-                    </div>
-
-                </template>
-
-            </div>
-
-        </div>
-
-    </div>
-
-</div>
-
-
-
-        <!-- CONFIGURAÇÕES -->
+                <!-- CONFIGURAÇÕES -->
         <button
             type="button"
             @click="currentTab = 'settings'; profileMenuOpen = false"
@@ -1430,214 +1237,661 @@
                     </div>
                 </div>
 
-                <!-- CRONOGRAMA PERSONALIZADO TAB -->
-                <div x-show="currentTab === 'cronograma'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4" x-transition:enter-end="opacity-100 translate-y-0" class="max-w-3xl mx-auto space-y-6" x-cloak>
-                    <div>
-                        <h1 class="text-3xl font-bold tracking-tight text-slate-900 dark:text-white hc:text-white">Meu Plano de Estudos</h1>
-                        <p class="text-slate-500 dark:text-slate-400 hc:text-yellow-300">Responda com sinceridade — quanto mais realista, melhor o plano fica.</p>
-                    </div>
+                <!-- =====================================================
+     PLANO DE ESTUDO
+====================================================== -->
 
-                    <div x-show="cronCarregando" class="text-center text-sm text-slate-500 dark:text-slate-400 hc:text-white py-16">
-                        Carregando2...
-                    </div>
+<div
+    x-show="currentTab === 'cronograma'"
+    x-transition:enter="transition ease-out duration-300"
+    x-transition:enter-start="opacity-0 translate-y-4"
+    x-transition:enter-end="opacity-100 translate-y-0"
+    class="max-w-4xl mx-auto space-y-6"
+    x-cloak
+>
 
-                    <div x-show="!cronCarregando" x-cloak class="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 hc:bg-black hc:border-2 hc:border-white shadow-sm">
-                        <form @submit.prevent="cronSalvar" class="space-y-6">
+    <!-- =================================================
+         CABEÇALHO
+    ================================================== -->
 
-                            <!-- Horas por dia -->
-                            <div>
-                                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300 hc:text-white mb-1.5">Quantas horas por dia você tem disponível para estudar?</label>
-                                <div class="relative flex items-center">
-                                    <i class="ph ph-clock absolute left-3.5 text-slate-400 text-lg pointer-events-none"></i>
-                                    <input
-                                        type="number"
-                                        min="0"
-                                        max="12"
-                                        step="0.5"
-                                        required
-                                        x-model="cronHoras"
-                                        placeholder="Ex: 2"
-                                        class="w-full pl-10 pr-4 py-3 bg-white dark:bg-slate-900 hc:bg-black border border-slate-200 dark:border-slate-800 hc:border-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 hc:focus:ring-yellow-400 transition-all text-slate-700 dark:text-slate-200 hc:text-white"
-                                    />
-                                </div>
-                            </div>
+    <div>
 
-                            <!-- Dias da semana -->
-                            <div>
-                                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300 hc:text-white mb-2">
-                                    Em quais dias da semana você pode estudar?
-                                </label>
-                                <div class="grid grid-cols-4 sm:grid-cols-7 gap-2">
-                                    <template x-for="dia in cronDiasOptions" :key="dia.id">
-                                        <label
-                                        class="flex flex-col items-center justify-center gap-1 p-2
-                                        bg-white dark:bg-slate-900 hc:bg-black
-                                        border rounded-xl cursor-pointer
-                                        transition-all text-center"
-                                        :class="cronDias.includes(dia.id)
-                                        ? 'border-blue-500 ring-1 ring-blue-500 hc:border-yellow-400 hc:ring-yellow-400'
-                                        : 'border-slate-200 dark:border-slate-800 hc:border-white hover:border-blue-400'"
-                                        >
-                                        <input
-                                        type="checkbox"
-                                        :value="dia.id"
-                                        x-model="cronDias"
-                                        class="sr-only"
-                                        >
+        <div class="flex items-center gap-3 mb-2">
 
-                                        <span
-                                        class="text-xs font-semibold text-slate-700
-                                        dark:text-slate-200 hc:text-white"
-                                        x-text="dia.label">
-                                    </span>
-                                    </label>
-                                    </template>
-                                 </div>
-                            </div>
-                            <!-- Rotina semanal: aparece só para os dias marcados acima -->
-                            <div x-show="cronDiasSelecionados.length > 0" x-cloak>
-                                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300 hc:text-white mb-1">Como é sua rotina hoje?</label>
-                                <p class="text-xs text-slate-500 dark:text-slate-400 hc:text-gray-300 mb-3">
-                                    Conte o que você já faz em cada dia (aula, trabalho, sono...), com o horário. Assim os estudos não batem com seus compromissos. Este campo é opcional.
-                                </p>
+            <div
+                class="w-12 h-12 rounded-2xl
+                       bg-blue-50 dark:bg-blue-900/20
+                       text-blue-600 dark:text-blue-400
+                       flex items-center justify-center"
+            >
 
-                                <div class="space-y-3">
-                                    <template x-for="dia in cronDiasSelecionados" :key="dia.id">
-                                        <div class="p-3 bg-white dark:bg-slate-900 hc:bg-black border border-slate-200 dark:border-slate-800 hc:border-white rounded-xl">
-                                            <div class="text-sm font-semibold text-slate-700 dark:text-slate-200 hc:text-white mb-2" x-text="dia.nome"></div>
+                <i class="ph-bold ph-map-trifold text-2xl"></i>
 
-                                            <div class="space-y-2">
-                                                <template x-for="(linha, idx) in cronRotina[dia.id]" :key="linha.uid">
-                                                    <div class="flex flex-wrap items-center gap-2">
-                                                        <!-- Caixinha 1: horário (de / até) -->
-                                                        <div class="flex items-center gap-1.5 shrink-0">
-                                                            <input
-                                                                type="time"
-                                                                x-model="linha.inicio"
-                                                                aria-label="Início"
-                                                                class="w-[6.25rem] px-2 py-2 bg-white dark:bg-slate-900 hc:bg-black border border-slate-200 dark:border-slate-800 hc:border-white rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 hc:focus:ring-yellow-400 transition-all text-slate-700 dark:text-slate-200 hc:text-white"
-                                                            />
-                                                            <span class="text-xs text-slate-500 dark:text-slate-400 hc:text-white">até</span>
-                                                            <input
-                                                                type="time"
-                                                                x-model="linha.fim"
-                                                                aria-label="Fim"
-                                                                class="w-[6.25rem] px-2 py-2 bg-white dark:bg-slate-900 hc:bg-black border border-slate-200 dark:border-slate-800 hc:border-white rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 hc:focus:ring-yellow-400 transition-all text-slate-700 dark:text-slate-200 hc:text-white"
-                                                            />
-                                                        </div>
+            </div>
 
-                                                        <!-- Caixinha 2: o que você faz -->
-                                                        <input
-                                                            type="text"
-                                                            maxlength="100"
-                                                            x-model="linha.descricao"
-                                                            placeholder="O que você faz?"
-                                                            class="min-w-[10rem] flex-1 px-3 py-2 bg-white dark:bg-slate-900 hc:bg-black border border-slate-200 dark:border-slate-800 hc:border-white rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 hc:focus:ring-yellow-400 transition-all text-slate-700 dark:text-slate-200 hc:text-white"
-                                                        />
 
-                                                        <button
-                                                            type="button"
-                                                            @click="cronRemoverLinha(dia.id, idx)"
-                                                            title="Remover"
-                                                            aria-label="Remover atividade"
-                                                            class="p-2 text-slate-400 hover:text-red-500 hc:text-white hc:hover:text-yellow-300 rounded-lg transition-all"
-                                                        >
-                                                            <i class="ph-bold ph-x"></i>
-                                                        </button>
-                                                    </div>
-                                                </template>
-                                            </div>
+            <div>
 
-                                            <button
-                                                type="button"
-                                                @click="cronAdicionarLinha(dia.id)"
-                                                class="mt-2 flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 hc:text-yellow-300"
-                                            >
-                                                <i class="ph-bold ph-plus"></i>
-                                                <span>Adicionar atividade</span>
-                                            </button>
-                                        </div>
-                                    </template>
-                                </div>
-                            </div>
+                <h1
+                    class="text-3xl font-bold tracking-tight
+                           text-slate-900 dark:text-white"
+                >
+                    Plano de Estudo
+                </h1>
 
-                            <!-- Matérias com mais dificuldade -->
-                            <div>
-                                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300 hc:text-white mb-2">Em quais matérias você tem mais dificuldade?</label>
-                                <div class="grid grid-cols-2 gap-2">
-                                    <template x-for="materia in cronMateriasOptions" :key="materia.id">
-                                        <label
-                                            class="flex items-center gap-2 p-3 bg-white dark:bg-slate-900 hc:bg-black border rounded-xl cursor-pointer transition-all"
-                                            :class="cronMaterias.includes(materia.id) ? 'border-blue-500 ring-1 ring-blue-500 hc:border-yellow-400 hc:ring-yellow-400' : 'border-slate-200 dark:border-slate-800 hc:border-white hover:border-blue-400'"
-                                        >
-                                            <input type="checkbox" :value="materia.id" x-model="cronMaterias" class="accent-blue-600 hc:accent-yellow-400">
-                                            <span class="text-sm font-medium text-slate-700 dark:text-slate-200 hc:text-white" x-text="materia.label"></span>
-                                        </label>
-                                    </template>
-                                </div>
+                <p
+                    class="text-slate-500
+                           dark:text-slate-400 mt-1"
+                >
+                    Vamos usar suas informações para criar
+                    um plano de estudos personalizado para
+                    sua rotina, suas necessidades e seus objetivos.
+                </p>
 
-                                <!-- Campo adicional se marcar 'Outra' -->
-                                <div x-show="cronMaterias.includes('outra')" x-collapse x-cloak class="pt-2">
-                                    <input
-                                        type="text"
-                                        maxlength="100"
-                                        x-model="cronMateriaOutra"
-                                        placeholder="Qual outra matéria?"
-                                        class="w-full px-4 py-3 bg-white dark:bg-slate-900 hc:bg-black border border-slate-200 dark:border-slate-800 hc:border-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 hc:focus:ring-yellow-400 transition-all text-slate-700 dark:text-slate-200 hc:text-white"
-                                    />
-                                </div>
-                            </div>
+            </div>
 
-                            <!-- Período do dia -->
-                            <div>
-                                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300 hc:text-white mb-2">Em qual período do dia você rende mais?</label>
-                                <div class="grid grid-cols-2 gap-3">
-                                    <template x-for="periodo in cronPeriodoOptions" :key="periodo.id">
-                                        <label class="flex items-center gap-2 p-3 bg-white dark:bg-slate-900 hc:bg-black border border-slate-200 dark:border-slate-800 hc:border-white rounded-xl cursor-pointer hover:border-blue-500 transition-all">
-                                            <input type="radio" name="periodo_preferido" :value="periodo.id" x-model="cronPeriodo" class="accent-blue-600 hc:accent-yellow-400">
-                                            <span class="text-sm font-medium text-slate-700 dark:text-slate-200 hc:text-white" x-text="periodo.label"></span>
-                                        </label>
-                                    </template>
-                                </div>
-                            </div>
+        </div>
 
-                            <!-- Duração de foco -->
-                            <div>
-                                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300 hc:text-white mb-1.5">Quanto tempo você consegue manter o foco antes de precisar de uma pausa?</label>
-                                <div class="relative flex items-center">
-                                    <i class="ph ph-timer absolute left-3.5 text-slate-400 text-lg pointer-events-none"></i>
-                                    <select
-                                        required
-                                        x-model="cronFoco"
-                                        class="w-full pl-10 pr-4 py-3 bg-white dark:bg-slate-900 hc:bg-black border border-slate-200 dark:border-slate-800 hc:border-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 hc:focus:ring-yellow-400 transition-all text-slate-700 dark:text-slate-200 hc:text-white appearance-none"
-                                    >
-                                        <option value="" disabled>Selecione...</option>
-                                        <option value="1">15 minutos</option>
-                                        <option value="2">25 minutos</option>
-                                        <option value="3">30 minutos</option>
-                                        <option value="4">45 minutos</option>
-                                        <option value="5">1 hora ou mais</option>
-                                    </select>
-                                    <i class="ph ph-caret-down absolute right-3.5 text-slate-400 text-lg pointer-events-none"></i>
-                                </div>
-                            </div>
+    </div>
 
-                            <!-- Mensagens -->
-                            <p x-show="cronErro" x-cloak class="text-sm text-red-600 hc:text-yellow-300" x-text="cronErro"></p>
-                            <p x-show="cronSucesso" x-cloak class="text-sm text-green-600 hc:text-yellow-300" x-text="cronSucesso"></p>
 
-                            <!-- Botão de Envio -->
-                            <button
-                                type="submit"
-                                :disabled="cronSalvando"
-                                class="w-full mt-2 py-3.5 px-4 font-medium rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 flex items-center justify-center gap-2 disabled:opacity-60 disabled:hover:translate-y-0" :class="accentBg"
+    <!-- =================================================
+         CARREGANDO
+    ================================================== -->
+
+    <div
+        x-show="planoEstudo.carregando"
+        class="bg-white dark:bg-slate-900
+               border border-slate-200 dark:border-slate-800
+               rounded-2xl p-10 text-center"
+    >
+
+        <i
+            class="ph-bold ph-spinner-gap
+                   text-3xl text-blue-600
+                   animate-spin"
+        ></i>
+
+        <p
+            class="text-sm text-slate-500
+                   dark:text-slate-400 mt-3"
+        >
+            Verificando suas informações...
+        </p>
+
+    </div>
+
+
+    <!-- =================================================
+         CONTEÚDO
+    ================================================== -->
+
+    <div
+        x-show="!planoEstudo.carregando"
+        x-cloak
+        class="space-y-6"
+    >
+
+
+        <!-- ERRO DE CARREGAMENTO -->
+
+        <div
+            x-show="planoEstudo.erro"
+            x-cloak
+            class="rounded-xl
+                   border border-red-200
+                   bg-red-50
+                   px-5 py-4
+                   text-sm text-red-700"
+            x-text="planoEstudo.erro"
+        ></div>
+
+
+        <!-- =================================================
+             DADOS NECESSÁRIOS
+        ================================================== -->
+
+        <div
+            class="bg-white dark:bg-slate-900
+                   border border-slate-200 dark:border-slate-800
+                   rounded-2xl shadow-sm overflow-hidden"
+        >
+
+            <div
+                class="px-6 py-5
+                       border-b border-slate-100
+                       dark:border-slate-800"
+            >
+
+                <h2
+                    class="text-lg font-bold
+                           text-slate-900 dark:text-white"
+                >
+                    Antes de começar
+                </h2>
+
+                <p
+                    class="text-sm text-slate-500
+                           dark:text-slate-400 mt-1"
+                >
+                    Para que o plano seja realmente personalizado,
+                    precisamos das informações abaixo.
+                </p>
+
+            </div>
+
+
+            <div class="p-6 space-y-4">
+
+
+                <!-- ROTINA DIÁRIA -->
+
+                <div
+                    class="flex flex-col sm:flex-row
+                           sm:items-center justify-between
+                           gap-4 border rounded-2xl
+                           px-5 py-4 transition"
+                    :class="planoEstudo.rotinaPreenchida
+                        ? 'border-emerald-200 bg-emerald-50/60 dark:bg-emerald-900/10'
+                        : 'border-red-200 bg-red-50/60 dark:bg-red-900/10'"
+                >
+
+                    <div class="flex items-center gap-4">
+
+                        <div
+                            class="w-11 h-11 rounded-xl
+                                   flex items-center justify-center"
+                            :class="planoEstudo.rotinaPreenchida
+                                ? 'bg-emerald-100 text-emerald-600'
+                                : 'bg-red-100 text-red-600'"
+                        >
+
+                            <i
+                                class="ph-bold ph-calendar-check
+                                       text-xl"
+                            ></i>
+
+                        </div>
+
+
+                        <div>
+
+                            <p
+                                class="font-bold text-slate-800
+                                       dark:text-white"
                             >
-                                <span x-text="cronSalvando ? 'Salvando...' : 'Salvar cronograma'"></span>
-                                <i class="ph-bold ph-check-circle text-lg" x-show="!cronSalvando"></i>
-                            </button>
-                        </form>
+                                Rotina Diária
+                            </p>
+
+                            <p
+                                class="text-sm text-slate-500
+                                       dark:text-slate-400"
+                            >
+                                Seus horários e compromissos da semana.
+                            </p>
+
+                        </div>
+
                     </div>
+
+
+                    <div class="flex items-center gap-3">
+
+                        <span
+                            class="inline-flex items-center gap-2
+                                   px-4 py-2 rounded-full
+                                   text-sm font-bold"
+                            :class="planoEstudo.rotinaPreenchida
+                                ? 'bg-emerald-100 text-emerald-700'
+                                : 'bg-red-100 text-red-700'"
+                        >
+
+                            <i
+                                class="ph-bold"
+                                :class="planoEstudo.rotinaPreenchida
+                                    ? 'ph-check-circle'
+                                    : 'ph-x-circle'"
+                            ></i>
+
+                            <span
+                                x-text="planoEstudo.rotinaPreenchida
+                                    ? 'Preenchido'
+                                    : 'Não preenchido'"
+                            ></span>
+
+                        </span>
+
+
+                        <button
+                            type="button"
+                            @click="currentTab = 'rotina'"
+                            class="text-sm font-semibold
+                                   text-blue-600
+                                   hover:text-blue-700"
+                        >
+                            Revisar
+                        </button>
+
+                    </div>
+
                 </div>
+
+
+                <!-- PERFIL ACADÊMICO -->
+
+                <div
+                    class="flex flex-col sm:flex-row
+                           sm:items-center justify-between
+                           gap-4 border rounded-2xl
+                           px-5 py-4 transition"
+                    :class="planoEstudo.perfilAcademicoPreenchido
+                        ? 'border-emerald-200 bg-emerald-50/60 dark:bg-emerald-900/10'
+                        : 'border-red-200 bg-red-50/60 dark:bg-red-900/10'"
+                >
+
+                    <div class="flex items-center gap-4">
+
+                        <div
+                            class="w-11 h-11 rounded-xl
+                                   flex items-center justify-center"
+                            :class="planoEstudo.perfilAcademicoPreenchido
+                                ? 'bg-emerald-100 text-emerald-600'
+                                : 'bg-red-100 text-red-600'"
+                        >
+
+                            <i
+                                class="ph-bold ph-student
+                                       text-xl"
+                            ></i>
+
+                        </div>
+
+
+                        <div>
+
+                            <p
+                                class="font-bold text-slate-800
+                                       dark:text-white"
+                            >
+                                Perfil Acadêmico
+                            </p>
+
+                            <p
+                                class="text-sm text-slate-500
+                                       dark:text-slate-400"
+                            >
+                                Suas dificuldades e disponibilidade
+                                para estudar.
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="flex items-center gap-3">
+
+                        <span
+                            class="inline-flex items-center gap-2
+                                   px-4 py-2 rounded-full
+                                   text-sm font-bold"
+                            :class="planoEstudo.perfilAcademicoPreenchido
+                                ? 'bg-emerald-100 text-emerald-700'
+                                : 'bg-red-100 text-red-700'"
+                        >
+
+                            <i
+                                class="ph-bold"
+                                :class="planoEstudo.perfilAcademicoPreenchido
+                                    ? 'ph-check-circle'
+                                    : 'ph-x-circle'"
+                            ></i>
+
+                            <span
+                                x-text="planoEstudo.perfilAcademicoPreenchido
+                                    ? 'Preenchido'
+                                    : 'Não preenchido'"
+                            ></span>
+
+                        </span>
+
+
+                        <button
+                            type="button"
+                            @click="currentTab = 'objetivos'"
+                            class="text-sm font-semibold
+                                   text-blue-600
+                                   hover:text-blue-700"
+                        >
+                            Revisar
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- =================================================
+             OBJETIVO
+        ================================================== -->
+
+        <div
+            class="bg-white dark:bg-slate-900
+                   border border-slate-200 dark:border-slate-800
+                   rounded-2xl shadow-sm overflow-hidden"
+        >
+
+            <div
+                class="px-6 py-5
+                       border-b border-slate-100
+                       dark:border-slate-800"
+            >
+
+                <div class="flex items-center gap-3">
+
+                    <div
+                        class="w-10 h-10 rounded-xl
+                               bg-violet-50
+                               text-violet-600
+                               flex items-center justify-center"
+                    >
+
+                        <i class="ph-bold ph-target text-xl"></i>
+
+                    </div>
+
+
+                    <div>
+
+                        <h2
+                            class="text-lg font-bold
+                                   text-slate-900 dark:text-white"
+                        >
+                            Qual seu objetivo com este Plano de Estudo?
+                        </h2>
+
+                        <p
+                            class="text-sm text-slate-500
+                                   dark:text-slate-400 mt-1"
+                        >
+                            Escolha a opção que melhor representa
+                            o que você deseja alcançar.
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="p-6">
+
+                <div
+                    class="grid grid-cols-1
+                           md:grid-cols-2 gap-3"
+                >
+
+                    <template
+                        x-for="opcao in objetivosPlanoEstudo"
+                        :key="opcao.id"
+                    >
+
+                        <label
+                            class="relative border-2 rounded-2xl
+                                   p-4 cursor-pointer
+                                   transition-all duration-200"
+                            :class="planoEstudo.objetivo === opcao.id
+                                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                                : 'border-slate-200 dark:border-slate-700 hover:border-blue-300'"
+                        >
+
+                            <input
+                                type="radio"
+                                name="objetivoPlanoEstudo"
+                                class="sr-only"
+                                :value="opcao.id"
+                                x-model="planoEstudo.objetivo"
+                            >
+
+
+                            <div class="flex gap-3">
+
+                                <div
+                                    class="w-10 h-10 rounded-xl
+                                           flex-shrink-0
+                                           flex items-center
+                                           justify-center"
+                                    :class="planoEstudo.objetivo === opcao.id
+                                        ? 'bg-blue-600 text-white'
+                                        : 'bg-slate-100 text-slate-500 dark:bg-slate-800'"
+                                >
+
+                                    <i
+                                        class="ph-bold text-lg"
+                                        :class="`ph-${opcao.icone}`"
+                                    ></i>
+
+                                </div>
+
+
+                                <div class="min-w-0">
+
+                                    <p
+                                        class="font-semibold
+                                               text-slate-800
+                                               dark:text-white"
+                                        x-text="opcao.titulo"
+                                    ></p>
+
+                                    <p
+                                        class="text-xs
+                                               text-slate-500
+                                               dark:text-slate-400
+                                               mt-1 leading-relaxed"
+                                        x-text="opcao.descricao"
+                                    ></p>
+
+                                </div>
+
+                            </div>
+
+
+                            <div
+                                x-show="planoEstudo.objetivo === opcao.id"
+                                class="absolute top-3 right-3
+                                       text-blue-600"
+                            >
+                                <i
+                                    class="ph-fill
+                                           ph-check-circle
+                                           text-xl"
+                                ></i>
+                            </div>
+
+                        </label>
+
+                    </template>
+
+                </div>
+
+
+                <!-- OUTRO OBJETIVO -->
+
+                <div
+                    x-show="planoEstudo.objetivo === 'outro'"
+                    x-transition
+                    x-cloak
+                    class="mt-5"
+                >
+
+                    <label
+                        class="block text-sm font-semibold
+                               text-slate-700
+                               dark:text-slate-300 mb-2"
+                    >
+                        Conte qual é o seu objetivo
+                    </label>
+
+
+                    <textarea
+                        x-model="planoEstudo.objetivoOutro"
+                        maxlength="300"
+                        rows="3"
+                        placeholder="Ex.: Quero melhorar minha organização para conseguir acompanhar melhor as matérias..."
+                        class="w-full px-4 py-3
+                               border border-slate-300
+                               dark:border-slate-700
+                               bg-white dark:bg-slate-900
+                               rounded-xl
+                               text-sm text-slate-700
+                               dark:text-slate-200
+                               resize-none
+                               outline-none
+                               focus:ring-2
+                               focus:ring-blue-500/20
+                               focus:border-blue-500"
+                    ></textarea>
+
+
+                    <p
+                        class="text-right
+                               text-xs text-slate-400 mt-1"
+                        x-text="`${planoEstudo.objetivoOutro.length} / 300`"
+                    ></p>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- =================================================
+             GERAÇÃO
+        ================================================== -->
+
+        <div
+            class="bg-gradient-to-br
+                   from-blue-50 to-indigo-50
+                   dark:from-blue-950/30
+                   dark:to-indigo-950/30
+                   border border-blue-100
+                   dark:border-blue-900
+                   rounded-2xl p-6"
+        >
+
+            <div
+                class="flex flex-col
+                       lg:flex-row lg:items-center
+                       justify-between gap-5"
+            >
+
+                <div>
+
+                    <div
+                        class="flex items-center gap-2
+                               text-blue-700
+                               dark:text-blue-300
+                               font-bold"
+                    >
+
+                        <i class="ph-fill ph-sparkle text-xl"></i>
+
+                        Tudo pronto para criar sua rota?
+
+                    </div>
+
+
+                    <p
+                        class="text-sm text-slate-600
+                               dark:text-slate-400 mt-2
+                               max-w-xl"
+                    >
+                        A Inteligência Artificial analisará sua rotina,
+                        seu perfil acadêmico e seu objetivo para montar
+                        um plano adequado à sua realidade.
+                    </p>
+
+                </div>
+
+
+                <button
+                    type="button"
+                    @click="gerarPlanoEstudo()"
+                    :disabled="
+                        !planoEstudoPodeGerar ||
+                        planoEstudo.gerando
+                    "
+                    class="px-7 py-4 rounded-2xl
+                           font-bold text-sm
+                           tracking-wide
+                           flex items-center
+                           justify-center gap-3
+                           transition-all
+                           shadow-lg
+                           disabled:opacity-40
+                           disabled:cursor-not-allowed
+                           disabled:hover:translate-y-0"
+                    :class="planoEstudoPodeGerar
+                        ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:-translate-y-0.5 hover:shadow-xl'
+                        : 'bg-slate-300 text-slate-500'"
+                >
+
+                    <i
+                        class="ph-bold text-xl"
+                        :class="planoEstudo.gerando
+                            ? 'ph-spinner-gap animate-spin'
+                            : 'ph-sparkle'"
+                    ></i>
+
+
+                    <span
+                        x-text="planoEstudo.gerando
+                            ? 'PREPARANDO PLANO...'
+                            : 'GERAR PLANO DE ESTUDO COM IA'"
+                    ></span>
+
+                </button>
+
+            </div>
+
+
+            <!-- MOTIVO DE ESTAR BLOQUEADO -->
+
+            <div
+                x-show="!planoEstudoPodeGerar"
+                x-cloak
+                class="mt-4 pt-4
+                       border-t border-blue-100
+                       dark:border-blue-900"
+            >
+
+                <p
+                    class="text-xs text-slate-500
+                           dark:text-slate-400
+                           flex items-center gap-2"
+                >
+
+                    <i class="ph-bold ph-info"></i>
+
+                    Complete a Rotina Diária, o Perfil Acadêmico
+                    e escolha seu objetivo para liberar a geração
+                    do plano.
+
+                </p>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
 
                 <!-- CONFIGURAÇÕES TAB -->
                 <div x-show="currentTab === 'settings'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4" x-transition:enter-end="opacity-100 translate-y-0" class="max-w-3xl mx-auto space-y-6" x-cloak>
@@ -1804,7 +2058,7 @@
   <div
     class="flex items-center justify-between gap-4
            border rounded-xl px-5 py-4"
-    :class="perfilAcademicoSalvo
+    :class="perfilAcademicoCompleto()
         ? 'bg-green-50 border-green-200'
         : 'bg-amber-50 border-amber-200'"
     >
@@ -1814,13 +2068,13 @@
             <div
                 class="w-10 h-10 rounded-xl
                     flex items-center justify-center flex-shrink-0"
-                    :class="perfilAcademicoSalvo
+                    :class="perfilAcademicoCompleto()
                     ? 'bg-green-100'
                     : 'bg-amber-100'"
             >
             <i
                 class="ph text-xl"
-                    :class="perfilAcademicoSalvo
+                    :class="perfilAcademicoCompleto()
                     ? 'ph-check-circle text-green-600'
                     : 'ph-warning-circle text-amber-600'"
             ></i>
@@ -1829,7 +2083,7 @@
             <div>
                 <p
                     class="font-semibold text-slate-800"
-                    x-text="perfilAcademicoSalvo
+                    x-text="perfilAcademicoCompleto()
                     ? 'Perfil Acadêmico completo'
                     : 'Complete seu Perfil Acadêmico'">
                 </p>
@@ -1844,10 +2098,10 @@
 
         <span
             class="text-xs font-semibold px-3 py-1.5 rounded-full"
-            :class="perfilAcademicoSalvo
+            :class="perfilAcademicoCompleto()
             ? 'text-green-700 bg-green-100'
             : 'text-amber-700 bg-amber-100'"
-            x-text="perfilAcademicoSalvo
+            x-text="perfilAcademicoCompleto()
             ? 'Perfil completo'
             : 'Perfil incompleto'"
         >
@@ -2008,7 +2262,7 @@
         <div>
 
             <h2 class="font-bold text-lg text-slate-900 dark:text-white">
-                Facildades e Dificuldades Acadêmicas
+                Facilidades e Dificuldades Acadêmicas
             </h2>
 
             <p class="text-sm text-slate-500">
@@ -2256,6 +2510,11 @@
                 </label>
                 <select
                     x-model="disciplinaNaoEstuda"
+                    @change="
+                        if (disciplinaNaoEstuda === 'nenhuma') {
+                        motivoNaoEstuda = ''
+                        }
+                    "
                     class="w-full md:w-1/2
                     border border-slate-200
                     rounded-xl px-4 py-3
@@ -3088,6 +3347,98 @@
         disciplinaNaoEstuda: '',
         motivoNaoEstuda: '',
 
+        // =====================================================
+// PLANO DE ESTUDO
+// =====================================================
+
+planoEstudo: {
+
+    carregando: false,
+
+    rotinaPreenchida: false,
+
+    perfilAcademicoPreenchido: false,
+
+    objetivo: '',
+
+    objetivoOutro: '',
+
+    gerando: false,
+
+    erro: ''
+
+},
+
+
+objetivosPlanoEstudo: [
+
+    {
+        id: 'organizar_rotina',
+        titulo: 'Organizar minha rotina de estudos',
+        descricao:
+            'Distribuir melhor meus estudos durante a semana.',
+        icone: 'calendar-check'
+    },
+
+    {
+        id: 'melhorar_desempenho',
+        titulo: 'Melhorar meu desempenho e minhas notas',
+        descricao:
+            'Estudar de forma mais eficiente para melhorar meu rendimento escolar.',
+        icone: 'trend-up'
+    },
+
+    {
+        id: 'recuperar_dificuldades',
+        titulo: 'Superar minhas dificuldades',
+        descricao:
+            'Dar mais atenção aos conteúdos e disciplinas em que tenho dificuldade.',
+        icone: 'lifebuoy'
+    },
+
+    {
+        id: 'preparar_provas',
+        titulo: 'Preparar-me para provas e avaliações',
+        descricao:
+            'Organizar revisões e estudos para avaliações escolares.',
+        icone: 'exam'
+    },
+
+    {
+        id: 'enem_vestibular',
+        titulo: 'Preparar-me para ENEM ou vestibulares',
+        descricao:
+            'Criar uma rotina direcionada para exames de ingresso no Ensino Superior.',
+        icone: 'graduation-cap'
+    },
+
+    {
+        id: 'criar_habito',
+        titulo: 'Criar constância e hábito de estudo',
+        descricao:
+            'Desenvolver uma rotina sustentável e estudar com mais regularidade.',
+        icone: 'repeat'
+    },
+
+    {
+        id: 'aprofundar_conhecimentos',
+        titulo: 'Aprofundar meus conhecimentos',
+        descricao:
+            'Ir além dos conteúdos básicos e avançar nos estudos.',
+        icone: 'books'
+    },
+
+    {
+        id: 'outro',
+        titulo: 'Outro objetivo',
+        descricao:
+            'Tenho um objetivo diferente das opções apresentadas.',
+        icone: 'dots-three'
+    }
+
+],
+
+
         // ==========================================
         // TEMPO DISPONÍVEL PARA ESTUDOS
         // ==========================================
@@ -3151,9 +3502,16 @@ async salvarPerfilAcademico() {
                 },
 
                 body: JSON.stringify({
-                dificuldades,
-                disciplinaNaoEstuda: this.disciplinaNaoEstuda,
-                motivoNaoEstuda: this.motivoNaoEstuda
+                    dificuldades,
+                    disciplinaNaoEstuda:
+                        this.disciplinaNaoEstuda,
+                    motivoNaoEstuda:
+                        this.disciplinaNaoEstuda === "nenhuma"
+                        ? ""
+                            : String(
+                            this.motivoNaoEstuda || ""
+                        ).trim()
+
                 })
             }
         );
@@ -3239,6 +3597,16 @@ async salvarPerfilAcademico() {
         // 5. SUCESSO
         // =====================================================
         this.perfilAcademicoSalvo = true;
+
+        // =====================================================
+        // FECHAR AS SEÇÕES APÓS SALVAR
+        // =====================================================
+
+        this.secaoPerfilAberta = null;
+
+        // =====================================================
+        // AVISO DE SUCESSO
+        // =====================================================
 
         this.avisoPerfilTitulo = 'Perfil Acadêmico salvo';
         this.tipoAvisoPerfil = 'sucesso';
@@ -3376,6 +3744,24 @@ async salvarPerfilAcademico() {
         get isDarkClass() {
             return this.theme === 'dark' || (this.theme === 'auto' && this.isSystemDark) || this.theme === 'hc';
         },
+
+        get planoEstudoPodeGerar() {
+            const objetivoSelecionado =
+                Boolean(this.planoEstudo.objetivo);
+            const outroValido =
+                this.planoEstudo.objetivo !== 'outro' ||
+                    String(
+                    this.planoEstudo.objetivoOutro || ''
+                ).trim().length > 0;
+        return (
+
+            !this.planoEstudo.carregando &&
+            this.planoEstudo.rotinaPreenchida &&
+            this.planoEstudo.perfilAcademicoPreenchido &&
+            objetivoSelecionado &&
+        outroValido
+    );
+},
 
         get accentBg() { 
             if (this.theme === 'hc') return 'bg-yellow-400 hover:bg-yellow-500 text-black font-bold border-2 border-yellow-400';
@@ -3584,14 +3970,29 @@ async salvarPerfilAcademico() {
             }
 
             this.usuarioId = usuarioIdSalvo;
+           // Foto do usuário
+            carregarFotoPerfil();
+
+            // ==========================================
+            // ATUALIZA O PLANO SEMPRE QUE ENTRAR
+            // NA SEÇÃO PLANO DE ESTUDO
+            // ==========================================
+
+            this.$watch(
+                'currentTab',
+                (novaAba) => {
+                if (novaAba === 'cronograma') {
+            this.carregarPreparacaoPlanoEstudo();
+        }
+    }
+);
+
 
             // Perfil acadêmico
             this.carregarPerfilAcademico();
 
             this.carregarFraseDoDia();
             this.carregarSugestaoIA();
-            this.cronDiasOptions.forEach(d => this.cronAdicionarLinha(d.id));
-            this.cronCarregar();
 
             this.timeLeft = this.pomodoroTime * 60;
             
@@ -3668,6 +4069,32 @@ async salvarPerfilAcademico() {
         }
 
         const dados = await resposta.json();
+
+        // ==========================================
+        // RECUPERAR MATÉRIA QUE NÃO ESTUDA
+        // ==========================================
+
+            this.disciplinaNaoEstuda =
+            dados.disciplinaNaoEstuda
+                ? String(
+                dados.disciplinaNaoEstuda
+            )
+            : '';
+
+
+        this.motivoNaoEstuda =
+        dados.motivoNaoEstuda || '';
+        console.log(
+            "📚 Matéria que praticamente não estuda:",
+            this.disciplinaNaoEstuda
+        );
+
+
+        console.log(
+            "📝 Motivo:",
+            this.motivoNaoEstuda
+        );
+
 
         // Guarda os dados recebidos da API
         this.dificuldadesSelecionadas =
@@ -3844,6 +4271,16 @@ tempoPreenchido() {
     );
 },
 
+perfilAcademicoCompleto() {
+
+    return (
+        this.dificuldadesPreenchidas() &&
+        this.tempoPreenchido()
+    );
+
+},
+
+
 async carregarTempoEstudo() {
 
     if (!this.usuarioId) {
@@ -3931,6 +4368,266 @@ async carregarTempoEstudo() {
             "❌ Erro ao carregar tempo de estudo:",
             erro
         );
+
+    }
+
+},
+
+// =====================================================
+// PLANO DE ESTUDO - CARREGAR PREPARAÇÃO
+// =====================================================
+
+async carregarPreparacaoPlanoEstudo() {
+
+    if (!this.usuarioId) {
+        return;
+    }
+
+
+    this.planoEstudo.carregando = true;
+    this.planoEstudo.erro = '';
+
+
+    try {
+
+        console.log(
+            "🧠 Verificando preparação do Plano de Estudo..."
+        );
+
+
+        const resposta = await fetch(
+            `/api/plano-estudo/preparacao/${this.usuarioId}`
+        );
+
+
+        const dados =
+            await resposta.json();
+
+
+        if (!resposta.ok) {
+
+            throw new Error(
+                dados.erro ||
+                "Não foi possível verificar os dados."
+            );
+
+        }
+
+
+        this.planoEstudo.rotinaPreenchida =
+            Boolean(
+                dados.rotinaPreenchida
+            );
+
+
+        this.planoEstudo.perfilAcademicoPreenchido =
+            Boolean(
+                dados.perfilAcademicoPreenchido
+            );
+
+
+        this.planoEstudo.objetivo =
+            dados.objetivo || '';
+
+
+        this.planoEstudo.objetivoOutro =
+            dados.objetivoOutro || '';
+
+
+        console.log(
+            "✅ Preparação do plano:",
+            dados
+        );
+
+
+    } catch (erro) {
+
+        console.error(
+            "❌ Erro ao carregar preparação:",
+            erro
+        );
+
+
+        this.planoEstudo.erro =
+            erro.message ||
+            "Não foi possível verificar suas informações.";
+
+
+        this.planoEstudo.rotinaPreenchida =
+            false;
+
+
+        this.planoEstudo.perfilAcademicoPreenchido =
+            false;
+
+    } finally {
+
+        this.planoEstudo.carregando = false;
+
+    }
+
+},
+
+// =====================================================
+// PLANO DE ESTUDO - GERAR
+// =====================================================
+
+async gerarPlanoEstudo() {
+
+    if (!this.planoEstudoPodeGerar) {
+
+        await abrirModalSistema({
+
+            titulo:
+                "Informações incompletas",
+
+            mensagem:
+                "Complete sua Rotina Diária, seu Perfil Acadêmico e escolha um objetivo antes de gerar o Plano de Estudo.",
+
+            tipo:
+                "aviso",
+
+            textoConfirmar:
+                "Entendi",
+
+            mostrarCancelar:
+                false
+
+        });
+
+        return;
+    }
+
+
+    this.planoEstudo.gerando = true;
+
+
+    try {
+
+        console.log(
+            "🤖 Preparando geração do Plano de Estudo..."
+        );
+
+
+        const resposta = await fetch(
+            `/api/plano-estudo/gerar/${this.usuarioId}`,
+            {
+
+                method: "POST",
+
+                headers: {
+                    "Content-Type": "application/json"
+                },
+
+                body: JSON.stringify({
+
+                    objetivo:
+                        this.planoEstudo.objetivo,
+
+                    objetivoOutro:
+                        this.planoEstudo.objetivoOutro
+
+                })
+
+            }
+        );
+
+
+        const dados =
+            await resposta.json();
+
+
+        if (!resposta.ok) {
+
+            let mensagem =
+                dados.erro ||
+                "Não foi possível preparar o Plano de Estudo.";
+
+
+            if (
+                Array.isArray(dados.faltando) &&
+                dados.faltando.length > 0
+            ) {
+
+                mensagem +=
+                    " Falta preencher: " +
+                    dados.faltando.join(", ") +
+                    ".";
+
+            }
+
+
+            throw new Error(mensagem);
+
+        }
+
+
+        console.log(
+            "✅ Plano pronto para integração com IA:",
+            dados
+        );
+
+
+        // Atualiza status e recupera
+        // o objetivo que acabou de ser salvo
+        await this.carregarPreparacaoPlanoEstudo();
+
+
+        // ==========================================
+        // SUCESSO - MODO DE TESTE
+        // ==========================================
+
+        await abrirModalSistema({
+
+            titulo:
+                "Tudo pronto para a IA!",
+
+            mensagem:
+                "A Rotina Diária, o Perfil Acadêmico e o objetivo foram validados com sucesso. Nesta etapa de teste nenhuma Inteligência Artificial foi acionada ainda.",
+
+            tipo:
+                "sucesso",
+
+            textoConfirmar:
+                "Concluir",
+
+            mostrarCancelar:
+                false
+
+        });
+
+
+    } catch (erro) {
+
+        console.error(
+            "❌ Erro ao preparar Plano de Estudo:",
+            erro
+        );
+
+
+        await abrirModalSistema({
+
+            titulo:
+                "Não foi possível gerar",
+
+            mensagem:
+                erro.message ||
+                "Ocorreu um erro ao preparar o Plano de Estudo.",
+
+            tipo:
+                "erro",
+
+            textoConfirmar:
+                "Entendi",
+
+            mostrarCancelar:
+                false
+
+        });
+
+    } finally {
+
+        this.planoEstudo.gerando = false;
 
     }
 
@@ -4493,6 +5190,175 @@ async carregarFraseDoDia() {
 // FOTO DE PERFIL
 // ========================================
 
+// ========================================
+// CARREGAR FOTO SALVA NO BANCO
+// ========================================
+
+async function carregarFotoPerfil() {
+
+    const usuarioId =
+        sessionStorage.getItem("usuarioId");
+
+
+    const foto =
+        document.getElementById(
+            "fotoPerfilMenu"
+        );
+
+
+    const inicial =
+        document.getElementById(
+            "inicialPerfilMenu"
+        );
+
+
+    const textoAcao =
+        document.getElementById(
+            "textoAcaoFoto"
+        );
+
+
+    const btnExcluir =
+        document.getElementById(
+            "btnExcluirFoto"
+        );
+
+
+    if (
+        !usuarioId ||
+        !foto ||
+        !inicial
+    ) {
+        return;
+    }
+
+
+    try {
+
+        const resposta =
+            await fetch(
+                `/api/usuario/${usuarioId}/foto`,
+                {
+                    cache: "no-store"
+                }
+            );
+
+
+        // ==========================================
+        // NÃO POSSUI FOTO
+        // ==========================================
+
+        if (resposta.status === 404) {
+
+            foto.src = "";
+            foto.classList.add("hidden");
+
+            inicial.classList.remove("hidden");
+
+            if (textoAcao) {
+                textoAcao.textContent =
+                    "Inserir foto";
+            }
+
+            if (btnExcluir) {
+                btnExcluir.classList.add(
+                    "hidden"
+                );
+
+                btnExcluir.classList.remove(
+                    "flex"
+                );
+            }
+
+            return;
+        }
+
+
+        if (!resposta.ok) {
+
+            throw new Error(
+                "Não foi possível carregar a foto."
+            );
+
+        }
+
+
+        const blob =
+            await resposta.blob();
+
+
+        const urlFoto =
+            URL.createObjectURL(blob);
+
+
+        foto.onload = function () {
+
+            URL.revokeObjectURL(
+                urlFoto
+            );
+
+        };
+
+
+        foto.src =
+            urlFoto;
+
+
+        foto.classList.remove(
+            "hidden"
+        );
+
+
+        inicial.classList.add(
+            "hidden"
+        );
+
+
+        if (textoAcao) {
+
+            textoAcao.textContent =
+                "Trocar foto";
+
+        }
+
+
+        if (btnExcluir) {
+
+            btnExcluir.classList.remove(
+                "hidden"
+            );
+
+            btnExcluir.classList.add(
+                "flex"
+            );
+
+        }
+
+
+        console.log(
+            "📷 Foto de perfil carregada."
+        );
+
+
+    } catch (erro) {
+
+        console.error(
+            "❌ Erro ao carregar foto:",
+            erro
+        );
+
+        // Em caso de erro, mantém
+        // simplesmente a inicial do usuário.
+        foto.src = "";
+        foto.classList.add("hidden");
+
+        inicial.classList.remove("hidden");
+
+    }
+
+}
+
+
 function abrirMenuFotoPerfil(event) {
     event.stopPropagation();
 
@@ -4657,73 +5523,266 @@ document
         );
     });
 
-    function salvarCropFoto() {
+    async function salvarCropFoto() {
 
     if (!cropperFoto) {
-        console.error('Cropper não foi inicializado.');
+
+        console.error(
+            "Cropper não foi inicializado."
+        );
+
         return;
+
     }
+
+
+    const usuarioId =
+        sessionStorage.getItem(
+            "usuarioId"
+        );
+
+
+    if (!usuarioId) {
+
+        await abrirModalSistema({
+
+            titulo:
+                "Usuário não identificado",
+
+            mensagem:
+                "Não foi possível identificar o usuário conectado.",
+
+            tipo:
+                "info",
+
+            textoConfirmar:
+                "Entendi",
+
+            mostrarCancelar:
+                false
+
+        });
+
+        return;
+
+    }
+
 
     try {
 
-        const canvas = cropperFoto.getCroppedCanvas({
-            width: 400,
-            height: 400,
-            imageSmoothingEnabled: true,
-            imageSmoothingQuality: 'high'
-        });
+        const canvas =
+            cropperFoto.getCroppedCanvas({
+
+                width: 400,
+
+                height: 400,
+
+                imageSmoothingEnabled: true,
+
+                imageSmoothingQuality:
+                    "high"
+
+            });
+
 
         if (!canvas) {
-            console.error('Não foi possível gerar o recorte.');
-            return;
+
+            throw new Error(
+                "Não foi possível gerar o recorte da imagem."
+            );
+
         }
 
-        const imagemFinal = canvas.toDataURL(
-            'image/jpeg',
-            0.90
+
+        // Sempre salvaremos o resultado
+        // final como JPEG.
+        const imagemFinal =
+            canvas.toDataURL(
+                "image/jpeg",
+                0.90
+            );
+
+
+        console.log(
+            "📤 Enviando foto para o banco..."
         );
 
-        const foto = document.getElementById('fotoPerfilMenu');
-        const inicial = document.getElementById('inicialPerfilMenu');
+
+        const resposta =
+            await fetch(
+                `/api/usuario/${usuarioId}/foto`,
+                {
+
+                    method: "PUT",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body: JSON.stringify({
+                        imagemBase64:
+                            imagemFinal
+                    })
+
+                }
+            );
+
+
+        const dados =
+            await resposta.json();
+
+
+        if (!resposta.ok) {
+
+            throw new Error(
+                dados.erro ||
+                "Não foi possível salvar a foto."
+            );
+
+        }
+
+
+        console.log(
+            "✅ Foto salva no banco:",
+            dados
+        );
+
+
+        // ==========================================
+        // SOMENTE AGORA ATUALIZA A INTERFACE
+        // ==========================================
+
+        const foto =
+            document.getElementById(
+                "fotoPerfilMenu"
+            );
+
+
+        const inicial =
+            document.getElementById(
+                "inicialPerfilMenu"
+            );
+
+
+        const textoAcao =
+            document.getElementById(
+                "textoAcaoFoto"
+            );
+
+
+        const btnExcluir =
+            document.getElementById(
+                "btnExcluirFoto"
+            );
+
 
         if (foto) {
-            foto.src = imagemFinal;
-            foto.classList.remove('hidden');
+
+            foto.src =
+                imagemFinal;
+
+            foto.classList.remove(
+                "hidden"
+            );
+
         }
+
 
         if (inicial) {
-            inicial.classList.add('hidden');
+
+            inicial.classList.add(
+                "hidden"
+            );
+
         }
 
-        const textoAcao = document.getElementById('textoAcaoFoto');
 
         if (textoAcao) {
-            textoAcao.textContent = 'Trocar foto';
+
+            textoAcao.textContent =
+                "Trocar foto";
+
         }
 
-        const btnExcluir = document.getElementById('btnExcluirFoto');
 
         if (btnExcluir) {
-            btnExcluir.classList.remove('hidden');
-            btnExcluir.classList.add('flex');
+
+            btnExcluir.classList.remove(
+                "hidden"
+            );
+
+            btnExcluir.classList.add(
+                "flex"
+            );
+
         }
 
-        // IMPORTANTE:
-        // fecha somente depois de terminar o processamento
+
         fecharCropFoto();
 
-        // Limpa o seletor
-        const input = document.getElementById('inputFotoPerfil');
+
+        const input =
+            document.getElementById(
+                "inputFotoPerfil"
+            );
+
 
         if (input) {
-            input.value = '';
+            input.value = "";
         }
+
+
+        await abrirModalSistema({
+
+            titulo:
+                "Foto atualizada",
+
+            mensagem:
+                "Sua foto de perfil foi salva com sucesso.",
+
+            tipo:
+                "sucesso",
+
+            textoConfirmar:
+                "Concluir",
+
+            mostrarCancelar:
+                false
+
+        });
+
 
     } catch (erro) {
 
-        console.error('Erro ao salvar foto:', erro);
+        console.error(
+            "❌ Erro ao salvar foto:",
+            erro
+        );
+
+
+        await abrirModalSistema({
+
+            titulo:
+                "Não foi possível salvar",
+
+            mensagem:
+                erro.message ||
+                "Ocorreu um erro ao salvar sua foto.",
+
+            tipo:
+                "info",
+
+            textoConfirmar:
+                "Entendi",
+
+            mostrarCancelar:
+                false
+
+        });
 
     }
+
 }
 
 function fecharCropFoto() {
@@ -4758,35 +5817,218 @@ function cancelarCropFoto() {
     }
 }
 
+async function excluirFotoPerfil() {
 
-function excluirFotoPerfil() {
+    const usuarioId =
+        sessionStorage.getItem(
+            "usuarioId"
+        );
 
-    const foto = document.getElementById('fotoPerfilMenu');
-    const inicial = document.getElementById('inicialPerfilMenu');
-    const textoAcao = document.getElementById('textoAcaoFoto');
-    const btnExcluir = document.getElementById('btnExcluirFoto');
-    const input = document.getElementById('inputFotoPerfil');
-    const menu = document.getElementById('menuFotoPerfil');
 
-    // Remove a foto
-    foto.src = '';
-    foto.classList.add('hidden');
+    if (!usuarioId) {
+        return;
+    }
 
-    // Volta a mostrar a inicial do usuário
-    inicial.classList.remove('hidden');
 
-    // Limpa o input para permitir escolher novamente
-    input.value = '';
+    const confirmou =
+        await abrirModalSistema({
 
-    // Volta o texto para Inserir foto
-    textoAcao.textContent = 'Inserir foto';
+            titulo:
+                "Excluir foto?",
 
-    // Esconde a opção Excluir foto
-    btnExcluir.classList.add('hidden');
-    btnExcluir.classList.remove('flex');
+            mensagem:
+                "Sua foto de perfil será removida. Você poderá inserir uma nova foto quando quiser.",
 
-    // Fecha o menu
-    menu.classList.add('hidden');
+            tipo:
+                "perigo",
+
+            textoConfirmar:
+                "Excluir foto",
+
+            textoCancelar:
+                "Cancelar",
+
+            mostrarCancelar:
+                true
+
+        });
+
+
+    if (!confirmou) {
+        return;
+    }
+
+
+    try {
+
+        const resposta =
+            await fetch(
+                `/api/usuario/${usuarioId}/foto`,
+                {
+                    method: "DELETE"
+                }
+            );
+
+
+        const dados =
+            await resposta.json();
+
+
+        if (!resposta.ok) {
+
+            throw new Error(
+                dados.erro ||
+                "Não foi possível excluir a foto."
+            );
+
+        }
+
+
+        // ==========================================
+        // ATUALIZAR INTERFACE
+        // ==========================================
+
+        const foto =
+            document.getElementById(
+                "fotoPerfilMenu"
+            );
+
+
+        const inicial =
+            document.getElementById(
+                "inicialPerfilMenu"
+            );
+
+
+        const textoAcao =
+            document.getElementById(
+                "textoAcaoFoto"
+            );
+
+
+        const btnExcluir =
+            document.getElementById(
+                "btnExcluirFoto"
+            );
+
+
+        const input =
+            document.getElementById(
+                "inputFotoPerfil"
+            );
+
+
+        const menu =
+            document.getElementById(
+                "menuFotoPerfil"
+            );
+
+
+        if (foto) {
+
+            foto.src = "";
+
+            foto.classList.add(
+                "hidden"
+            );
+
+        }
+
+
+        if (inicial) {
+
+            inicial.classList.remove(
+                "hidden"
+            );
+
+        }
+
+
+        if (input) {
+            input.value = "";
+        }
+
+
+        if (textoAcao) {
+
+            textoAcao.textContent =
+                "Inserir foto";
+
+        }
+
+
+        if (btnExcluir) {
+
+            btnExcluir.classList.add(
+                "hidden"
+            );
+
+            btnExcluir.classList.remove(
+                "flex"
+            );
+
+        }
+
+
+        if (menu) {
+
+            menu.classList.add(
+                "hidden"
+            );
+
+        }
+
+
+        await abrirModalSistema({
+
+            titulo:
+                "Foto excluída",
+
+            mensagem:
+                "Sua foto de perfil foi removida com sucesso.",
+
+            tipo:
+                "sucesso",
+
+            textoConfirmar:
+                "Concluir",
+
+            mostrarCancelar:
+                false
+
+        });
+
+
+    } catch (erro) {
+
+        console.error(
+            "❌ Erro ao excluir foto:",
+            erro
+        );
+
+
+        await abrirModalSistema({
+
+            titulo:
+                "Não foi possível excluir",
+
+            mensagem:
+                erro.message ||
+                "Ocorreu um erro ao excluir sua foto.",
+
+            tipo:
+                "info",
+
+            textoConfirmar:
+                "Entendi",
+
+            mostrarCancelar:
+                false
+
+        });
+
+    }
+
 }
 
      </script>  

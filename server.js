@@ -11,7 +11,9 @@ const Anthropic = require("@anthropic-ai/sdk");
 
 const app = express();
 app.use(cors());
-app.use(express.json());
+app.use(express.json({
+    limit: "2mb"
+}));
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 app.use(express.static(path.join(__dirname, "public")));
@@ -370,62 +372,139 @@ app.put("/api/perfil/:usuarioId", async (req, res) => {
 // PERFIL ACADÊMICO - DIFICULDADES
 // =====================================================
 
-
 // =====================================================
 // BUSCAR DIFICULDADES DO ALUNO
 // =====================================================
 
 app.get("/api/perfil-dificuldades/:usuarioId", async (req, res) => {
 
-    const usuarioId = parseInt(req.params.usuarioId, 10);
+    const usuarioId =
+        parseInt(req.params.usuarioId, 10);
 
-    if (isNaN(usuarioId)) {
+
+    if (!Number.isInteger(usuarioId) || usuarioId <= 0) {
+
         return res.status(400).json({
             sucesso: false,
             erro: "ID de usuário inválido."
         });
+
     }
+
 
     try {
 
-        const resultado = await pool.query(
-            `
-            SELECT
-                pd.id,
-                pd.disciplina_id,
-                d.nome AS disciplina,
-                pd.conteudo_1,
-                pd.conteudo_2,
-                pd.conteudo_3
+        // ==========================================
+        // DISCIPLINAS E CONTEÚDOS DE DIFICULDADE
+        // ==========================================
 
-            FROM perfil_dificuldade pd
+        const resultadoDificuldades =
+            await pool.query(
+                `
+                SELECT
+                    pd.id,
+                    pd.disciplina_id,
+                    d.nome AS disciplina,
+                    pd.conteudo_1,
+                    pd.conteudo_2,
+                    pd.conteudo_3
 
-            INNER JOIN disciplina d
-                ON d.id = pd.disciplina_id
+                FROM perfil_dificuldade pd
 
-            WHERE pd.usuario_id = $1
+                INNER JOIN disciplina d
+                    ON d.id = pd.disciplina_id
 
-            ORDER BY d.nome
-            `,
-            [usuarioId]
-        );
+                WHERE pd.usuario_id = $1
+
+                ORDER BY d.nome
+                `,
+                [usuarioId]
+            );
+
+
+        // ==========================================
+        // MATÉRIA QUE PRATICAMENTE NÃO ESTUDA
+        // ==========================================
+
+        const resultadoPerfil =
+            await pool.query(
+                `
+                SELECT
+                    disciplina_nao_estuda_id,
+                    nao_estuda_nenhuma,
+                    motivo_nao_estuda
+
+                FROM perfil_academico
+
+                WHERE usuario_id = $1
+                `,
+                [usuarioId]
+            );
+
+
+        const perfil =
+            resultadoPerfil.rows[0] || null;
+
+
+        let disciplinaNaoEstuda = "";
+
+
+        if (perfil) {
+
+            if (perfil.nao_estuda_nenhuma) {
+
+                disciplinaNaoEstuda =
+                    "nenhuma";
+
+            } else if (
+                perfil.disciplina_nao_estuda_id
+            ) {
+
+                disciplinaNaoEstuda =
+                    String(
+                        perfil.disciplina_nao_estuda_id
+                    );
+
+            }
+
+        }
+
 
         return res.json({
+
             sucesso: true,
-            dificuldades: resultado.rows
+
+            dificuldades:
+                resultadoDificuldades.rows,
+
+            disciplinaNaoEstuda,
+
+            motivoNaoEstuda:
+                perfil?.motivo_nao_estuda || ""
+
         });
+
 
     } catch (erro) {
 
-        console.error("❌ Erro ao buscar dificuldades:", erro);
+        console.error(
+            "❌ Erro ao buscar dificuldades:",
+            erro
+        );
+
 
         return res.status(500).json({
-            sucesso: false,
-            erro: "Erro ao buscar dificuldades do aluno."
-        });
-    }
-});
 
+            sucesso: false,
+
+            erro:
+                "Erro ao buscar dificuldades do aluno."
+
+        });
+
+    }
+
+});
 
 // =====================================================
 // SALVAR / ATUALIZAR DIFICULDADES DO ALUNO
@@ -433,63 +512,179 @@ app.get("/api/perfil-dificuldades/:usuarioId", async (req, res) => {
 
 app.put("/api/perfil-dificuldades/:usuarioId", async (req, res) => {
 
-    const usuarioId = parseInt(req.params.usuarioId, 10);
+    const usuarioId =
+        parseInt(req.params.usuarioId, 10);
 
-    if (isNaN(usuarioId)) {
+
+    if (!Number.isInteger(usuarioId) || usuarioId <= 0) {
+
         return res.status(400).json({
             sucesso: false,
             erro: "ID de usuário inválido."
         });
+
     }
 
+
     const {
-      dificuldades,
-      disciplinaNaoEstuda,
-      motivoNaoEstuda
+        dificuldades,
+        disciplinaNaoEstuda,
+        motivoNaoEstuda
     } = req.body;
 
+
+    // ==========================================
+    // VALIDAR DIFICULDADES
+    // ==========================================
+
     if (!Array.isArray(dificuldades)) {
+
         return res.status(400).json({
             sucesso: false,
             erro: "Lista de dificuldades inválida."
         });
+
     }
 
-    // Máximo de 3 disciplinas
-    if (dificuldades.length > 3) {
+
+    if (
+        dificuldades.length === 0 ||
+        dificuldades.length > 3
+    ) {
+
         return res.status(400).json({
             sucesso: false,
-            erro: "Selecione no máximo 3 disciplinas."
+            erro:
+                "Selecione entre 1 e 3 disciplinas."
         });
+
     }
 
-    const client = await pool.connect();
+
+    // ==========================================
+    // VALIDAR MATÉRIA QUE NÃO ESTUDA
+    // ==========================================
+
+    if (!disciplinaNaoEstuda) {
+
+        return res.status(400).json({
+            sucesso: false,
+            erro:
+                "Responda se existe alguma matéria que você praticamente não estuda."
+        });
+
+    }
+
+
+    const marcouNenhuma =
+        disciplinaNaoEstuda === "nenhuma";
+
+
+    let disciplinaNaoEstudaId = null;
+
+
+    if (!marcouNenhuma) {
+
+        disciplinaNaoEstudaId =
+            parseInt(
+                disciplinaNaoEstuda,
+                10
+            );
+
+
+        if (
+            !Number.isInteger(
+                disciplinaNaoEstudaId
+            )
+        ) {
+
+            return res.status(400).json({
+                sucesso: false,
+                erro:
+                    "Disciplina não estudada inválida."
+            });
+
+        }
+
+
+        if (
+            !String(
+                motivoNaoEstuda || ""
+            ).trim()
+        ) {
+
+            return res.status(400).json({
+                sucesso: false,
+                erro:
+                    "Informe por que você praticamente não estuda essa matéria."
+            });
+
+        }
+
+    }
+
+
+    const motivoFinal =
+        marcouNenhuma
+            ? null
+            : String(
+                motivoNaoEstuda || ""
+            ).trim();
+
+
+    const client =
+        await pool.connect();
+
 
     try {
 
         await client.query("BEGIN");
 
-        // Remove os registros antigos do aluno.
-        // Depois recriamos de acordo com o formulário atual.
+
+        // ==========================================
+        // APAGAR DIFICULDADES ANTIGAS
+        // ==========================================
+
         await client.query(
             `
             DELETE FROM perfil_dificuldade
+
             WHERE usuario_id = $1
             `,
             [usuarioId]
         );
 
+
+        // ==========================================
+        // SALVAR DIFICULDADES ATUAIS
+        // ==========================================
+
         for (const item of dificuldades) {
 
-            const disciplinaId = parseInt(item.disciplinaId, 10);
+            const disciplinaId =
+                parseInt(
+                    item.disciplinaId,
+                    10
+                );
 
-            if (isNaN(disciplinaId)) {
-                throw new Error("Disciplina inválida.");
+
+            if (
+                !Number.isInteger(
+                    disciplinaId
+                )
+            ) {
+
+                throw new Error(
+                    "Disciplina inválida."
+                );
+
             }
+
 
             await client.query(
                 `
-                INSERT INTO perfil_dificuldade (
+                INSERT INTO perfil_dificuldade
+                (
                     usuario_id,
                     disciplina_id,
                     conteudo_1,
@@ -497,7 +692,15 @@ app.put("/api/perfil-dificuldades/:usuarioId", async (req, res) => {
                     conteudo_3,
                     atualizado_em
                 )
-                VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)
+
+                VALUES (
+                    $1,
+                    $2,
+                    $3,
+                    $4,
+                    $5,
+                    CURRENT_TIMESTAMP
+                )
                 `,
                 [
                     usuarioId,
@@ -507,90 +710,90 @@ app.put("/api/perfil-dificuldades/:usuarioId", async (req, res) => {
                     item.conteudo3?.trim() || null
                 ]
             );
+
         }
 
 
-        // =====================================================
-        // MATÉRIA QUE O ALUNO PRATICAMENTE NÃO ESTUDA
-        // =====================================================
+        // ==========================================
+        // SALVAR MATÉRIA QUE NÃO ESTUDA
+        // ==========================================
 
-          let disciplinaNaoEstudaId = null;
-          let naoEstudaNenhuma = false;
-          let motivoNaoEstudaBanco = null;
+        const resultadoPerfil =
+            await client.query(
+                `
+                UPDATE perfil_academico
 
+                SET
+                    disciplina_nao_estuda_id = $1,
+                    nao_estuda_nenhuma = $2,
+                    motivo_nao_estuda = $3
 
-        // Se respondeu "Nenhuma"
-        if (disciplinaNaoEstuda === 'nenhuma') {
-            naoEstudaNenhuma = true;
-        }
-        // Se selecionou uma disciplina
-        else {
-          disciplinaNaoEstudaId =
-          parseInt(disciplinaNaoEstuda, 10);
-        if (isNaN(disciplinaNaoEstudaId)) {
-            throw new Error(
-            "Disciplina que não estuda inválida."
+                WHERE usuario_id = $4
+
+                RETURNING usuario_id
+                `,
+                [
+                    disciplinaNaoEstudaId,
+                    marcouNenhuma,
+                    motivoFinal,
+                    usuarioId
+                ]
             );
-          }
 
-        motivoNaoEstudaBanco = String(motivoNaoEstuda || '').trim();
-        if (!motivoNaoEstudaBanco) {
-        throw new Error(
-            "Informe o motivo pelo qual praticamente não estuda essa disciplina."
-        );
+
+        if (
+            resultadoPerfil.rowCount === 0
+        ) {
+
+            throw new Error(
+                "Perfil Acadêmico não encontrado."
+            );
+
         }
 
-}
-
-
-// Atualiza essas informações no Perfil Acadêmico
-const atualizacaoPerfil = await client.query(
-    `
-    UPDATE perfil_academico
-    SET
-        disciplina_nao_estuda_id = $1,
-        nao_estuda_nenhuma = $2,
-        motivo_nao_estuda = $3,
-        atualizado_em = CURRENT_TIMESTAMP
-    WHERE usuario_id = $4
-    `,
-    [
-        disciplinaNaoEstudaId,
-        naoEstudaNenhuma,
-        motivoNaoEstudaBanco,
-        usuarioId
-    ]
-);
-
-
-if (atualizacaoPerfil.rowCount === 0) {
-    throw new Error(
-        "Perfil acadêmico do usuário não encontrado."
-    );
-}
 
         await client.query("COMMIT");
 
+
         return res.json({
+
             sucesso: true,
-            mensagem: "Dificuldades salvas com sucesso."
+
+            mensagem:
+                "Dificuldades salvas com sucesso."
+
         });
+
 
     } catch (erro) {
 
-        await client.query("ROLLBACK");
+        await client.query(
+            "ROLLBACK"
+        );
 
-        console.error("❌ Erro ao salvar dificuldades:", erro);
+
+        console.error(
+            "❌ Erro ao salvar dificuldades:",
+            erro
+        );
+
 
         return res.status(500).json({
+
             sucesso: false,
-            erro: "Erro ao salvar dificuldades."
+
+            erro:
+                "Erro ao salvar dificuldades."
+
         });
+
 
     } finally {
 
         client.release();
+
     }
+
 });
 
 
@@ -2523,6 +2726,845 @@ app.put("/api/validacoes-erros/:id", async (req, res) => {
     }
 
 });
+
+// =====================================================
+// PLANO DE ESTUDO - OBJETIVOS PERMITIDOS
+// =====================================================
+
+const OBJETIVOS_PLANO_ESTUDO = new Set([
+    "organizar_rotina",
+    "melhorar_desempenho",
+    "recuperar_dificuldades",
+    "preparar_provas",
+    "enem_vestibular",
+    "criar_habito",
+    "aprofundar_conhecimentos",
+    "outro"
+]);
+
+// =====================================================
+// PLANO DE ESTUDO - VERIFICAR PREPARAÇÃO
+// =====================================================
+
+app.get(
+    "/api/plano-estudo/preparacao/:usuarioId",
+    async (req, res) => {
+
+        const usuarioId =
+            parseInt(req.params.usuarioId, 10);
+
+
+        if (
+            !Number.isInteger(usuarioId) ||
+            usuarioId <= 0
+        ) {
+
+            return res.status(400).json({
+                sucesso: false,
+                erro: "ID de usuário inválido."
+            });
+
+        }
+
+
+        try {
+
+            // ==========================================
+            // CONFIRMA QUE O USUÁRIO EXISTE
+            // ==========================================
+
+            const usuario = await pool.query(
+                `
+                SELECT id
+                FROM usuario
+                WHERE id = $1
+                `,
+                [usuarioId]
+            );
+
+
+            if (usuario.rows.length === 0) {
+
+                return res.status(404).json({
+                    sucesso: false,
+                    erro: "Usuário não encontrado."
+                });
+
+            }
+
+
+            // ==========================================
+            // VERIFICA ROTINA E PERFIL
+            // ==========================================
+
+            const status = await pool.query(
+                `
+                SELECT
+
+                    EXISTS (
+                        SELECT 1
+                        FROM rotina r
+                        WHERE r.usuario_id = $1
+                          AND r.ativa = TRUE
+                    )
+                    AS rotina_preenchida,
+
+
+                    EXISTS (
+                        SELECT 1
+                        FROM perfil_tempo_estudo pte
+                        WHERE pte.usuario_id = $1
+                    )
+                    AS perfil_academico_preenchido
+
+                `,
+                [usuarioId]
+            );
+
+
+            // ==========================================
+            // OBJETIVO JÁ SALVO
+            // ==========================================
+
+            const objetivoResultado =
+                await pool.query(
+                    `
+                    SELECT
+                        objetivo,
+                        objetivo_outro
+
+                    FROM plano_estudo_objetivo
+
+                    WHERE usuario_id = $1
+                    `,
+                    [usuarioId]
+                );
+
+
+            const objetivoSalvo =
+                objetivoResultado.rows[0] || null;
+
+
+            const rotinaPreenchida =
+                Boolean(
+                    status.rows[0].rotina_preenchida
+                );
+
+
+            const perfilAcademicoPreenchido =
+                Boolean(
+                    status.rows[0]
+                        .perfil_academico_preenchido
+                );
+
+
+            return res.json({
+
+                sucesso: true,
+
+                rotinaPreenchida,
+
+                perfilAcademicoPreenchido,
+
+                objetivo:
+                    objetivoSalvo?.objetivo || "",
+
+                objetivoOutro:
+                    objetivoSalvo?.objetivo_outro || "",
+
+                objetivoPreenchido:
+                    Boolean(objetivoSalvo),
+
+                podeGerar:
+                    rotinaPreenchida &&
+                    perfilAcademicoPreenchido &&
+                    Boolean(objetivoSalvo)
+
+            });
+
+
+        } catch (erro) {
+
+            console.error(
+                "❌ Erro ao verificar preparação do plano:",
+                erro
+            );
+
+
+            return res.status(500).json({
+                sucesso: false,
+                erro:
+                    "Não foi possível verificar os dados do Plano de Estudo."
+            });
+
+        }
+
+    }
+);
+
+// =====================================================
+// PLANO DE ESTUDO - GERAR
+// POR ENQUANTO FUNCIONA EM MODO DE TESTE
+// =====================================================
+
+app.post(
+    "/api/plano-estudo/gerar/:usuarioId",
+    async (req, res) => {
+
+        const usuarioId =
+            parseInt(req.params.usuarioId, 10);
+
+
+        const {
+            objetivo,
+            objetivoOutro
+        } = req.body;
+
+
+        // ==========================================
+        // VALIDAR USUÁRIO
+        // ==========================================
+
+        if (
+            !Number.isInteger(usuarioId) ||
+            usuarioId <= 0
+        ) {
+
+            return res.status(400).json({
+                sucesso: false,
+                erro: "ID de usuário inválido."
+            });
+
+        }
+
+
+        // ==========================================
+        // VALIDAR OBJETIVO
+        // ==========================================
+
+        if (
+            !objetivo ||
+            !OBJETIVOS_PLANO_ESTUDO.has(objetivo)
+        ) {
+
+            return res.status(400).json({
+                sucesso: false,
+                erro:
+                    "Selecione um objetivo válido para o Plano de Estudo."
+            });
+
+        }
+
+
+        if (
+            objetivo === "outro" &&
+            !String(objetivoOutro || "").trim()
+        ) {
+
+            return res.status(400).json({
+                sucesso: false,
+                erro:
+                    "Informe qual é o seu objetivo."
+            });
+
+        }
+
+
+        try {
+
+            // ==========================================
+            // CONFIRMA USUÁRIO
+            // ==========================================
+
+            const usuario =
+                await pool.query(
+                    `
+                    SELECT id
+                    FROM usuario
+                    WHERE id = $1
+                    `,
+                    [usuarioId]
+                );
+
+
+            if (usuario.rows.length === 0) {
+
+                return res.status(404).json({
+                    sucesso: false,
+                    erro: "Usuário não encontrado."
+                });
+
+            }
+
+
+            // ==========================================
+            // VERIFICA PRÉ-REQUISITOS
+            // ==========================================
+
+            const status =
+                await pool.query(
+                    `
+                    SELECT
+
+                        EXISTS (
+                            SELECT 1
+                            FROM rotina r
+                            WHERE r.usuario_id = $1
+                              AND r.ativa = TRUE
+                        )
+                        AS rotina_preenchida,
+
+
+                        EXISTS (
+                            SELECT 1
+                            FROM perfil_tempo_estudo pte
+                            WHERE pte.usuario_id = $1
+                        )
+                        AS perfil_academico_preenchido
+
+                    `,
+                    [usuarioId]
+                );
+
+
+            const rotinaPreenchida =
+                Boolean(
+                    status.rows[0].rotina_preenchida
+                );
+
+
+            const perfilAcademicoPreenchido =
+                Boolean(
+                    status.rows[0]
+                        .perfil_academico_preenchido
+                );
+
+
+            const faltando = [];
+
+
+            if (!rotinaPreenchida) {
+                faltando.push("Rotina Diária");
+            }
+
+
+            if (!perfilAcademicoPreenchido) {
+                faltando.push("Perfil Acadêmico");
+            }
+
+
+            if (faltando.length > 0) {
+
+                return res.status(400).json({
+
+                    sucesso: false,
+
+                    erro:
+                        "Existem informações obrigatórias que ainda não foram preenchidas.",
+
+                    faltando
+
+                });
+
+            }
+
+
+            // ==========================================
+            // SALVAR / ATUALIZAR OBJETIVO
+            // ==========================================
+
+            const objetivoOutroFinal =
+                objetivo === "outro"
+                    ? String(objetivoOutro).trim()
+                    : null;
+
+
+            const resultadoObjetivo =
+                await pool.query(
+                    `
+                    INSERT INTO plano_estudo_objetivo
+                    (
+                        usuario_id,
+                        objetivo,
+                        objetivo_outro
+                    )
+
+                    VALUES ($1, $2, $3)
+
+                    ON CONFLICT (usuario_id)
+
+                    DO UPDATE SET
+
+                        objetivo =
+                            EXCLUDED.objetivo,
+
+                        objetivo_outro =
+                            EXCLUDED.objetivo_outro,
+
+                        atualizado_em =
+                            CURRENT_TIMESTAMP
+
+                    RETURNING
+                        id,
+                        usuario_id,
+                        objetivo,
+                        objetivo_outro,
+                        criado_em,
+                        atualizado_em
+                    `,
+                    [
+                        usuarioId,
+                        objetivo,
+                        objetivoOutroFinal
+                    ]
+                );
+
+
+            console.log(
+                "🤖 Dados preparados para geração do plano:",
+                {
+                    usuarioId,
+                    objetivo
+                }
+            );
+
+
+            // ==========================================
+            // FUTURAMENTE A API DA IA ENTRARÁ AQUI
+            // ==========================================
+
+
+            return res.json({
+
+                sucesso: true,
+
+                modo: "teste",
+
+                prontoParaIA: true,
+
+                mensagem:
+                    "Todos os dados necessários estão prontos para geração do Plano de Estudo.",
+
+                objetivo:
+                    resultadoObjetivo.rows[0]
+
+            });
+
+
+        } catch (erro) {
+
+            console.error(
+                "❌ Erro ao preparar Plano de Estudo:",
+                erro
+            );
+
+
+            return res.status(500).json({
+
+                sucesso: false,
+
+                erro:
+                    "Não foi possível preparar o Plano de Estudo."
+
+            });
+
+        }
+
+    }
+);
+
+// =====================================================
+// FOTO DE PERFIL
+// =====================================================
+
+
+// =====================================================
+// SALVAR / TROCAR FOTO
+// =====================================================
+
+app.put(
+    "/api/usuario/:usuarioId/foto",
+    async (req, res) => {
+
+        const usuarioId =
+            parseInt(req.params.usuarioId, 10);
+
+        const {
+            imagemBase64
+        } = req.body;
+
+
+        if (
+            !Number.isInteger(usuarioId) ||
+            usuarioId <= 0
+        ) {
+
+            return res.status(400).json({
+                sucesso: false,
+                erro: "ID de usuário inválido."
+            });
+
+        }
+
+
+        if (
+            !imagemBase64 ||
+            typeof imagemBase64 !== "string"
+        ) {
+
+            return res.status(400).json({
+                sucesso: false,
+                erro: "Nenhuma imagem foi enviada."
+            });
+
+        }
+
+
+        try {
+
+            // ==========================================
+            // CONFIRMA QUE O USUÁRIO EXISTE
+            // ==========================================
+
+            const usuario =
+                await pool.query(
+                    `
+                    SELECT id
+                    FROM usuario
+                    WHERE id = $1
+                    `,
+                    [usuarioId]
+                );
+
+
+            if (usuario.rows.length === 0) {
+
+                return res.status(404).json({
+                    sucesso: false,
+                    erro: "Usuário não encontrado."
+                });
+
+            }
+
+
+            // ==========================================
+            // SEPARA MIME TYPE E BASE64
+            // ==========================================
+
+            const correspondencia =
+                imagemBase64.match(
+                    /^data:(image\/(?:jpeg|png|webp));base64,(.+)$/
+                );
+
+
+            if (!correspondencia) {
+
+                return res.status(400).json({
+                    sucesso: false,
+                    erro: "Formato de imagem inválido."
+                });
+
+            }
+
+
+            const mimeType =
+                correspondencia[1];
+
+
+            const base64 =
+                correspondencia[2];
+
+
+            const imagemBuffer =
+                Buffer.from(
+                    base64,
+                    "base64"
+                );
+
+
+            // ==========================================
+            // SEGURANÇA - LIMITE DE 1 MB
+            // ==========================================
+
+            if (
+                !imagemBuffer.length ||
+                imagemBuffer.length > 1024 * 1024
+            ) {
+
+                return res.status(400).json({
+                    sucesso: false,
+                    erro:
+                        "A foto processada ultrapassou o tamanho permitido."
+                });
+
+            }
+
+
+            // ==========================================
+            // SALVAR / ATUALIZAR
+            // ==========================================
+
+            const resultado =
+                await pool.query(
+                    `
+                    INSERT INTO usuario_foto
+                    (
+                        usuario_id,
+                        imagem,
+                        mime_type
+                    )
+
+                    VALUES ($1, $2, $3)
+
+                    ON CONFLICT (usuario_id)
+
+                    DO UPDATE SET
+
+                        imagem =
+                            EXCLUDED.imagem,
+
+                        mime_type =
+                            EXCLUDED.mime_type,
+
+                        atualizado_em =
+                            CURRENT_TIMESTAMP
+
+                    RETURNING
+                        usuario_id,
+                        mime_type,
+                        atualizado_em
+                    `,
+                    [
+                        usuarioId,
+                        imagemBuffer,
+                        mimeType
+                    ]
+                );
+
+
+            console.log(
+                "📷 Foto salva para o usuário:",
+                usuarioId
+            );
+
+
+            return res.json({
+
+                sucesso: true,
+
+                mensagem:
+                    "Foto de perfil salva com sucesso.",
+
+                foto:
+                    resultado.rows[0]
+
+            });
+
+
+        } catch (erro) {
+
+            console.error(
+                "❌ Erro ao salvar foto:",
+                erro
+            );
+
+
+            return res.status(500).json({
+
+                sucesso: false,
+
+                erro:
+                    "Não foi possível salvar a foto de perfil."
+
+            });
+
+        }
+
+    }
+);
+
+
+// =====================================================
+// BUSCAR FOTO
+// =====================================================
+
+app.get(
+    "/api/usuario/:usuarioId/foto",
+    async (req, res) => {
+
+        const usuarioId =
+            parseInt(req.params.usuarioId, 10);
+
+
+        if (
+            !Number.isInteger(usuarioId) ||
+            usuarioId <= 0
+        ) {
+
+            return res.status(400).json({
+                sucesso: false,
+                erro: "ID de usuário inválido."
+            });
+
+        }
+
+
+        try {
+
+            const resultado =
+                await pool.query(
+                    `
+                    SELECT
+                        imagem,
+                        mime_type
+
+                    FROM usuario_foto
+
+                    WHERE usuario_id = $1
+                    `,
+                    [usuarioId]
+                );
+
+
+            if (resultado.rows.length === 0) {
+
+                return res.status(404).json({
+                    sucesso: false,
+                    erro: "Usuário não possui foto."
+                });
+
+            }
+
+
+            const foto =
+                resultado.rows[0];
+
+
+            // Evita o navegador mostrar
+            // uma foto antiga depois da troca.
+            res.set(
+                "Cache-Control",
+                "no-store, no-cache, must-revalidate"
+            );
+
+
+            res.type(foto.mime_type);
+
+
+            return res.send(
+                foto.imagem
+            );
+
+
+        } catch (erro) {
+
+            console.error(
+                "❌ Erro ao carregar foto:",
+                erro
+            );
+
+
+            return res.status(500).json({
+                sucesso: false,
+                erro:
+                    "Não foi possível carregar a foto."
+            });
+
+        }
+
+    }
+);
+
+
+// =====================================================
+// EXCLUIR FOTO
+// =====================================================
+
+app.delete(
+    "/api/usuario/:usuarioId/foto",
+    async (req, res) => {
+
+        const usuarioId =
+            parseInt(req.params.usuarioId, 10);
+
+
+        if (
+            !Number.isInteger(usuarioId) ||
+            usuarioId <= 0
+        ) {
+
+            return res.status(400).json({
+                sucesso: false,
+                erro: "ID de usuário inválido."
+            });
+
+        }
+
+
+        try {
+
+            const resultado =
+                await pool.query(
+                    `
+                    DELETE FROM usuario_foto
+
+                    WHERE usuario_id = $1
+
+                    RETURNING usuario_id
+                    `,
+                    [usuarioId]
+                );
+
+
+            if (resultado.rows.length === 0) {
+
+                return res.status(404).json({
+                    sucesso: false,
+                    erro:
+                        "O usuário não possui foto cadastrada."
+                });
+
+            }
+
+
+            console.log(
+                "🗑️ Foto excluída do usuário:",
+                usuarioId
+            );
+
+
+            return res.json({
+
+                sucesso: true,
+
+                mensagem:
+                    "Foto excluída com sucesso."
+
+            });
+
+
+        } catch (erro) {
+
+            console.error(
+                "❌ Erro ao excluir foto:",
+                erro
+            );
+
+
+            return res.status(500).json({
+
+                sucesso: false,
+
+                erro:
+                    "Não foi possível excluir a foto."
+
+            });
+
+        }
+
+    }
+);
+
 
 app.listen(PORT, () => {
   console.log(`Servidor rodando em http://localhost:${PORT}`);

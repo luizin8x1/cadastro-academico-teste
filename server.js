@@ -442,7 +442,11 @@ app.put("/api/perfil-dificuldades/:usuarioId", async (req, res) => {
         });
     }
 
-    const { dificuldades } = req.body;
+    const {
+      dificuldades,
+      disciplinaNaoEstuda,
+      motivoNaoEstuda
+    } = req.body;
 
     if (!Array.isArray(dificuldades)) {
         return res.status(400).json({
@@ -505,6 +509,66 @@ app.put("/api/perfil-dificuldades/:usuarioId", async (req, res) => {
             );
         }
 
+
+        // =====================================================
+        // MATÉRIA QUE O ALUNO PRATICAMENTE NÃO ESTUDA
+        // =====================================================
+
+          let disciplinaNaoEstudaId = null;
+          let naoEstudaNenhuma = false;
+          let motivoNaoEstudaBanco = null;
+
+
+        // Se respondeu "Nenhuma"
+        if (disciplinaNaoEstuda === 'nenhuma') {
+            naoEstudaNenhuma = true;
+        }
+        // Se selecionou uma disciplina
+        else {
+          disciplinaNaoEstudaId =
+          parseInt(disciplinaNaoEstuda, 10);
+        if (isNaN(disciplinaNaoEstudaId)) {
+            throw new Error(
+            "Disciplina que não estuda inválida."
+            );
+          }
+
+        motivoNaoEstudaBanco = String(motivoNaoEstuda || '').trim();
+        if (!motivoNaoEstudaBanco) {
+        throw new Error(
+            "Informe o motivo pelo qual praticamente não estuda essa disciplina."
+        );
+        }
+
+}
+
+
+// Atualiza essas informações no Perfil Acadêmico
+const atualizacaoPerfil = await client.query(
+    `
+    UPDATE perfil_academico
+    SET
+        disciplina_nao_estuda_id = $1,
+        nao_estuda_nenhuma = $2,
+        motivo_nao_estuda = $3,
+        atualizado_em = CURRENT_TIMESTAMP
+    WHERE usuario_id = $4
+    `,
+    [
+        disciplinaNaoEstudaId,
+        naoEstudaNenhuma,
+        motivoNaoEstudaBanco,
+        usuarioId
+    ]
+);
+
+
+if (atualizacaoPerfil.rowCount === 0) {
+    throw new Error(
+        "Perfil acadêmico do usuário não encontrado."
+    );
+}
+
         await client.query("COMMIT");
 
         return res.json({
@@ -528,6 +592,195 @@ app.put("/api/perfil-dificuldades/:usuarioId", async (req, res) => {
         client.release();
     }
 });
+
+
+// =====================================================
+// BUSCAR TEMPO DISPONÍVEL PARA ESTUDOS
+// =====================================================
+
+app.get("/api/perfil-tempo-estudo/:usuarioId", async (req, res) => {
+
+    const usuarioId = parseInt(req.params.usuarioId, 10);
+
+    if (isNaN(usuarioId)) {
+        return res.status(400).json({
+            sucesso: false,
+            erro: "ID de usuário inválido."
+        });
+    }
+
+    try {
+
+        const resultado = await pool.query(
+            `
+            SELECT
+                usuario_id,
+                tempo_atual_minutos,
+                dias_disponiveis,
+                periodo_preferido,
+                tempo_disponivel_minutos,
+                fim_semana,
+                periodo_livre,
+                atualizado_em
+            FROM perfil_tempo_estudo
+            WHERE usuario_id = $1
+            `,
+            [usuarioId]
+        );
+
+        if (resultado.rows.length === 0) {
+            return res.json({
+                sucesso: true,
+                tempoEstudo: null
+            });
+        }
+
+        return res.json({
+            sucesso: true,
+            tempoEstudo: resultado.rows[0]
+        });
+
+    } catch (erro) {
+
+        console.error("❌ Erro ao buscar tempo de estudo:", erro);
+
+        return res.status(500).json({
+            sucesso: false,
+            erro: "Erro ao buscar tempo disponível para estudos."
+        });
+    }
+});
+
+
+// =====================================================
+// SALVAR / ATUALIZAR TEMPO DISPONÍVEL PARA ESTUDOS
+// =====================================================
+
+app.put("/api/perfil-tempo-estudo/:usuarioId", async (req, res) => {
+
+    const usuarioId = parseInt(req.params.usuarioId, 10);
+
+    if (isNaN(usuarioId)) {
+        return res.status(400).json({
+            sucesso: false,
+            erro: "ID de usuário inválido."
+        });
+    }
+
+    const {
+        horasAtuais,
+        diasDisponiveis,
+        periodoPreferido,
+        tempoDisponivel,
+        fimSemana,
+        periodoLivre
+    } = req.body;
+
+    // =====================================================
+    // VALIDAÇÕES
+    // =====================================================
+
+    if (
+        horasAtuais === undefined ||
+        horasAtuais === null ||
+        horasAtuais === ""
+    ) {
+        return res.status(400).json({
+            sucesso: false,
+            erro: "Informe quanto tempo o aluno estuda atualmente."
+        });
+    }
+
+    if (!Array.isArray(diasDisponiveis) || diasDisponiveis.length === 0) {
+        return res.status(400).json({
+            sucesso: false,
+            erro: "Informe pelo menos um dia disponível para estudos."
+        });
+    }
+
+    if (!periodoPreferido) {
+        return res.status(400).json({
+            sucesso: false,
+            erro: "Informe o período preferido para estudos."
+        });
+    }
+
+    if (
+        tempoDisponivel === undefined ||
+        tempoDisponivel === null ||
+        tempoDisponivel === ""
+    ) {
+        return res.status(400).json({
+            sucesso: false,
+            erro: "Informe o tempo disponível para estudos."
+        });
+    }
+
+    if (!fimSemana) {
+        return res.status(400).json({
+            sucesso: false,
+            erro: "Informe a disponibilidade no fim de semana."
+        });
+    }
+
+
+    try {
+
+        const resultado = await pool.query(
+            `
+            INSERT INTO perfil_tempo_estudo (
+                usuario_id,
+                tempo_atual_minutos,
+                dias_disponiveis,
+                periodo_preferido,
+                tempo_disponivel_minutos,
+                fim_semana,
+                periodo_livre,
+                atualizado_em
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP)
+
+            ON CONFLICT (usuario_id)
+
+            DO UPDATE SET
+                tempo_atual_minutos = EXCLUDED.tempo_atual_minutos,
+                dias_disponiveis = EXCLUDED.dias_disponiveis,
+                periodo_preferido = EXCLUDED.periodo_preferido,
+                tempo_disponivel_minutos = EXCLUDED.tempo_disponivel_minutos,
+                fim_semana = EXCLUDED.fim_semana,
+                periodo_livre = EXCLUDED.periodo_livre,
+                atualizado_em = CURRENT_TIMESTAMP
+
+            RETURNING *
+            `,
+            [
+                usuarioId,
+                parseInt(horasAtuais, 10),
+                diasDisponiveis,
+                periodoPreferido,
+                parseInt(tempoDisponivel, 10),
+                fimSemana,
+                periodoLivre?.trim() || null
+            ]
+        );
+
+        return res.json({
+            sucesso: true,
+            mensagem: "Tempo disponível para estudos salvo com sucesso.",
+            tempoEstudo: resultado.rows[0]
+        });
+
+    } catch (erro) {
+
+        console.error("❌ Erro ao salvar tempo de estudo:", erro);
+
+        return res.status(500).json({
+            sucesso: false,
+            erro: "Erro ao salvar tempo disponível para estudos."
+        });
+    }
+});
+
 
 
 // =====================================================
@@ -1648,6 +1901,628 @@ app.delete("/api/admin/frases/:id", async (req, res) => {
   }
 });
 
+// ============================================================
+// EQUIPE DO SISTEMA - VALIDAR CÓDIGO DE SEGURANÇA
+// ============================================================
+
+app.post("/api/equipe/validar-codigo", async (req, res) => {
+
+    try {
+
+        const codigo = String(req.body.codigo || '').trim();
+
+
+        // ----------------------------------------------------
+        // 1. VALIDAR FORMATO
+        // ----------------------------------------------------
+
+        if (!/^\d{6}$/.test(codigo)) {
+
+            return res.status(400).json({
+                sucesso: false,
+                erro: "O código deve possuir exatamente 6 números."
+            });
+
+        }
+
+
+        // ----------------------------------------------------
+        // 2. BUSCAR SOMENTE INTEGRANTES ATIVOS
+        // ----------------------------------------------------
+
+        const resultado = await pool.query(`
+            SELECT
+                id,
+                nome,
+                equipe,
+                codigo_hash
+            FROM equipe_sistema
+            WHERE ativo = TRUE
+        `);
+
+
+        // ----------------------------------------------------
+        // 3. COMPARAR O CÓDIGO COM OS HASHES
+        // ----------------------------------------------------
+
+        let integranteEncontrado = null;
+
+
+        for (const integrante of resultado.rows) {
+
+            const codigoCorreto = await bcrypt.compare(
+                codigo,
+                integrante.codigo_hash
+            );
+
+
+            if (codigoCorreto) {
+
+                integranteEncontrado = integrante;
+
+                break;
+
+            }
+
+        }
+
+
+        // ----------------------------------------------------
+        // 4. CÓDIGO NÃO ENCONTRADO
+        // ----------------------------------------------------
+
+        if (!integranteEncontrado) {
+
+            return res.status(401).json({
+                sucesso: false,
+                erro: "Código de segurança inválido."
+            });
+
+        }
+
+
+        // ----------------------------------------------------
+        // 5. CÓDIGO CORRETO
+        // ----------------------------------------------------
+
+        return res.json({
+
+            sucesso: true,
+
+            integrante: {
+                id: integranteEncontrado.id,
+                nome: integranteEncontrado.nome,
+                equipe: integranteEncontrado.equipe
+            }
+
+        });
+
+
+    } catch (erro) {
+
+        console.error(
+            "❌ Erro ao validar código da equipe:",
+            erro
+        );
+
+
+        return res.status(500).json({
+            sucesso: false,
+            erro: "Erro interno ao validar o código de segurança."
+        });
+
+    }
+
+});
+
+// =====================================================
+// CADASTRAR VALIDAÇÃO OU ERRO
+// =====================================================
+
+app.post("/api/validacoes-erros", async (req, res) => {
+
+    try {
+
+        const {
+            tipo,
+            descricao,
+            importancia,
+            inserido_por
+        } = req.body;
+
+
+        // Validação dos campos obrigatórios
+        if (!tipo || !descricao || !importancia || !inserido_por) {
+            return res.status(400).json({
+                erro: "Todos os campos são obrigatórios."
+            });
+        }
+
+
+        // Aceita somente os dois tipos previstos
+        if (!["validacao", "erro"].includes(tipo)) {
+            return res.status(400).json({
+                erro: "Tipo de registro inválido."
+            });
+        }
+
+
+        // Aceita somente os graus previstos
+        if (!["baixa", "media", "alta", "critica"].includes(importancia)) {
+            return res.status(400).json({
+                erro: "Grau de importância inválido."
+            });
+        }
+
+
+        const resultado = await pool.query(
+            `
+            INSERT INTO validacoes_erros
+                (
+                    tipo,
+                    descricao,
+                    importancia,
+                    inserido_por
+                )
+            VALUES ($1, $2, $3, $4)
+
+            RETURNING
+                id,
+                tipo,
+                descricao,
+                importancia,
+                inserido_por,
+                criado_em,
+                resolvido
+            `,
+            [
+                tipo,
+                descricao.trim(),
+                importancia,
+                inserido_por
+            ]
+        );
+
+
+        console.log(
+            "✅ Validação/erro cadastrado:",
+            resultado.rows[0]
+        );
+
+
+        return res.status(201).json({
+            mensagem: "Registro cadastrado com sucesso.",
+            registro: resultado.rows[0]
+        });
+
+
+    } catch (erro) {
+
+        console.error(
+            "❌ Erro ao cadastrar validação/erro:",
+            erro
+        );
+
+
+        return res.status(500).json({
+            erro: "Não foi possível cadastrar o registro."
+        });
+
+    }
+
+});
+
+
+// =====================================================
+// MARCAR VALIDAÇÃO / ERRO COMO RESOLVIDO
+// =====================================================
+
+app.put("/api/validacoes-erros/:id/resolver", async (req, res) => {
+
+    try {
+
+        const id = Number(req.params.id);
+        const { codigo } = req.body;
+
+
+        // ID válido
+        if (!Number.isInteger(id) || id <= 0) {
+
+            return res.status(400).json({
+                sucesso: false,
+                erro: "Registro inválido."
+            });
+
+        }
+
+
+        // Código com 6 dígitos
+        if (!/^\d{6}$/.test(String(codigo || ""))) {
+
+            return res.status(400).json({
+                sucesso: false,
+                erro: "Informe um código de segurança válido."
+            });
+
+        }
+
+
+        // Busca integrantes ativos
+        const resultadoEquipe = await pool.query(`
+            SELECT
+                id,
+                nome,
+                equipe,
+                codigo_hash
+            FROM equipe_sistema
+            WHERE ativo = TRUE
+            ORDER BY id
+        `);
+
+
+        let integranteIdentificado = null;
+
+
+        // Compara o código informado com os hashes
+        for (const integrante of resultadoEquipe.rows) {
+
+            const codigoValido = await bcrypt.compare(
+                String(codigo),
+                integrante.codigo_hash
+            );
+
+
+            if (codigoValido) {
+
+                integranteIdentificado = integrante;
+                break;
+
+            }
+
+        }
+
+
+        // Código não pertence a ninguém
+        if (!integranteIdentificado) {
+
+            return res.status(401).json({
+                sucesso: false,
+                erro: "Código de segurança inválido."
+            });
+
+        }
+
+
+        // Marca como resolvido
+        const resultado = await pool.query(
+            `
+            UPDATE validacoes_erros
+
+            SET
+                resolvido = TRUE,
+                resolvido_em = CURRENT_TIMESTAMP,
+                resolvido_por = $1,
+                atualizado_em = CURRENT_TIMESTAMP
+
+            WHERE id = $2
+              AND resolvido = FALSE
+
+            RETURNING
+                id,
+                tipo,
+                descricao,
+                importancia,
+                resolvido,
+                resolvido_em,
+                resolvido_por
+            `,
+            [
+                integranteIdentificado.id,
+                id
+            ]
+        );
+
+
+        if (resultado.rowCount === 0) {
+
+            return res.status(404).json({
+                sucesso: false,
+                erro: "Registro não encontrado ou já marcado como resolvido."
+            });
+
+        }
+
+
+        console.log(
+            "🔧 Registro marcado como resolvido:",
+            resultado.rows[0]
+        );
+
+
+        return res.json({
+
+            sucesso: true,
+
+            mensagem:
+                "Registro marcado como resolvido com sucesso.",
+
+            registro:
+                resultado.rows[0],
+
+            integrante: {
+                id: integranteIdentificado.id,
+                nome: integranteIdentificado.nome,
+                equipe: integranteIdentificado.equipe
+            }
+
+        });
+
+
+    } catch (erro) {
+
+        console.error(
+            "❌ Erro ao marcar registro como resolvido:",
+            erro
+        );
+
+
+        return res.status(500).json({
+            sucesso: false,
+            erro: "Não foi possível concluir o registro."
+        });
+
+    }
+
+});
+
+// =====================================================
+// LISTAR VALIDAÇÕES E ERROS
+// =====================================================
+
+app.get("/api/validacoes-erros", async (req, res) => {
+
+    try {
+
+        const resultado = await pool.query(`
+            SELECT
+                ve.id,
+                ve.tipo,
+                ve.descricao,
+                ve.importancia,
+                ve.criado_em,
+                ve.resolvido,
+                ve.resolvido_em,
+
+                inseridor.nome AS inserido_por_nome,
+                inseridor.equipe AS inserido_por_equipe,
+
+                resolvedor.nome AS resolvido_por_nome,
+                resolvedor.equipe AS resolvido_por_equipe
+
+            FROM validacoes_erros ve
+
+            INNER JOIN equipe_sistema inseridor
+                ON inseridor.id = ve.inserido_por
+
+            LEFT JOIN equipe_sistema resolvedor
+                ON resolvedor.id = ve.resolvido_por
+
+            ORDER BY
+                ve.resolvido ASC,
+                ve.criado_em DESC
+        `);
+
+
+        return res.json({
+            sucesso: true,
+            registros: resultado.rows
+        });
+
+
+    } catch (erro) {
+
+        console.error(
+            "❌ Erro ao carregar validações e erros:",
+            erro
+        );
+
+
+        return res.status(500).json({
+            sucesso: false,
+            erro: "Não foi possível carregar as validações e erros."
+        });
+
+    }
+
+});
+
+// =====================================================
+// EXCLUIR VALIDAÇÃO OU ERRO
+// =====================================================
+
+app.delete("/api/validacoes-erros/:id", async (req, res) => {
+
+    try {
+
+        const id = Number(req.params.id);
+
+        // Verifica se o ID é válido
+        if (!Number.isInteger(id) || id <= 0) {
+
+            return res.status(400).json({
+                sucesso: false,
+                erro: "Registro inválido."
+            });
+
+        }
+
+
+        const resultado = await pool.query(
+            `
+            DELETE FROM validacoes_erros
+            WHERE id = $1
+            RETURNING id, tipo, descricao
+            `,
+            [id]
+        );
+
+
+        // Nenhum registro encontrado
+        if (resultado.rowCount === 0) {
+
+            return res.status(404).json({
+                sucesso: false,
+                erro: "Registro não encontrado."
+            });
+
+        }
+
+
+        console.log(
+            "🗑️ Validação/erro excluído:",
+            resultado.rows[0]
+        );
+
+
+        return res.json({
+            sucesso: true,
+            mensagem: "Registro excluído com sucesso.",
+            registro: resultado.rows[0]
+        });
+
+
+    } catch (erro) {
+
+        console.error(
+            "❌ Erro ao excluir validação/erro:",
+            erro
+        );
+
+
+        return res.status(500).json({
+            sucesso: false,
+            erro: "Não foi possível excluir o registro."
+        });
+
+    }
+
+});
+
+// =====================================================
+// ALTERAR VALIDAÇÃO OU ERRO
+// =====================================================
+
+app.put("/api/validacoes-erros/:id", async (req, res) => {
+
+    try {
+
+        const id = Number(req.params.id);
+
+        const {
+            descricao,
+            importancia
+        } = req.body;
+
+
+        // ID inválido
+        if (!Number.isInteger(id) || id <= 0) {
+
+            return res.status(400).json({
+                sucesso: false,
+                erro: "Registro inválido."
+            });
+
+        }
+
+
+        // Campos obrigatórios
+        if (!descricao || !descricao.trim() || !importancia) {
+
+            return res.status(400).json({
+                sucesso: false,
+                erro: "Descrição e grau de importância são obrigatórios."
+            });
+
+        }
+
+
+        // Importâncias permitidas
+        if (!["baixa", "media", "alta", "critica"].includes(importancia)) {
+
+            return res.status(400).json({
+                sucesso: false,
+                erro: "Grau de importância inválido."
+            });
+
+        }
+
+
+        const resultado = await pool.query(
+            `
+            UPDATE validacoes_erros
+
+            SET
+                descricao = $1,
+                importancia = $2,
+                atualizado_em = CURRENT_TIMESTAMP
+
+            WHERE id = $3
+
+            RETURNING
+                id,
+                tipo,
+                descricao,
+                importancia,
+                criado_em,
+                atualizado_em
+            `,
+            [
+                descricao.trim(),
+                importancia,
+                id
+            ]
+        );
+
+
+        if (resultado.rowCount === 0) {
+
+            return res.status(404).json({
+                sucesso: false,
+                erro: "Registro não encontrado."
+            });
+
+        }
+
+
+        console.log(
+            "✏️ Validação/erro alterado:",
+            resultado.rows[0]
+        );
+
+
+        return res.json({
+            sucesso: true,
+            mensagem: "Registro alterado com sucesso.",
+            registro: resultado.rows[0]
+        });
+
+
+    } catch (erro) {
+
+        console.error(
+            "❌ Erro ao alterar validação/erro:",
+            erro
+        );
+
+
+        return res.status(500).json({
+            sucesso: false,
+            erro: "Não foi possível alterar o registro."
+        });
+
+    }
+
+});
 
 app.listen(PORT, () => {
   console.log(`Servidor rodando em http://localhost:${PORT}`);

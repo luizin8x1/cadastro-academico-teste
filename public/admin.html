@@ -221,6 +221,15 @@
                             <span>Relatórios</span>
                         </button>
 
+                       <button
+                            @click="selecionarMenu('validacoes-erros')"
+                            :class="classeMenu('validacoes-erros')"
+                            class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition"
+                        >
+                        <i class="ph ph-bug-beetle text-lg"></i>
+                            <span>Validações e Erros</span>
+                        </button>     
+
                         <button
                             @click="selecionarMenu('configuracoes')"
                             :class="classeMenu('configuracoes')"
@@ -299,6 +308,657 @@
      CONTEÚDO ADMINISTRATIVO
 ========================================================== -->
 <div class="h-[calc(100vh-4rem)] md:h-screen overflow-y-auto">
+
+<!-- =========================================================
+     VALIDAÇÕES E ERROS
+========================================================== -->
+
+<section
+    x-show="currentTab === 'validacoes-erros'"
+    x-cloak
+    class="p-6 md:p-10"
+>
+
+    <!-- CABEÇALHO -->
+    <div class="flex flex-col xl:flex-row
+                xl:items-center xl:justify-between
+                gap-5 mb-8">
+
+        <div>
+
+            <div class="flex items-center gap-3">
+
+                <div class="w-11 h-11 rounded-xl
+                            bg-blue-50 text-blue-600
+                            flex items-center justify-center">
+
+                    <i class="ph-bold ph-bug-beetle text-2xl"></i>
+
+                </div>
+
+                <div>
+
+                    <h1 class="text-2xl md:text-3xl
+                               font-bold text-slate-900">
+
+                        Validações e Erros
+
+                    </h1>
+
+                    <p class="text-sm text-slate-500 mt-1">
+
+                        Registre validações necessárias e erros
+                        encontrados durante o desenvolvimento do sistema.
+
+                    </p>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- BOTÕES -->
+        <div class="flex flex-col sm:flex-row gap-3">
+
+            <button
+                type="button"
+                @click="abrirModalValidacaoErro('validacao')"
+                class="inline-flex items-center justify-center gap-2
+                bg-blue-600 hover:bg-blue-700
+                text-white font-semibold
+                px-5 py-3 rounded-xl
+                shadow-sm transition"
+            >
+
+                <i class="ph-bold ph-plus-circle text-lg"></i>
+
+                Cadastrar Nova Validação
+
+            </button>
+
+
+            <button
+                type="button"
+                @click="abrirModalValidacaoErro('erro')"
+                class="inline-flex items-center justify-center gap-2
+                       bg-red-600 hover:bg-red-700
+                       text-white font-semibold
+                       px-5 py-3 rounded-xl
+                       shadow-sm transition"
+            >
+
+                <i class="ph-bold ph-warning-circle text-lg"></i>
+
+                Cadastrar Erro de Sistema
+
+            </button>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- =====================================================
+         TABELA DE VALIDAÇÕES
+    ====================================================== -->
+
+    <div class="bg-white
+                border border-slate-200
+                rounded-2xl shadow-sm
+                overflow-hidden mb-8">
+
+        <!-- TÍTULO -->
+        <div class="px-6 py-5
+                    border-b border-slate-200
+                    flex items-center gap-3">
+
+            <div class="w-9 h-9 rounded-lg
+                        bg-blue-50 text-blue-600
+                        flex items-center justify-center">
+
+                <i class="ph-bold ph-check-square-offset text-lg"></i>
+
+            </div>
+
+            <div>
+
+                <h2 class="font-bold text-slate-900">
+
+                    Validações a serem feitas no sistema
+
+                </h2>
+
+                <p class="text-xs text-slate-500 mt-0.5">
+
+                    Pontos que precisam ser conferidos pela equipe.
+
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="overflow-x-auto">
+
+            <table class="w-full min-w-[1100px]">
+
+                <thead class="bg-slate-50
+                              border-b border-slate-200">
+
+                    <tr class="text-left text-xs
+                               uppercase tracking-wider
+                               text-slate-500">
+
+                        <th class="px-5 py-4 w-20">
+                            Número
+                        </th>
+
+                        <th class="px-5 py-4 min-w-[300px]">
+                            Descrição da validação
+                        </th>
+
+                        <th class="px-5 py-4 w-44">
+                            Grau de importância
+                        </th>
+
+                        <th class="px-5 py-4 w-48">
+                            Inserção
+                        </th>
+
+                        <th class="px-5 py-4 w-40">
+                            Data de conserto
+                        </th>
+
+                        <th class="px-5 py-4 w-44">
+                            Consertado por
+                        </th>
+
+                        <th class="px-5 py-4 w-28 text-center">
+                            Ações
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+<tbody class="divide-y divide-slate-100">
+
+    <!-- REGISTROS -->
+    <template
+        x-for="item in validacoesErros.filter(registro => registro.tipo === 'validacao')"
+        :key="item.id"
+    >
+        <tr class="hover:bg-slate-50 transition">
+
+            <!-- NÚMERO -->
+            <td class="px-5 py-4 text-sm font-semibold text-slate-600">
+                <span x-text="item.id"></span>
+            </td>
+
+
+            <!-- DESCRIÇÃO -->
+            <td class="px-5 py-4">
+                <p
+                    class="text-sm text-slate-800 leading-relaxed"
+                    x-text="item.descricao"
+                ></p>
+            </td>
+
+
+            <!-- IMPORTÂNCIA -->
+            <td class="px-5 py-4">
+
+                <span
+                    class="inline-flex items-center px-3 py-1
+                           rounded-full text-xs font-bold"
+                    :class="{
+                        'bg-slate-100 text-slate-600':
+                            item.importancia === 'baixa',
+
+                        'bg-amber-50 text-amber-700':
+                            item.importancia === 'media',
+
+                        'bg-orange-50 text-orange-700':
+                            item.importancia === 'alta',
+
+                        'bg-red-50 text-red-700':
+                            item.importancia === 'critica'
+                    }"
+                    x-text="{
+                        baixa: 'Baixa',
+                        media: 'Média',
+                        alta: 'Alta',
+                        critica: 'Crítica'
+                    }[item.importancia]"
+                ></span>
+
+            </td>
+
+
+            <!-- INSERÇÃO -->
+            <td class="px-5 py-4">
+
+                <p
+                    class="text-sm font-semibold text-slate-700"
+                    x-text="new Date(item.criado_em).toLocaleDateString('pt-BR')"
+                ></p>
+
+                <p
+                    class="text-xs text-slate-400 mt-1"
+                    x-text="item.inserido_por_nome"
+                ></p>
+
+            </td>
+
+
+            <!-- DATA DE CONSERTO -->
+            <td class="px-5 py-4 text-sm text-slate-500">
+
+                <span
+                    x-text="item.resolvido_em
+                        ? new Date(item.resolvido_em).toLocaleDateString('pt-BR')
+                        : '—'"
+                ></span>
+
+            </td>
+
+
+            <!-- CONSERTADO POR -->
+            <td class="px-5 py-4">
+
+                <template x-if="item.resolvido_por_nome">
+                    <span
+                        class="text-sm font-medium text-slate-700"
+                        x-text="item.resolvido_por_nome"
+                    ></span>
+                </template>
+
+                <template x-if="!item.resolvido_por_nome">
+
+                    <button
+                        type="button"
+                        @click="abrirResolucaoValidacaoErro(item)"
+                        title="Marcar como resolvido"
+                        class="w-9 h-9 rounded-lg
+                               bg-emerald-50 text-emerald-600
+                               hover:bg-emerald-100
+                               flex items-center justify-center
+                               transition"
+                    >
+                        <i class="ph-bold ph-plus"></i>
+                    </button>
+
+                </template>
+
+            </td>
+
+
+            <!-- AÇÕES -->
+            <td class="px-5 py-4">
+
+                <div class="flex items-center justify-center gap-1">
+
+                    <button
+                        type="button"
+                        @click="abrirEdicaoValidacaoErro(item)"
+                        title="Editar"
+                        class="w-9 h-9 rounded-lg
+                               text-blue-600 hover:bg-blue-50
+                               flex items-center justify-center transition"
+                    >
+                        <i class="ph-bold ph-pencil-simple"></i>
+                    </button>
+
+                    <button
+                        type="button"
+                        @click="abrirExclusaoValidacaoErro(item)"
+                        title="Excluir"
+                        class="w-9 h-9 rounded-lg
+                               text-red-500 hover:bg-red-50
+                               flex items-center justify-center transition"
+                    >
+                        <i class="ph-bold ph-trash"></i>
+                    </button>
+
+                </div>
+
+            </td>
+
+        </tr>
+
+    </template>
+
+
+    <!-- ESTADO VAZIO -->
+    <tr
+        x-show="validacoesErros.filter(
+            registro => registro.tipo === 'validacao'
+        ).length === 0"
+    >
+
+        <td
+            colspan="7"
+            class="px-6 py-14 text-center"
+        >
+
+            <div class="w-12 h-12 mx-auto
+                        rounded-full bg-slate-100
+                        flex items-center justify-center
+                        text-slate-400">
+
+                <i class="ph ph-check-square-offset text-2xl"></i>
+
+            </div>
+
+            <p class="mt-3 text-sm font-medium text-slate-600">
+                Nenhuma validação cadastrada.
+            </p>
+
+            <p class="text-xs text-slate-400 mt-1">
+                As novas validações aparecerão aqui.
+            </p>
+
+        </td>
+
+    </tr>
+
+</tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- =====================================================
+         TABELA DE ERROS
+    ====================================================== -->
+
+    <div class="bg-white
+                border border-slate-200
+                rounded-2xl shadow-sm
+                overflow-hidden">
+
+        <!-- TÍTULO -->
+        <div class="px-6 py-5
+                    border-b border-slate-200
+                    flex items-center gap-3">
+
+            <div class="w-9 h-9 rounded-lg
+                        bg-red-50 text-red-600
+                        flex items-center justify-center">
+
+                <i class="ph-bold ph-warning-octagon text-lg"></i>
+
+            </div>
+
+            <div>
+
+                <h2 class="font-bold text-slate-900">
+
+                    Erros a serem corrigidos
+
+                </h2>
+
+                <p class="text-xs text-slate-500 mt-0.5">
+
+                    Falhas identificadas que precisam de correção.
+
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="overflow-x-auto">
+
+            <table class="w-full min-w-[1100px]">
+
+                <thead class="bg-slate-50
+                              border-b border-slate-200">
+
+                    <tr class="text-left text-xs
+                               uppercase tracking-wider
+                               text-slate-500">
+
+                        <th class="px-5 py-4 w-20">
+                            Número
+                        </th>
+
+                        <th class="px-5 py-4 min-w-[300px]">
+                            Descrição do erro
+                        </th>
+
+                        <th class="px-5 py-4 w-44">
+                            Grau de importância
+                        </th>
+
+                        <th class="px-5 py-4 w-48">
+                            Inserção
+                        </th>
+
+                        <th class="px-5 py-4 w-40">
+                            Data de conserto
+                        </th>
+
+                        <th class="px-5 py-4 w-44">
+                            Consertado por
+                        </th>
+
+                        <th class="px-5 py-4 w-28 text-center">
+                            Ações
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody class="divide-y divide-slate-100">
+
+    <!-- REGISTROS DE ERROS -->
+    <template
+        x-for="item in validacoesErros.filter(registro => registro.tipo === 'erro')"
+        :key="item.id"
+    >
+        <tr class="hover:bg-slate-50 transition">
+
+            <!-- NÚMERO -->
+            <td class="px-5 py-4 text-sm font-semibold text-slate-600">
+                <span x-text="item.id"></span>
+            </td>
+
+
+            <!-- DESCRIÇÃO -->
+            <td class="px-5 py-4">
+                <p
+                    class="text-sm text-slate-800 leading-relaxed"
+                    x-text="item.descricao"
+                ></p>
+            </td>
+
+
+            <!-- IMPORTÂNCIA -->
+            <td class="px-5 py-4">
+
+                <span
+                    class="inline-flex items-center px-3 py-1
+                           rounded-full text-xs font-bold"
+                    :class="{
+                        'bg-slate-100 text-slate-600':
+                            item.importancia === 'baixa',
+
+                        'bg-amber-50 text-amber-700':
+                            item.importancia === 'media',
+
+                        'bg-orange-50 text-orange-700':
+                            item.importancia === 'alta',
+
+                        'bg-red-50 text-red-700':
+                            item.importancia === 'critica'
+                    }"
+                    x-text="{
+                        baixa: 'Baixa',
+                        media: 'Média',
+                        alta: 'Alta',
+                        critica: 'Crítica'
+                    }[item.importancia]"
+                ></span>
+
+            </td>
+
+
+            <!-- INSERÇÃO -->
+            <td class="px-5 py-4">
+
+                <p
+                    class="text-sm font-semibold text-slate-700"
+                    x-text="new Date(item.criado_em).toLocaleDateString('pt-BR')"
+                ></p>
+
+                <p
+                    class="text-xs text-slate-400 mt-1"
+                    x-text="item.inserido_por_nome"
+                ></p>
+
+            </td>
+
+
+            <!-- DATA DE CONSERTO -->
+            <td class="px-5 py-4 text-sm text-slate-500">
+
+                <span
+                    x-text="item.resolvido_em
+                        ? new Date(item.resolvido_em).toLocaleDateString('pt-BR')
+                        : '—'"
+                ></span>
+
+            </td>
+
+
+            <!-- CONSERTADO POR -->
+            <td class="px-5 py-4">
+
+                <!-- JÁ RESOLVIDO -->
+                <template x-if="item.resolvido_por_nome">
+
+                    <span
+                        class="text-sm font-medium text-slate-700"
+                        x-text="item.resolvido_por_nome"
+                    ></span>
+
+                </template>
+
+
+                <!-- AINDA NÃO RESOLVIDO -->
+                <template x-if="!item.resolvido_por_nome">
+
+                    <button
+                        type="button"
+                        @click="abrirResolucaoValidacaoErro(item)"
+                        title="Marcar como resolvido"
+                        class="w-9 h-9 rounded-lg
+                               bg-emerald-50 text-emerald-600
+                               hover:bg-emerald-100
+                               flex items-center justify-center
+                               transition"
+                    >
+                        <i class="ph-bold ph-plus"></i>
+                    </button>
+
+                </template>
+
+            </td>
+
+
+            <!-- AÇÕES -->
+            <td class="px-5 py-4">
+
+                <div class="flex items-center justify-center gap-1">
+
+                    <button
+                        type="button"
+                        @click="abrirEdicaoValidacaoErro(item)"
+                        title="Editar"
+                        class="w-9 h-9 rounded-lg
+                               text-blue-600 hover:bg-blue-50
+                               flex items-center justify-center
+                               transition"
+                    >
+                        <i class="ph-bold ph-pencil-simple"></i>
+                    </button>
+
+                    <button
+                        type="button"
+                        @click="abrirExclusaoValidacaoErro(item)"
+                        title="Excluir"
+                        class="w-9 h-9 rounded-lg
+                               text-red-500 hover:bg-red-50
+                               flex items-center justify-center
+                               transition"
+                    >
+                        <i class="ph-bold ph-trash"></i>
+                    </button>
+
+                </div>
+
+            </td>
+
+        </tr>
+
+    </template>
+
+
+    <!-- ESTADO VAZIO -->
+    <tr
+        x-show="validacoesErros.filter(
+            registro => registro.tipo === 'erro'
+        ).length === 0"
+    >
+
+        <td
+            colspan="7"
+            class="px-6 py-14 text-center"
+        >
+
+            <div class="w-12 h-12 mx-auto
+                        rounded-full bg-red-50
+                        flex items-center justify-center
+                        text-red-400">
+
+                <i class="ph ph-warning-octagon text-2xl"></i>
+
+            </div>
+
+            <p class="mt-3 text-sm font-medium text-slate-600">
+                Nenhum erro cadastrado.
+            </p>
+
+            <p class="text-xs text-slate-400 mt-1">
+                Os erros encontrados aparecerão aqui.
+            </p>
+
+        </td>
+
+    </tr>
+
+</tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</section>
+
 
     <!-- FRASES MOTIVACIONAIS -->
     <section
@@ -605,6 +1265,15 @@
                             <i class="ph ph-chart-bar text-lg"></i> Relatórios
                         </button>
 
+                        <button
+                            @click="selecionarMenuMobile('validacoes-erros')"
+                            :class="classeMenu('validacoes-erros')"
+                            class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm"
+                        >
+                        <i class="ph ph-bug-beetle text-lg"></i>
+                        Validações e Erros
+                        </button>
+
                         <button @click="selecionarMenuMobile('configuracoes')" :class="classeMenu('configuracoes')" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm">
                             <i class="ph ph-gear-six text-lg"></i> Configurações
                         </button>
@@ -631,6 +1300,1344 @@
         </div>
 
     </div>
+
+<!-- =========================================================
+     MODAL - CONFIRMAÇÃO VALIDAÇÃO / ERRO
+========================================================== -->
+
+<div
+    x-show="modalAvisoValidacaoAberto"
+    x-cloak
+    class="fixed inset-0 z-[150]
+           flex items-center justify-center
+           px-4"
+>
+
+    <!-- FUNDO -->
+    <div
+        class="absolute inset-0
+               bg-slate-900/60
+               backdrop-blur-sm"
+        @click="modalAvisoValidacaoAberto = false"
+    ></div>
+
+
+    <!-- JANELA -->
+    <div
+        @click.stop
+        class="relative bg-white
+               w-full max-w-md
+               rounded-3xl
+               shadow-2xl
+               overflow-hidden"
+    >
+
+        <!-- FAIXA SUPERIOR -->
+        <div
+            class="h-2"
+            :class="avisoValidacaoTipo === 'validacao'
+                ? 'bg-blue-600'
+                : 'bg-red-600'"
+        ></div>
+
+
+        <div class="p-7">
+
+            <!-- ÍCONE -->
+            <div
+                class="w-16 h-16
+                       mx-auto
+                       rounded-2xl
+                       flex items-center justify-center
+                       mb-5"
+                :class="avisoValidacaoTipo === 'validacao'
+                    ? 'bg-blue-50 text-blue-600'
+                    : 'bg-red-50 text-red-600'"
+            >
+
+                <i
+                    class="ph-bold text-3xl"
+                    :class="avisoValidacaoTipo === 'validacao'
+                        ? 'ph-check-circle'
+                        : 'ph-warning-circle'"
+                ></i>
+
+            </div>
+
+
+            <!-- TEXTO -->
+            <div class="text-center">
+
+                <h2
+                    class="text-xl font-bold
+                           text-slate-900"
+                    x-text="avisoValidacaoTitulo"
+                ></h2>
+
+                <p
+                    class="text-sm text-slate-500
+                           leading-relaxed mt-3"
+                    x-text="avisoValidacaoMensagem"
+                ></p>
+
+            </div>
+
+
+            <!-- INFO DE SEGURANÇA -->
+            <div
+                class="mt-6
+                       bg-slate-50
+                       border border-slate-200
+                       rounded-2xl
+                       p-4
+                       flex items-start gap-3"
+            >
+
+                <div
+                    class="w-9 h-9 rounded-xl
+                           bg-amber-50
+                           text-amber-600
+                           flex items-center justify-center
+                           flex-shrink-0"
+                >
+
+                    <i class="ph-bold ph-shield-check text-lg"></i>
+
+                </div>
+
+
+                <div>
+
+                    <p class="text-sm font-semibold text-slate-800">
+                        Identificação necessária
+                    </p>
+
+                    <p class="text-xs text-slate-500 mt-1 leading-relaxed">
+                        O código de segurança permitirá registrar
+                        quem cadastrou esta informação no sistema.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <!-- BOTÕES -->
+            <div class="flex gap-3 mt-7">
+
+                <button
+                    type="button"
+                    @click="modalAvisoValidacaoAberto = false"
+                    class="flex-1
+                           px-5 py-3
+                           rounded-xl
+                           bg-slate-100
+                           hover:bg-slate-200
+                           text-slate-600
+                           font-semibold
+                           transition"
+                >
+                    Voltar
+                </button>
+
+
+                <button
+                    type="button"
+                    @click="abrirModalCodigoSeguranca()"
+                    class="flex-1
+                           px-5 py-3
+                           rounded-xl
+                           text-white
+                           font-semibold
+                           transition
+                           flex items-center
+                           justify-center gap-2"
+                    :class="avisoValidacaoTipo === 'validacao'
+                        ? 'bg-blue-600 hover:bg-blue-700'
+                        : 'bg-red-600 hover:bg-red-700'"
+                >
+
+                    <i class="ph-bold ph-key"></i>
+
+                    Informar código
+
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- =========================================================
+     MODAL - EDITAR VALIDAÇÃO / ERRO
+========================================================== -->
+
+<div
+    x-show="modalEditarValidacaoErroAberto"
+    x-cloak
+    class="fixed inset-0 z-[180]
+           flex items-center justify-center px-4"
+>
+
+    <!-- FUNDO -->
+    <div
+        class="absolute inset-0
+               bg-slate-900/60
+               backdrop-blur-sm"
+        @click="modalEditarValidacaoErroAberto = false"
+    ></div>
+
+
+    <!-- JANELA -->
+    <div
+        @click.stop
+        class="relative bg-white
+               w-full max-w-2xl
+               rounded-3xl shadow-2xl
+               overflow-hidden"
+    >
+
+        <!-- FAIXA SUPERIOR -->
+        <div
+            class="h-2"
+            :class="registroValidacaoErroParaEditar?.tipo === 'validacao'
+                ? 'bg-blue-600'
+                : 'bg-red-600'"
+        ></div>
+
+
+        <!-- CABEÇALHO -->
+        <div class="px-7 py-5
+                    border-b border-slate-200
+                    flex items-center justify-between">
+
+            <div class="flex items-center gap-4">
+
+                <div
+                    class="w-11 h-11 rounded-xl
+                           flex items-center justify-center"
+                    :class="registroValidacaoErroParaEditar?.tipo === 'validacao'
+                        ? 'bg-blue-50 text-blue-600'
+                        : 'bg-red-50 text-red-600'"
+                >
+
+                    <i class="ph-bold ph-pencil-simple text-xl"></i>
+
+                </div>
+
+
+                <div>
+
+                    <h2
+                        class="text-lg font-bold text-slate-900"
+                        x-text="registroValidacaoErroParaEditar?.tipo === 'validacao'
+                            ? 'Editar Validação'
+                            : 'Editar Erro de Sistema'"
+                    ></h2>
+
+                    <p class="text-sm text-slate-500 mt-0.5">
+                        Altere as informações do registro.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <button
+                type="button"
+                @click="modalEditarValidacaoErroAberto = false"
+                class="w-9 h-9 rounded-lg
+                       text-slate-400
+                       hover:bg-slate-100
+                       hover:text-slate-600
+                       flex items-center justify-center
+                       transition"
+            >
+                <i class="ph-bold ph-x text-lg"></i>
+            </button>
+
+        </div>
+
+
+        <!-- FORMULÁRIO -->
+        <div class="p-7">
+
+            <!-- DESCRIÇÃO -->
+            <div>
+
+                <label class="block text-sm
+                              font-semibold text-slate-700 mb-2">
+
+                    Descrição
+
+                </label>
+
+
+                <textarea
+                    x-model="formEditarValidacaoErro.descricao"
+                    maxlength="1000"
+                    rows="6"
+                    class="w-full
+                           px-4 py-3
+                           border border-slate-300
+                           rounded-xl
+                           text-sm text-slate-700
+                           resize-none
+                           outline-none
+                           focus:ring-2
+                           focus:ring-blue-500/20
+                           focus:border-blue-500"
+                ></textarea>
+
+
+                <div class="text-right mt-1">
+
+                    <span
+                        class="text-xs text-slate-400"
+                        x-text="`${formEditarValidacaoErro.descricao.length} / 1000`"
+                    ></span>
+
+                </div>
+
+            </div>
+
+
+            <!-- IMPORTÂNCIA -->
+            <div class="mt-5">
+
+                <label class="block text-sm
+                              font-semibold text-slate-700 mb-2">
+
+                    Grau de importância
+
+                </label>
+
+
+                <select
+                    x-model="formEditarValidacaoErro.importancia"
+                    class="w-full
+                           px-4 py-3
+                           border border-slate-300
+                           rounded-xl
+                           text-sm text-slate-700
+                           bg-white
+                           outline-none
+                           focus:ring-2
+                           focus:ring-blue-500/20
+                           focus:border-blue-500"
+                >
+
+                    <option value="baixa">
+                        Baixa
+                    </option>
+
+                    <option value="media">
+                        Média
+                    </option>
+
+                    <option value="alta">
+                        Alta
+                    </option>
+
+                    <option value="critica">
+                        Crítica
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <!-- BOTÕES -->
+            <div class="flex justify-end gap-3
+                        mt-7 pt-5
+                        border-t border-slate-100">
+
+                <button
+                    type="button"
+                    @click="modalEditarValidacaoErroAberto = false"
+                    class="px-6 py-3
+                           rounded-xl
+                           bg-slate-100
+                           hover:bg-slate-200
+                           text-slate-600
+                           font-semibold
+                           transition"
+                >
+                    Cancelar
+                </button>
+
+
+                <button
+                    type="button"
+                    @click="salvarEdicaoValidacaoErro()"
+                    :disabled="
+                        !formEditarValidacaoErro.descricao.trim() ||
+                        !formEditarValidacaoErro.importancia
+                    "
+                    class="px-6 py-3
+                           rounded-xl
+                           text-white
+                           font-semibold
+                           transition
+                           flex items-center gap-2
+                           disabled:opacity-50
+                           disabled:cursor-not-allowed"
+                    :class="registroValidacaoErroParaEditar?.tipo === 'validacao'
+                        ? 'bg-blue-600 hover:bg-blue-700'
+                        : 'bg-red-600 hover:bg-red-700'"
+                >
+
+                    <i class="ph-bold ph-floppy-disk"></i>
+
+                    Salvar alterações
+
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- =========================================================
+     MODAL - MARCAR COMO RESOLVIDO
+========================================================== -->
+
+<div
+    x-show="modalResolverValidacaoErroAberto"
+    x-cloak
+    class="fixed inset-0 z-[190]
+           flex items-center justify-center px-4"
+>
+
+    <!-- FUNDO -->
+    <div
+        class="absolute inset-0
+               bg-slate-900/60
+               backdrop-blur-sm"
+    ></div>
+
+
+    <!-- JANELA -->
+    <div
+        @click.stop
+        class="relative bg-white
+               w-full max-w-md
+               rounded-3xl
+               shadow-2xl
+               overflow-hidden"
+    >
+
+        <!-- FAIXA -->
+        <div class="h-2 bg-emerald-500"></div>
+
+
+        <div class="p-8">
+
+            <!-- ÍCONE -->
+            <div
+                class="w-16 h-16
+                       mx-auto rounded-2xl
+                       bg-emerald-50
+                       text-emerald-600
+                       flex items-center
+                       justify-center mb-5"
+            >
+
+                <i class="ph-bold ph-check-circle text-3xl"></i>
+
+            </div>
+
+
+            <!-- TÍTULO -->
+            <div class="text-center">
+
+                <h2 class="text-xl font-bold text-slate-900">
+
+                    Marcar como resolvido?
+
+                </h2>
+
+
+                <p
+                    class="text-sm text-slate-500
+                           leading-relaxed mt-2"
+                    x-text="registroValidacaoErroParaResolver?.tipo === 'validacao'
+                        ? 'Confirme que esta validação foi concluída.'
+                        : 'Confirme que este erro foi corrigido.'"
+                ></p>
+
+            </div>
+
+
+            <!-- REGISTRO -->
+            <div
+                class="mt-6
+                       bg-slate-50
+                       border border-slate-200
+                       rounded-2xl p-4"
+            >
+
+                <p
+                    class="text-xs font-semibold
+                           uppercase tracking-wider
+                           text-slate-400 mb-2"
+                >
+                    Registro
+                </p>
+
+
+                <p
+                    class="text-sm text-slate-700
+                           leading-relaxed"
+                    x-text="registroValidacaoErroParaResolver?.descricao || ''"
+                ></p>
+
+            </div>
+
+
+            <!-- CÓDIGO -->
+            <div class="mt-5">
+
+                <label
+                    class="block text-sm
+                           font-semibold
+                           text-slate-700 mb-2"
+                >
+                    Seu código de segurança
+                </label>
+
+
+                <input
+                    type="password"
+                    inputmode="numeric"
+                    maxlength="6"
+                    autocomplete="off"
+                    x-model="codigoResolverValidacaoErro"
+                    @input="
+                        codigoResolverValidacaoErro =
+                            codigoResolverValidacaoErro
+                                .replace(/\D/g, '')
+                                .slice(0, 6)
+                    "
+                    @keydown.enter="
+                        if (codigoResolverValidacaoErro.length === 6) {
+                            confirmarResolucaoValidacaoErro()
+                        }
+                    "
+                    placeholder="••••••"
+                    class="w-full
+                           px-4 py-4
+                           text-center
+                           tracking-[0.7em]
+                           text-lg font-bold
+                           border border-slate-300
+                           rounded-xl
+                           outline-none
+                           focus:ring-2
+                           focus:ring-emerald-500/20
+                           focus:border-emerald-500"
+                >
+
+
+                <p class="text-xs text-slate-400 text-center mt-2">
+
+                    Seu código identificará quem realizou a correção.
+
+                </p>
+
+            </div>
+
+
+            <!-- BOTÕES -->
+            <div class="flex gap-3 mt-7">
+
+                <button
+                    type="button"
+                    @click="
+                        modalResolverValidacaoErroAberto = false;
+                        registroValidacaoErroParaResolver = null;
+                        codigoResolverValidacaoErro = '';
+                    "
+                    class="flex-1
+                           px-5 py-3
+                           rounded-xl
+                           bg-slate-100
+                           hover:bg-slate-200
+                           text-slate-600
+                           font-semibold
+                           transition"
+                >
+
+                    Cancelar
+
+                </button>
+
+
+                <button
+                    type="button"
+                    @click="confirmarResolucaoValidacaoErro()"
+                    :disabled="codigoResolverValidacaoErro.length !== 6"
+                    class="flex-1
+                           px-5 py-3
+                           rounded-xl
+                           bg-emerald-500
+                           hover:bg-emerald-600
+                           text-white
+                           font-semibold
+                           transition
+                           flex items-center
+                           justify-center gap-2
+                           disabled:opacity-50
+                           disabled:cursor-not-allowed"
+                >
+
+                    <i class="ph-bold ph-check"></i>
+
+                    Confirmar
+
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     MODAL - RESOLUÇÃO CONCLUÍDA
+========================================================== -->
+
+<div
+    x-show="modalSucessoResolucaoAberto"
+    x-cloak
+    class="fixed inset-0 z-[200]
+           flex items-center justify-center px-4"
+>
+
+    <div
+        class="absolute inset-0
+               bg-slate-900/60
+               backdrop-blur-sm"
+    ></div>
+
+
+    <div
+        @click.stop
+        class="relative bg-white
+               w-full max-w-md
+               rounded-3xl
+               shadow-2xl
+               overflow-hidden"
+    >
+
+        <div class="h-2 bg-emerald-500"></div>
+
+
+        <div class="p-8">
+
+
+            <!-- ÍCONE -->
+            <div
+                class="w-16 h-16
+                       mx-auto rounded-2xl
+                       bg-emerald-50
+                       text-emerald-600
+                       flex items-center
+                       justify-center mb-5"
+            >
+
+                <i class="ph-bold ph-check-circle text-3xl"></i>
+
+            </div>
+
+
+            <!-- TEXTO -->
+            <div class="text-center">
+
+                <h2 class="text-xl font-bold text-slate-900">
+
+                    Registro concluído!
+
+                </h2>
+
+
+                <p
+                    class="text-sm text-slate-500
+                           leading-relaxed mt-2"
+                    x-text="tipoResolucaoRealizada === 'validacao'
+                        ? 'A validação foi marcada como concluída.'
+                        : 'O erro foi marcado como corrigido.'"
+                ></p>
+
+            </div>
+
+
+            <!-- RESPONSÁVEL -->
+            <div
+                class="mt-6
+                       bg-slate-50
+                       border border-slate-200
+                       rounded-2xl
+                       p-4
+                       flex items-center gap-4"
+            >
+
+                <div
+                    class="w-11 h-11
+                           rounded-full
+                           bg-emerald-50
+                           text-emerald-600
+                           flex items-center
+                           justify-center"
+                >
+
+                    <i class="ph-bold ph-user-check text-xl"></i>
+
+                </div>
+
+
+                <div>
+
+                    <p class="text-xs text-slate-400 font-medium">
+
+                        Concluído por
+
+                    </p>
+
+                    <p
+                        class="text-sm font-bold
+                               text-slate-800 mt-0.5"
+                        x-text="resolucaoRealizadaPor"
+                    ></p>
+
+                </div>
+
+            </div>
+
+
+            <!-- BOTÃO -->
+            <button
+                type="button"
+                @click="modalSucessoResolucaoAberto = false"
+                class="w-full mt-7
+                       px-5 py-3
+                       rounded-xl
+                       bg-emerald-500
+                       hover:bg-emerald-600
+                       text-white
+                       font-semibold
+                       transition
+                       flex items-center
+                       justify-center gap-2"
+            >
+
+                <i class="ph-bold ph-check"></i>
+
+                Concluir
+
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     MODAL - VALIDAÇÃO / ERRO
+========================================================== -->
+
+<div
+    x-show="modalValidacaoErroAberto"
+    x-cloak
+    class="fixed inset-0 z-[120]
+           flex items-center justify-center
+           px-4"
+>
+
+    <!-- FUNDO -->
+    <div
+        class="absolute inset-0
+               bg-slate-900/50
+               backdrop-blur-[2px]"
+        @click="fecharModalValidacaoErro()"
+    ></div>
+
+
+    <!-- JANELA -->
+    <div
+        @click.stop
+        class="relative bg-white
+               w-full max-w-2xl
+               rounded-2xl shadow-2xl
+               overflow-hidden"
+    >
+
+        <!-- CABEÇALHO -->
+        <div
+            class="flex items-start justify-between
+                   px-6 py-5
+                   border-b border-slate-200"
+        >
+
+            <div class="flex items-center gap-3">
+
+                <div
+                    class="w-11 h-11 rounded-xl
+                           flex items-center justify-center"
+                    :class="tipoValidacaoErro === 'validacao'
+                        ? 'bg-blue-50 text-blue-600'
+                        : 'bg-red-50 text-red-600'"
+                >
+
+                    <i
+                        class="ph-bold text-xl"
+                        :class="tipoValidacaoErro === 'validacao'
+                            ? 'ph-check-square-offset'
+                            : 'ph-warning-octagon'"
+                    ></i>
+
+                </div>
+
+
+                <div>
+
+                    <h2
+                        class="text-xl font-bold text-slate-900"
+                        x-text="tipoValidacaoErro === 'validacao'
+                            ? 'Cadastrar Nova Validação'
+                            : 'Cadastrar Erro de Sistema'"
+                    ></h2>
+
+                    <p
+                        class="text-sm text-slate-500 mt-1"
+                        x-text="tipoValidacaoErro === 'validacao'
+                            ? 'Informe o que precisa ser validado pela equipe.'
+                            : 'Descreva o erro encontrado no sistema.'"
+                    ></p>
+
+                </div>
+
+            </div>
+
+
+            <button
+                type="button"
+                @click="fecharModalValidacaoErro()"
+                class="w-9 h-9 rounded-lg
+                       flex items-center justify-center
+                       text-slate-400
+                       hover:bg-slate-100
+                       hover:text-slate-700
+                       transition"
+            >
+
+                <i class="ph-bold ph-x text-lg"></i>
+
+            </button>
+
+        </div>
+
+
+        <!-- FORMULÁRIO -->
+        <form
+            @submit.prevent="prepararSalvarValidacaoErro()"
+            class="p-6"
+        >
+
+            <!-- DESCRIÇÃO -->
+            <div class="mb-6">
+
+                <label
+                    class="block text-sm
+                           font-semibold text-slate-700
+                           mb-2"
+                    x-text="tipoValidacaoErro === 'validacao'
+                        ? 'Descrição da validação'
+                        : 'Descrição do erro'"
+                ></label>
+
+                <textarea
+                    x-model="formValidacaoErro.descricao"
+                    rows="6"
+                    maxlength="1000"
+                    required
+                    :placeholder="tipoValidacaoErro === 'validacao'
+                        ? 'Ex.: Validar se o plano de estudos mantém corretamente os horários cadastrados pelo aluno...'
+                        : 'Ex.: Ao atualizar a página, o campo de período disponível perde as informações salvas...'"
+                    class="w-full px-4 py-3
+                           border border-slate-300
+                           rounded-xl
+                           text-sm text-slate-800
+                           resize-none
+                           outline-none
+                           focus:border-blue-500
+                           focus:ring-4
+                           focus:ring-blue-100
+                           transition"
+                ></textarea>
+
+                <div class="flex justify-end mt-1">
+
+                    <span
+                        class="text-xs text-slate-400"
+                        x-text="formValidacaoErro.descricao.length + ' / 1000'"
+                    ></span>
+
+                </div>
+
+            </div>
+
+
+            <!-- GRAU DE IMPORTÂNCIA -->
+            <div class="mb-7">
+
+                <label
+                    class="block text-sm
+                           font-semibold text-slate-700
+                           mb-2"
+                >
+                    Grau de importância
+                </label>
+
+                <select
+                    x-model="formValidacaoErro.importancia"
+                    required
+                    class="w-full px-4 py-3
+                           border border-slate-300
+                           rounded-xl
+                           bg-white
+                           text-sm text-slate-800
+                           outline-none
+                           focus:border-blue-500
+                           focus:ring-4
+                           focus:ring-blue-100
+                           transition"
+                >
+
+                    <option value="">
+                        Selecione o grau de importância
+                    </option>
+
+                    <option value="baixa">
+                        Baixa
+                    </option>
+
+                    <option value="media">
+                        Média
+                    </option>
+
+                    <option value="alta">
+                        Alta
+                    </option>
+
+                    <option value="critica">
+                        Crítica
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <!-- RODAPÉ -->
+            <div
+                class="flex items-center justify-end
+                       gap-3 pt-5
+                       border-t border-slate-200"
+            >
+
+                <button
+                    type="button"
+                    @click="fecharModalValidacaoErro()"
+                    class="px-5 py-3
+                           rounded-xl
+                           text-sm font-semibold
+                           text-slate-600
+                           bg-slate-100
+                           hover:bg-slate-200
+                           transition"
+                >
+                    Cancelar
+                </button>
+
+
+                <button
+                    type="submit"
+                    class="px-5 py-3
+                           rounded-xl
+                           text-white
+                           font-semibold text-sm
+                           transition
+                           flex items-center gap-2"
+                    :class="tipoValidacaoErro === 'validacao'
+                        ? 'bg-blue-600 hover:bg-blue-700'
+                        : 'bg-red-600 hover:bg-red-700'"
+                >
+
+                    <i class="ph-bold ph-floppy-disk"></i>
+
+                    Salvar
+
+                </button>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+<!-- =========================================================
+     MODAL - CÓDIGO DE SEGURANÇA
+========================================================== -->
+
+<div
+    x-show="modalCodigoSegurancaAberto"
+    x-cloak
+    class="fixed inset-0 z-[160]
+           flex items-center justify-center
+           px-4"
+>
+
+    <!-- FUNDO -->
+    <div
+        class="absolute inset-0
+               bg-slate-900/60
+               backdrop-blur-sm"
+    ></div>
+
+
+    <!-- JANELA -->
+    <div
+        @click.stop
+        class="relative bg-white
+               w-full max-w-md
+               rounded-3xl
+               shadow-2xl
+               overflow-hidden"
+    >
+
+        <!-- FAIXA -->
+        <div
+            class="h-2"
+            :class="tipoValidacaoErro === 'validacao'
+                ? 'bg-blue-600'
+                : 'bg-red-600'"
+        ></div>
+
+
+        <div class="p-8">
+
+            <!-- ÍCONE -->
+            <div
+                class="w-16 h-16
+                       mx-auto
+                       rounded-2xl
+                       bg-slate-100
+                       text-slate-700
+                       flex items-center justify-center
+                       mb-5"
+            >
+
+                <i class="ph-bold ph-key text-3xl"></i>
+
+            </div>
+
+
+            <!-- TEXTO -->
+            <div class="text-center mb-7">
+
+                <h2 class="text-xl font-bold text-slate-900">
+                    Código de segurança
+                </h2>
+
+                <p class="text-sm text-slate-500 mt-2 leading-relaxed">
+                    Digite seu código pessoal de 6 dígitos para
+                    confirmar sua identidade.
+                </p>
+
+            </div>
+
+
+            <!-- CAMPO -->
+            <div class="mb-7">
+
+                <label
+                    class="block text-sm font-semibold
+                           text-slate-700 mb-2"
+                >
+                    Seu código
+                </label>
+
+
+                <input
+                    type="password"
+                    inputmode="numeric"
+                    maxlength="6"
+                    autocomplete="off"
+
+                    x-model="codigoSeguranca"
+
+                    @input="
+                        codigoSeguranca =
+                            codigoSeguranca
+                                .replace(/\D/g, '')
+                                .slice(0, 6)
+                    "
+
+                    @keydown.enter.prevent="
+                        codigoSeguranca.length === 6
+                            && validarCodigoSeguranca()
+                    "
+
+                    placeholder="••••••"
+
+                    class="w-full
+                           px-4 py-4
+                           text-center
+                           text-2xl
+                           font-bold
+                           tracking-[0.5em]
+                           border border-slate-300
+                           rounded-xl
+                           outline-none
+                           focus:border-blue-500
+                           focus:ring-4
+                           focus:ring-blue-100
+                           transition"
+                >
+
+
+                <p class="text-xs text-slate-400 text-center mt-2">
+                    Código individual da equipe
+                </p>
+
+            </div>
+
+
+            <!-- BOTÕES -->
+            <div class="flex gap-3">
+
+                <button
+                    type="button"
+
+                    @click="
+                        modalCodigoSegurancaAberto = false;
+                        modalAvisoValidacaoAberto = true;
+                    "
+
+                    class="flex-1
+                           px-5 py-3
+                           rounded-xl
+                           bg-slate-100
+                           hover:bg-slate-200
+                           text-slate-600
+                           font-semibold
+                           transition"
+                >
+                    Voltar
+                </button>
+
+
+                <button
+                    type="button"
+
+                    @click="validarCodigoSeguranca()"
+
+                    :disabled="codigoSeguranca.length !== 6"
+
+                    :class="codigoSeguranca.length === 6
+                        ? (
+                            tipoValidacaoErro === 'validacao'
+                                ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                                : 'bg-red-600 hover:bg-red-700 text-white'
+                          )
+                        : 'bg-slate-200 text-slate-400 cursor-not-allowed'"
+
+                    class="flex-1
+                           px-5 py-3
+                           rounded-xl
+                           font-semibold
+                           transition
+                           flex items-center
+                           justify-center gap-2"
+                >
+
+                    <i class="ph-bold ph-shield-check"></i>
+
+                    Confirmar
+
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- =========================================================
+     MODAL - CADASTRO REALIZADO COM SUCESSO
+========================================================== -->
+
+<div
+    x-show="modalSucessoCadastroAberto"
+    x-cloak
+    class="fixed inset-0 z-[170]
+           flex items-center justify-center px-4"
+>
+
+    <!-- FUNDO -->
+    <div
+        class="absolute inset-0
+               bg-slate-900/60
+               backdrop-blur-sm"
+    ></div>
+
+
+    <!-- JANELA -->
+    <div
+        @click.stop
+        class="relative bg-white
+               w-full max-w-md
+               rounded-3xl
+               shadow-2xl
+               overflow-hidden"
+    >
+
+        <!-- FAIXA SUPERIOR -->
+        <div
+            class="h-2"
+            :class="tipoValidacaoErro === 'validacao'
+                ? 'bg-blue-600'
+                : 'bg-red-600'"
+        ></div>
+
+
+        <div class="p-8">
+
+            <!-- ÍCONE -->
+            <div
+                class="w-16 h-16
+                       mx-auto rounded-2xl
+                       flex items-center justify-center
+                       mb-5"
+                :class="tipoValidacaoErro === 'validacao'
+                    ? 'bg-blue-50 text-blue-600'
+                    : 'bg-red-50 text-red-600'"
+            >
+
+                <i class="ph-bold ph-check-circle text-3xl"></i>
+
+            </div>
+
+
+            <!-- TÍTULO -->
+            <div class="text-center">
+
+                <h2
+                    class="text-xl font-bold text-slate-900"
+                    x-text="tipoValidacaoErro === 'validacao'
+                        ? 'Validação cadastrada!'
+                        : 'Erro cadastrado!'"
+                ></h2>
+
+                <p
+                    class="text-sm text-slate-500
+                           leading-relaxed mt-2"
+                    x-text="tipoValidacaoErro === 'validacao'
+                        ? 'A validação foi registrada com sucesso no sistema.'
+                        : 'O erro foi registrado com sucesso no sistema.'"
+                ></p>
+
+            </div>
+
+
+            <!-- RESPONSÁVEL -->
+            <div
+                class="mt-6
+                       bg-slate-50
+                       border border-slate-200
+                       rounded-2xl
+                       p-4
+                       flex items-center gap-4"
+            >
+
+                <div
+                    class="w-11 h-11
+                           rounded-full
+                           bg-emerald-50
+                           text-emerald-600
+                           flex items-center justify-center
+                           flex-shrink-0"
+                >
+
+                    <i class="ph-bold ph-user-check text-xl"></i>
+
+                </div>
+
+
+                <div>
+
+                    <p class="text-xs text-slate-400 font-medium">
+                        Cadastrado por
+                    </p>
+
+                    <p
+                        class="text-sm font-bold text-slate-800 mt-0.5"
+                        x-text="cadastroRealizadoPor"
+                    ></p>
+
+                </div>
+
+            </div>
+
+
+            <!-- BOTÃO -->
+            <button
+                type="button"
+                @click="modalSucessoCadastroAberto = false"
+                class="w-full mt-7
+                       px-5 py-3
+                       rounded-xl
+                       text-white
+                       font-semibold
+                       transition
+                       flex items-center
+                       justify-center gap-2"
+                :class="tipoValidacaoErro === 'validacao'
+                    ? 'bg-blue-600 hover:bg-blue-700'
+                    : 'bg-red-600 hover:bg-red-700'"
+            >
+
+                <i class="ph-bold ph-check"></i>
+
+                Concluir
+
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
 
     <!-- =========================================================
      MODAL - FRASE MOTIVACIONAL
@@ -944,6 +2951,150 @@
 
 </div>
 
+<!-- =========================================================
+     MODAL - EXCLUIR VALIDAÇÃO / ERRO
+========================================================== -->
+
+<div
+    x-show="modalExcluirValidacaoErroAberto"
+    x-cloak
+    class="fixed inset-0 z-[180]
+           flex items-center justify-center px-4"
+>
+
+    <!-- FUNDO -->
+    <div
+        class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+        @click="modalExcluirValidacaoErroAberto = false"
+    ></div>
+
+
+    <!-- JANELA -->
+    <div
+        @click.stop
+        class="relative bg-white
+               w-full max-w-md
+               rounded-3xl shadow-2xl
+               overflow-hidden"
+    >
+
+        <!-- FAIXA -->
+        <div class="h-2 bg-red-500"></div>
+
+
+        <div class="p-8">
+
+            <!-- ÍCONE -->
+            <div class="w-16 h-16 mx-auto
+                        rounded-2xl
+                        bg-red-50 text-red-500
+                        flex items-center justify-center mb-5">
+
+                <i class="ph-bold ph-trash text-3xl"></i>
+
+            </div>
+
+
+            <!-- TEXTO -->
+            <div class="text-center">
+
+                <h2 class="text-xl font-bold text-slate-900">
+                    Excluir registro?
+                </h2>
+
+                <p
+                    class="text-sm text-slate-500
+                           leading-relaxed mt-2"
+                    x-text="registroValidacaoErroParaExcluir?.tipo === 'validacao'
+                        ? 'Esta validação será excluída permanentemente.'
+                        : 'Este erro será excluído permanentemente.'"
+                ></p>
+
+            </div>
+
+
+            <!-- REGISTRO -->
+            <div class="mt-6
+                        bg-slate-50
+                        border border-slate-200
+                        rounded-2xl p-4">
+
+                <p class="text-xs font-semibold
+                          uppercase tracking-wider
+                          text-slate-400 mb-2">
+
+                    Registro selecionado
+
+                </p>
+
+                <p
+                    class="text-sm text-slate-700
+                           leading-relaxed"
+                    x-text="registroValidacaoErroParaExcluir?.descricao || ''"
+                ></p>
+
+            </div>
+
+
+            <!-- AVISO -->
+            <div class="mt-4 flex items-start gap-3
+                        bg-red-50 border border-red-100
+                        rounded-xl p-3">
+
+                <i class="ph-bold ph-warning
+                          text-red-500 mt-0.5"></i>
+
+                <p class="text-xs text-red-600 leading-relaxed">
+                    Esta ação não poderá ser desfeita.
+                </p>
+
+            </div>
+
+
+            <!-- BOTÕES -->
+            <div class="flex gap-3 mt-7">
+
+                <button
+                    type="button"
+                    @click="
+                        modalExcluirValidacaoErroAberto = false;
+                        registroValidacaoErroParaExcluir = null;
+                    "
+                    class="flex-1 px-5 py-3
+                           rounded-xl bg-slate-100
+                           hover:bg-slate-200
+                           text-slate-600 font-semibold
+                           transition"
+                >
+                    Cancelar
+                </button>
+
+
+                <button
+                    type="button"
+                    @click="confirmarExclusaoValidacaoErro()"
+                    class="flex-1 px-5 py-3
+                           rounded-xl bg-red-500
+                           hover:bg-red-600
+                           text-white font-semibold
+                           transition flex items-center
+                           justify-center gap-2"
+                >
+
+                    <i class="ph-bold ph-trash"></i>
+
+                    Excluir
+
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
 
     <!-- =========================================================
          JAVASCRIPT
@@ -956,7 +3107,37 @@
                 email: '',
                 currentTab: 'dashboard',
                 mobileMenuOpen: false,
+                modalValidacaoErroAberto: false,
+                tipoValidacaoErro: 'validacao',
+                formValidacaoErro: {
+                    descricao: '',
+                    importancia: ''
+                },
+                modalAvisoValidacaoAberto: false,
+                avisoValidacaoTitulo: '',
+                avisoValidacaoMensagem: '',
+                avisoValidacaoTipo: 'validacao',
+                formEditarValidacaoErro: {
+                descricao: '',
+                importancia: ''
+                },
 
+                modalCodigoSegurancaAberto: false,
+                codigoSeguranca: '',
+                modalSucessoCadastroAberto: false,
+                cadastroRealizadoPor: '',
+                modalExcluirValidacaoErroAberto: false,
+                registroValidacaoErroParaExcluir: null,
+                modalResolverValidacaoErroAberto: false,
+            registroValidacaoErroParaResolver: null,
+
+            codigoResolverValidacaoErro: '',
+
+modalSucessoResolucaoAberto: false,
+resolucaoRealizadaPor: '',
+tipoResolucaoRealizada: '',
+
+                validacoesErros: [],
                 frases: [],
 
                 modalFraseAberto: false,
@@ -1016,6 +3197,42 @@
                         console.error('Erro ao carregar administrador:', erro);
                     }
                 },
+
+                async carregarValidacoesErros() {
+
+    try {
+
+        console.log("📋 Carregando validações e erros...");
+
+        const resposta = await fetch("/api/validacoes-erros");
+
+        const dados = await resposta.json();
+
+        if (!resposta.ok) {
+            throw new Error(
+                dados.erro ||
+                "Não foi possível carregar as validações e erros."
+            );
+        }
+
+        this.validacoesErros = dados.registros || [];
+
+        console.log(
+            "✅ Validações e erros carregados:",
+            this.validacoesErros
+        );
+
+    } catch (erro) {
+
+        console.error(
+            "❌ Erro ao carregar validações e erros:",
+            erro
+        );
+
+        this.validacoesErros = [];
+    }
+},
+
 
             async carregarFrases() {
     try {
@@ -1148,6 +3365,466 @@ excluirFrase(item) {
     this.modalExcluirFraseAberto = true;
 },
 
+abrirResolucaoValidacaoErro(item) {
+
+    this.registroValidacaoErroParaResolver = item;
+
+    this.codigoResolverValidacaoErro = '';
+
+    this.modalResolverValidacaoErroAberto = true;
+
+},
+
+async confirmarResolucaoValidacaoErro() {
+
+    if (!this.registroValidacaoErroParaResolver) {
+        return;
+    }
+
+
+    if (!/^\d{6}$/.test(this.codigoResolverValidacaoErro)) {
+        return;
+    }
+
+
+    try {
+
+        const id =
+            this.registroValidacaoErroParaResolver.id;
+
+
+        console.log(
+            "🔧 Marcando registro como resolvido:",
+            id
+        );
+
+
+        const resposta = await fetch(
+            `/api/validacoes-erros/${id}/resolver`,
+            {
+                method: "PUT",
+
+                headers: {
+                    "Content-Type": "application/json"
+                },
+
+                body: JSON.stringify({
+                    codigo: this.codigoResolverValidacaoErro
+                })
+            }
+        );
+
+
+        const dados = await resposta.json();
+
+
+        if (!resposta.ok) {
+
+            throw new Error(
+                dados.erro ||
+                "Não foi possível concluir o registro."
+            );
+
+        }
+
+
+        console.log(
+            "✅ Registro resolvido:",
+            dados
+        );
+
+
+        // Guarda os dados antes de limpar
+        this.resolucaoRealizadaPor =
+            dados.integrante.nome;
+
+        this.tipoResolucaoRealizada =
+            this.registroValidacaoErroParaResolver.tipo;
+
+
+        // Fecha o modal do código
+        this.modalResolverValidacaoErroAberto = false;
+
+
+        // Limpa os dados
+        this.codigoResolverValidacaoErro = '';
+
+        this.registroValidacaoErroParaResolver = null;
+
+
+        // Atualiza imediatamente as tabelas
+        await this.carregarValidacoesErros();
+
+
+        // Abre confirmação
+        this.modalSucessoResolucaoAberto = true;
+
+
+    } catch (erro) {
+
+        console.error(
+            "❌ Erro ao concluir registro:",
+            erro
+        );
+
+        alert(
+            erro.message ||
+            "Não foi possível concluir o registro."
+        );
+
+        this.codigoResolverValidacaoErro = '';
+
+    }
+
+},
+
+abrirExclusaoValidacaoErro(item) {
+
+    this.registroValidacaoErroParaExcluir = item;
+
+    this.modalExcluirValidacaoErroAberto = true;
+
+},
+
+abrirEdicaoValidacaoErro(item) {
+
+    this.registroValidacaoErroParaEditar = item;
+
+    this.formEditarValidacaoErro = {
+        descricao: item.descricao,
+        importancia: item.importancia
+    };
+
+    this.modalEditarValidacaoErroAberto = true;
+
+},
+
+async salvarEdicaoValidacaoErro() {
+
+    if (!this.registroValidacaoErroParaEditar) {
+        return;
+    }
+
+
+    const descricao =
+        this.formEditarValidacaoErro.descricao.trim();
+
+    const importancia =
+        this.formEditarValidacaoErro.importancia;
+
+
+    if (!descricao || !importancia) {
+        return;
+    }
+
+
+    try {
+
+        const id =
+            this.registroValidacaoErroParaEditar.id;
+
+
+        console.log(
+            "✏️ Salvando alteração:",
+            id
+        );
+
+
+        const resposta = await fetch(
+            `/api/validacoes-erros/${id}`,
+            {
+                method: "PUT",
+
+                headers: {
+                    "Content-Type": "application/json"
+                },
+
+                body: JSON.stringify({
+                    descricao,
+                    importancia
+                })
+            }
+        );
+
+
+        const dados = await resposta.json();
+
+
+        if (!resposta.ok) {
+
+            throw new Error(
+                dados.erro ||
+                "Não foi possível alterar o registro."
+            );
+
+        }
+
+
+        console.log(
+            "✅ Registro alterado:",
+            dados.registro
+        );
+
+
+        // Fecha o modal
+        this.modalEditarValidacaoErroAberto = false;
+
+
+        // Limpa os dados da edição
+        this.registroValidacaoErroParaEditar = null;
+
+        this.formEditarValidacaoErro = {
+            descricao: '',
+            importancia: ''
+        };
+
+
+        // Atualiza imediatamente as tabelas
+        await this.carregarValidacoesErros();
+
+
+    } catch (erro) {
+
+        console.error(
+            "❌ Erro ao alterar registro:",
+            erro
+        );
+
+        alert(
+            erro.message ||
+            "Não foi possível alterar o registro."
+        );
+
+    }
+
+},
+
+async confirmarExclusaoValidacaoErro() {
+
+    if (!this.registroValidacaoErroParaExcluir) {
+        return;
+    }
+
+    try {
+
+        const id = this.registroValidacaoErroParaExcluir.id;
+
+        console.log(
+            "🗑️ Excluindo validação/erro:",
+            id
+        );
+
+
+        const resposta = await fetch(
+            `/api/validacoes-erros/${id}`,
+            {
+                method: "DELETE"
+            }
+        );
+
+
+        const dados = await resposta.json();
+
+
+        if (!resposta.ok) {
+
+            throw new Error(
+                dados.erro ||
+                "Não foi possível excluir o registro."
+            );
+
+        }
+
+
+        console.log(
+            "✅ Registro excluído:",
+            dados.registro
+        );
+
+
+        // Fecha o modal
+        this.modalExcluirValidacaoErroAberto = false;
+
+        // Limpa o registro selecionado
+        this.registroValidacaoErroParaExcluir = null;
+
+        // Atualiza imediatamente as tabelas
+        await this.carregarValidacoesErros();
+
+
+    } catch (erro) {
+
+        console.error(
+            "❌ Erro ao excluir registro:",
+            erro
+        );
+
+        alert(
+            erro.message ||
+            "Não foi possível excluir o registro."
+        );
+
+    }
+
+},
+
+async validarCodigoSeguranca() {
+
+    // =====================================================
+    // 1. VALIDAR FORMATO
+    // =====================================================
+
+    if (!/^\d{6}$/.test(this.codigoSeguranca)) {
+        return;
+    }
+
+
+    try {
+
+        console.log("🔐 Validando código de segurança...");
+
+
+        // =====================================================
+        // 2. ENVIAR CÓDIGO AO SERVIDOR
+        // =====================================================
+
+        const resposta = await fetch(
+            "/api/equipe/validar-codigo",
+            {
+                method: "POST",
+
+                headers: {
+                    "Content-Type": "application/json"
+                },
+
+                body: JSON.stringify({
+                    codigo: this.codigoSeguranca
+                })
+            }
+        );
+
+
+        const dados = await resposta.json();
+
+
+        // =====================================================
+        // 3. CÓDIGO INVÁLIDO
+        // =====================================================
+
+        if (!resposta.ok) {
+
+            console.warn(
+                "⚠️ Código recusado:",
+                dados.erro
+            );
+
+            alert(
+                dados.erro ||
+                "Código de segurança inválido."
+            );
+
+            this.codigoSeguranca = '';
+
+            return;
+        }
+
+
+        // =====================================================
+        // 4. INTEGRANTE IDENTIFICADO
+        // =====================================================
+
+        console.log("✅ Integrante identificado:", dados.integrante);
+
+
+// =====================================================
+// CADASTRA A VALIDAÇÃO APÓS IDENTIFICAR O INTEGRANTE
+// =====================================================
+
+const respostaCadastro = await fetch(
+    "/api/validacoes-erros",
+    {
+        method: "POST",
+
+        headers: {
+            "Content-Type": "application/json"
+        },
+
+        body: JSON.stringify({
+    tipo: this.tipoValidacaoErro,
+    descricao: this.formValidacaoErro.descricao.trim(),
+    importancia: this.formValidacaoErro.importancia,
+    inserido_por: dados.integrante.id
+})
+    }
+);
+
+
+const dadosCadastro = await respostaCadastro.json();
+
+
+if (!respostaCadastro.ok) {
+
+    console.error(
+        "❌ Erro ao cadastrar validação:",
+        dadosCadastro
+    );
+
+    alert(
+        dadosCadastro.erro ||
+        "Não foi possível cadastrar a validação."
+    );
+
+    return;
+}
+
+
+console.log(
+    "✅ Validação cadastrada:",
+    dadosCadastro.registro
+);
+// Atualiza imediatamente as duas tabelas
+await this.carregarValidacoesErros();
+
+// Fecha todos os modais do processo
+this.modalCodigoSegurancaAberto = false;
+this.modalAvisoValidacaoAberto = false;
+this.modalValidacaoErroAberto = false;
+
+// Limpa o código de segurança
+this.codigoSeguranca = '';
+
+// Limpa o formulário
+this.formValidacaoErro = {
+    descricao: '',
+    importancia: ''
+};
+
+// Confirma o cadastro
+// Guarda quem realizou o cadastro
+this.cadastroRealizadoPor = dados.integrante.nome;
+
+// Abre o modal de sucesso
+this.modalSucessoCadastroAberto = true;
+
+
+    } catch (erro) {
+
+        console.error(
+            "❌ Erro ao validar código:",
+            erro
+        );
+
+
+        alert(
+            "Não foi possível validar o código de segurança."
+        );
+
+    }
+
+},
+
+
+
 async confirmarExclusaoFrase() {
 
     if (!this.fraseParaExcluir) {
@@ -1219,12 +3896,92 @@ fecharModalFrase() {
     };
 },
 
+abrirModalValidacaoErro(tipo) {
+
+    this.tipoValidacaoErro = tipo;
+
+    this.formValidacaoErro = {
+        descricao: '',
+        importancia: ''
+    };
+
+    this.modalValidacaoErroAberto = true;
+},
+
+
+fecharModalValidacaoErro() {
+
+    this.modalValidacaoErroAberto = false;
+
+    this.formValidacaoErro = {
+        descricao: '',
+        importancia: ''
+    };
+},
+
+abrirModalCodigoSeguranca() {
+
+    // Fecha o aviso anterior
+    this.modalAvisoValidacaoAberto = false;
+
+    // Limpa qualquer código digitado anteriormente
+    this.codigoSeguranca = '';
+
+    // Abre o modal do código
+    this.modalCodigoSegurancaAberto = true;
+
+},
+
+prepararSalvarValidacaoErro() {
+
+    const descricao =
+        String(this.formValidacaoErro.descricao || '').trim();
+
+    const importancia =
+        this.formValidacaoErro.importancia;
+
+
+    if (!descricao || !importancia) {
+
+        alert(
+            'Preencha a descrição e o grau de importância.'
+        );
+
+        return;
+    }
+
+
+    console.log('📋 Registro preparado:', {
+
+        tipo: this.tipoValidacaoErro,
+        descricao,
+        importancia
+
+    });
+
+
+    this.avisoValidacaoTipo = this.tipoValidacaoErro;
+    this.avisoValidacaoTitulo =
+    this.tipoValidacaoErro === 'validacao'
+        ? 'Validação pronta para cadastro'
+        : 'Erro pronto para cadastro';
+    this.avisoValidacaoMensagem =
+        'Os dados foram preenchidos corretamente. Para concluir o cadastro, será necessário informar seu código de segurança.';
+    this.modalAvisoValidacaoAberto = true;
+
+},
+
+
 selecionarMenu(menu) {
 
     this.currentTab = menu;
 
     if (menu === 'frases') {
         this.carregarFrases();
+    }
+
+     if (menu === 'validacoes-erros') {
+        this.carregarValidacoesErros();
     }
 },
                 selecionarMenuMobile(menu) 

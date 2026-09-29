@@ -3565,6 +3565,699 @@ app.delete(
     }
 );
 
+// =====================================================
+// CALENDÁRIO DO USUÁRIO
+// =====================================================
+
+const TIPOS_CALENDARIO_USUARIO =
+    new Set([
+        "tarefa",
+        "evento",
+        "meta"
+    ]);
+
+
+// =====================================================
+// LISTAR ITENS DO CALENDÁRIO
+// =====================================================
+
+app.get(
+    "/api/calendario/:usuarioId",
+    async (req, res) => {
+
+        const usuarioId =
+            parseInt(req.params.usuarioId, 10);
+
+        const {
+            inicio,
+            fim
+        } = req.query;
+
+
+        if (
+            !Number.isInteger(usuarioId) ||
+            usuarioId <= 0
+        ) {
+
+            return res.status(400).json({
+                sucesso: false,
+                erro: "ID de usuário inválido."
+            });
+
+        }
+
+
+        if (
+            !/^\d{4}-\d{2}-\d{2}$/.test(inicio || "") ||
+            !/^\d{4}-\d{2}-\d{2}$/.test(fim || "")
+        ) {
+
+            return res.status(400).json({
+                sucesso: false,
+                erro: "Período do calendário inválido."
+            });
+
+        }
+
+
+        try {
+
+            const resultado =
+                await pool.query(
+                    `
+                    SELECT
+
+                        ci.id,
+                        ci.tipo,
+                        ci.subtipo,
+                        ci.titulo,
+                        ci.descricao,
+                        ci.disciplina_id,
+
+                        d.nome AS disciplina,
+
+                        TO_CHAR(
+                            ci.data_inicio,
+                            'YYYY-MM-DD'
+                        ) AS "dataInicio",
+
+                        CASE
+                            WHEN ci.hora_inicio IS NULL
+                            THEN NULL
+                            ELSE TO_CHAR(
+                                ci.hora_inicio,
+                                'HH24:MI'
+                            )
+                        END AS "horaInicio",
+
+                        CASE
+                            WHEN ci.data_fim IS NULL
+                            THEN NULL
+                            ELSE TO_CHAR(
+                                ci.data_fim,
+                                'YYYY-MM-DD'
+                            )
+                        END AS "dataFim",
+
+                        CASE
+                            WHEN ci.hora_fim IS NULL
+                            THEN NULL
+                            ELSE TO_CHAR(
+                                ci.hora_fim,
+                                'HH24:MI'
+                            )
+                        END AS "horaFim",
+
+                        ci.prioridade,
+                        ci.concluido,
+                        ci.origem,
+                        ci.origem_id AS "origemId",
+                        ci.editavel_usuario AS "editavelUsuario",
+                        ci.criado_em AS "criadoEm",
+                        ci.atualizado_em AS "atualizadoEm"
+
+                    FROM calendario_item ci
+
+                    LEFT JOIN disciplina d
+                        ON d.id = ci.disciplina_id
+
+                    WHERE ci.usuario_id = $1
+
+                      AND ci.data_inicio
+                          BETWEEN $2::date
+                          AND $3::date
+
+                    ORDER BY
+                        ci.data_inicio ASC,
+                        ci.hora_inicio ASC NULLS LAST,
+                        ci.id ASC
+                    `,
+                    [
+                        usuarioId,
+                        inicio,
+                        fim
+                    ]
+                );
+
+
+            return res.json({
+
+                sucesso: true,
+
+                itens:
+                    resultado.rows
+
+            });
+
+
+        } catch (erro) {
+
+            console.error(
+                "❌ Erro ao carregar calendário:",
+                erro
+            );
+
+
+            return res.status(500).json({
+
+                sucesso: false,
+
+                erro:
+                    "Não foi possível carregar o calendário."
+
+            });
+
+        }
+
+    }
+);
+
+
+// =====================================================
+// CADASTRAR ITEM DO CALENDÁRIO
+// TAREFA / EVENTO / META
+// =====================================================
+
+app.post(
+    "/api/calendario/:usuarioId",
+    async (req, res) => {
+
+        const usuarioId =
+            parseInt(req.params.usuarioId, 10);
+
+
+        if (
+            !Number.isInteger(usuarioId) ||
+            usuarioId <= 0
+        ) {
+
+            return res.status(400).json({
+                sucesso: false,
+                erro: "ID de usuário inválido."
+            });
+
+        }
+
+
+        const {
+
+            tipo,
+            subtipo,
+            titulo,
+            descricao,
+            disciplinaId,
+            dataInicio,
+            horaInicio,
+            dataFim,
+            horaFim,
+            prioridade
+
+        } = req.body;
+
+
+        if (
+            !TIPOS_CALENDARIO_USUARIO.has(tipo)
+        ) {
+
+            return res.status(400).json({
+                sucesso: false,
+                erro: "Tipo de item inválido."
+            });
+
+        }
+
+
+        if (
+            !String(titulo || "").trim()
+        ) {
+
+            return res.status(400).json({
+                sucesso: false,
+                erro: "Informe o título."
+            });
+
+        }
+
+
+        if (
+            !/^\d{4}-\d{2}-\d{2}$/.test(
+                dataInicio || ""
+            )
+        ) {
+
+            return res.status(400).json({
+                sucesso: false,
+                erro: "Informe uma data válida."
+            });
+
+        }
+
+
+        if (
+            prioridade &&
+            !["normal", "alta"].includes(
+                prioridade
+            )
+        ) {
+
+            return res.status(400).json({
+                sucesso: false,
+                erro: "Prioridade inválida."
+            });
+
+        }
+
+
+        try {
+
+            // Confirma que o usuário existe
+            const usuario =
+                await pool.query(
+                    `
+                    SELECT id
+                    FROM usuario
+                    WHERE id = $1
+                    `,
+                    [usuarioId]
+                );
+
+
+            if (usuario.rows.length === 0) {
+
+                return res.status(404).json({
+                    sucesso: false,
+                    erro: "Usuário não encontrado."
+                });
+
+            }
+
+
+            const resultado =
+                await pool.query(
+                    `
+                    INSERT INTO calendario_item
+                    (
+                        usuario_id,
+                        criado_por_usuario_id,
+                        tipo,
+                        subtipo,
+                        titulo,
+                        descricao,
+                        disciplina_id,
+                        data_inicio,
+                        hora_inicio,
+                        data_fim,
+                        hora_fim,
+                        prioridade,
+                        concluido,
+                        origem,
+                        editavel_usuario
+                    )
+
+                    VALUES
+                    (
+                        $1,
+                        $1,
+                        $2,
+                        $3,
+                        $4,
+                        $5,
+                        $6,
+                        $7,
+                        $8,
+                        $9,
+                        $10,
+                        $11,
+                        FALSE,
+                        'usuario',
+                        TRUE
+                    )
+
+                    RETURNING id
+                    `,
+                    [
+                        usuarioId,
+                        tipo,
+                        subtipo || null,
+                        String(titulo).trim(),
+                        String(descricao || "").trim()
+                            || null,
+                        disciplinaId
+                            ? Number(disciplinaId)
+                            : null,
+                        dataInicio,
+                        horaInicio || null,
+                        dataFim || null,
+                        horaFim || null,
+                        tipo === "tarefa"
+                            ? prioridade || "normal"
+                            : null
+                    ]
+                );
+
+
+            return res.status(201).json({
+
+                sucesso: true,
+
+                mensagem:
+                    "Item cadastrado com sucesso.",
+
+                id:
+                    resultado.rows[0].id
+
+            });
+
+
+        } catch (erro) {
+
+            console.error(
+                "❌ Erro ao cadastrar item do calendário:",
+                erro
+            );
+
+
+            return res.status(500).json({
+
+                sucesso: false,
+
+                erro:
+                    "Não foi possível cadastrar o item."
+
+            });
+
+        }
+
+    }
+);
+
+
+// =====================================================
+// MARCAR ITEM COMO CONCLUÍDO / NÃO CONCLUÍDO
+// =====================================================
+
+app.patch(
+    "/api/calendario/:usuarioId/:itemId/conclusao",
+    async (req, res) => {
+
+        const usuarioId =
+            parseInt(req.params.usuarioId, 10);
+
+        const itemId =
+            parseInt(req.params.itemId, 10);
+
+        const concluido =
+            req.body.concluido === true;
+
+
+        if (
+            !Number.isInteger(usuarioId) ||
+            !Number.isInteger(itemId)
+        ) {
+
+            return res.status(400).json({
+                sucesso: false,
+                erro: "Dados inválidos."
+            });
+
+        }
+
+
+        try {
+
+            const resultado =
+                await pool.query(
+                    `
+                    UPDATE calendario_item
+
+                    SET
+                        concluido = $1,
+                        atualizado_em =
+                            CURRENT_TIMESTAMP
+
+                    WHERE id = $2
+                      AND usuario_id = $3
+
+                    RETURNING id
+                    `,
+                    [
+                        concluido,
+                        itemId,
+                        usuarioId
+                    ]
+                );
+
+
+            if (
+                resultado.rowCount === 0
+            ) {
+
+                return res.status(404).json({
+                    sucesso: false,
+                    erro: "Item não encontrado."
+                });
+
+            }
+
+
+            return res.json({
+                sucesso: true
+            });
+
+
+        } catch (erro) {
+
+            console.error(
+                "❌ Erro ao alterar conclusão:",
+                erro
+            );
+
+
+            return res.status(500).json({
+                sucesso: false,
+                erro:
+                    "Não foi possível atualizar o item."
+            });
+
+        }
+
+    }
+);
+
+
+// =====================================================
+// EXCLUIR ITEM
+// =====================================================
+
+app.delete(
+    "/api/calendario/:usuarioId/:itemId",
+    async (req, res) => {
+
+        const usuarioId =
+            parseInt(req.params.usuarioId, 10);
+
+        const itemId =
+            parseInt(req.params.itemId, 10);
+
+
+        if (
+            !Number.isInteger(usuarioId) ||
+            !Number.isInteger(itemId)
+        ) {
+
+            return res.status(400).json({
+                sucesso: false,
+                erro: "Dados inválidos."
+            });
+
+        }
+
+
+        try {
+
+            const resultado =
+                await pool.query(
+                    `
+                    DELETE FROM calendario_item
+
+                    WHERE id = $1
+                      AND usuario_id = $2
+                      AND editavel_usuario = TRUE
+
+                    RETURNING id
+                    `,
+                    [
+                        itemId,
+                        usuarioId
+                    ]
+                );
+
+
+            if (
+                resultado.rowCount === 0
+            ) {
+
+                return res.status(404).json({
+                    sucesso: false,
+
+                    erro:
+                        "Item não encontrado ou não pode ser excluído."
+                });
+
+            }
+
+
+            return res.json({
+                sucesso: true,
+                mensagem:
+                    "Item excluído com sucesso."
+            });
+
+
+        } catch (erro) {
+
+            console.error(
+                "❌ Erro ao excluir item:",
+                erro
+            );
+
+
+            return res.status(500).json({
+                sucesso: false,
+                erro:
+                    "Não foi possível excluir o item."
+            });
+
+        }
+
+    }
+);
+
+// =====================================================
+// LISTAR TAREFAS DO USUÁRIO
+// =====================================================
+
+app.get(
+    "/api/tarefas/:usuarioId",
+    async (req, res) => {
+
+        const usuarioId =
+            parseInt(req.params.usuarioId, 10);
+
+
+        if (
+            !Number.isInteger(usuarioId) ||
+            usuarioId <= 0
+        ) {
+
+            return res.status(400).json({
+                sucesso: false,
+                erro: "ID de usuário inválido."
+            });
+
+        }
+
+
+        try {
+
+            const resultado =
+                await pool.query(
+                    `
+                    SELECT
+
+                        ci.id,
+
+                        ci.titulo,
+
+                        ci.descricao,
+
+                        ci.disciplina_id,
+
+                        d.nome AS disciplina,
+
+                        TO_CHAR(
+                            ci.data_inicio,
+                            'YYYY-MM-DD'
+                        ) AS "dataInicio",
+
+                        CASE
+
+                            WHEN ci.hora_inicio IS NULL
+                            THEN NULL
+
+                            ELSE TO_CHAR(
+                                ci.hora_inicio,
+                                'HH24:MI'
+                            )
+
+                        END AS "horaInicio",
+
+                        ci.prioridade,
+
+                        ci.concluido,
+
+                        ci.origem,
+
+                        ci.editavel_usuario
+                            AS "editavelUsuario"
+
+                    FROM calendario_item ci
+
+                    LEFT JOIN disciplina d
+                        ON d.id =
+                           ci.disciplina_id
+
+                    WHERE
+                        ci.usuario_id = $1
+
+                        AND ci.tipo = 'tarefa'
+
+                    ORDER BY
+
+                        ci.concluido ASC,
+
+                        ci.data_inicio ASC,
+
+                        ci.hora_inicio ASC
+                            NULLS LAST,
+
+                        ci.id DESC
+                    `,
+                    [usuarioId]
+                );
+
+
+            return res.json({
+
+                sucesso: true,
+
+                tarefas:
+                    resultado.rows
+
+            });
+
+
+        } catch (erro) {
+
+            console.error(
+                "❌ Erro ao carregar tarefas:",
+                erro
+            );
+
+
+            return res.status(500).json({
+
+                sucesso: false,
+
+                erro:
+                    "Não foi possível carregar as tarefas."
+
+            });
+
+        }
+
+    }
+);
 
 app.listen(PORT, () => {
   console.log(`Servidor rodando em http://localhost:${PORT}`);

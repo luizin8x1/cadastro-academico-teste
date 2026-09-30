@@ -3364,51 +3364,235 @@
     class="max-w-4xl mx-auto space-y-6"
     x-cloak
 >
+<!-- =================================================
+     CABEÇALHO
+================================================== -->
 
-    <!-- =================================================
-         CABEÇALHO
-    ================================================== -->
+<div
+    class="flex flex-col
+           lg:flex-row
+           lg:items-center
+           justify-between
+           gap-5"
+>
 
-    <div>
+    <!-- TÍTULO -->
 
-        <div class="flex items-center gap-3 mb-2">
+    <div class="flex items-center gap-3">
 
-            <div
-                class="w-12 h-12 rounded-2xl
-                       bg-blue-50 dark:bg-blue-900/20
-                       text-blue-600 dark:text-blue-400
-                       flex items-center justify-center"
+        <div
+            class="w-12 h-12 rounded-2xl
+                   bg-blue-50 dark:bg-blue-900/20
+                   text-blue-600 dark:text-blue-400
+                   flex items-center justify-center
+                   flex-shrink-0"
+        >
+
+            <i
+                class="ph-bold
+                       ph-map-trifold
+                       text-2xl"
+            ></i>
+
+        </div>
+
+
+        <div>
+
+            <h1
+                class="text-3xl font-bold
+                       tracking-tight
+                       text-slate-900
+                       dark:text-white"
             >
-
-                <i class="ph-bold ph-map-trifold text-2xl"></i>
-
-            </div>
+                Plano de Estudo
+            </h1>
 
 
-            <div>
-
-                <h1
-                    class="text-3xl font-bold tracking-tight
-                           text-slate-900 dark:text-white"
-                >
-                    Plano de Estudo
-                </h1>
-
-                <p
-                    class="text-slate-500
-                           dark:text-slate-400 mt-1"
-                >
-                    Vamos usar suas informações para criar
-                    um plano de estudos personalizado para
-                    sua rotina, suas necessidades e seus objetivos.
-                </p>
-
-            </div>
+            <p
+                class="text-slate-500
+                       dark:text-slate-400
+                       mt-1"
+            >
+                Crie e acompanhe seus planos
+                personalizados de estudo.
+            </p>
 
         </div>
 
     </div>
 
+<!-- =================================================
+     SELETOR - NOVO PLANO / MEUS PLANOS
+================================================== -->
+
+<div
+    class="relative
+           inline-flex
+           items-center
+           bg-slate-100/80
+           dark:bg-slate-800
+           border border-slate-200
+           dark:border-slate-700
+           rounded-2xl
+           p-1.5
+           shadow-inner
+           self-start lg:self-auto"
+>
+
+    <!-- NOVO PLANO -->
+
+    <button
+        type="button"
+
+        @click="
+            abrirVisaoPlanos('novo')
+        "
+
+        class="relative
+               min-w-[185px]
+               px-5 py-3
+               rounded-xl
+               flex items-center
+               justify-center
+               gap-2.5
+               text-sm
+               font-bold
+               transition-all
+               duration-200"
+
+        :class="
+            planoEstudo.visao === 'novo'
+                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/20'
+                : 'text-slate-500 hover:text-blue-600 hover:bg-white/70 dark:text-slate-400 dark:hover:bg-slate-700'
+        "
+    >
+
+        <div
+            class="w-8 h-8
+                   rounded-lg
+                   flex items-center
+                   justify-center
+                   transition"
+
+            :class="
+                planoEstudo.visao === 'novo'
+                    ? 'bg-white/15 text-white'
+                    : 'bg-white text-slate-500 shadow-sm dark:bg-slate-700'
+            "
+        >
+
+            <i
+                class="ph-bold
+                       ph-plus-circle
+                       text-lg"
+            ></i>
+
+        </div>
+
+
+        <span>
+            Novo Plano
+        </span>
+
+    </button>
+
+
+    <!-- MEUS PLANOS -->
+
+    <button
+        type="button"
+
+        @click="
+            abrirVisaoPlanos('meus')
+        "
+
+        class="relative
+               min-w-[205px]
+               px-5 py-3
+               rounded-xl
+               flex items-center
+               justify-center
+               gap-2.5
+               text-sm
+               font-bold
+               transition-all
+               duration-200"
+
+        :class="
+            planoEstudo.visao === 'meus'
+                ? 'bg-gradient-to-r from-slate-700 to-slate-900 text-white shadow-lg shadow-slate-500/20 dark:from-blue-600 dark:to-indigo-600'
+                : 'text-slate-500 hover:text-blue-600 hover:bg-white/70 dark:text-slate-400 dark:hover:bg-slate-700'
+        "
+    >
+
+        <div
+            class="w-8 h-8
+                   rounded-lg
+                   flex items-center
+                   justify-center
+                   transition"
+
+            :class="
+                planoEstudo.visao === 'meus'
+                    ? 'bg-white/15 text-white'
+                    : 'bg-white text-slate-500 shadow-sm dark:bg-slate-700'
+            "
+        >
+
+            <i
+                class="ph-bold
+                       ph-folder-open
+                       text-lg"
+            ></i>
+
+        </div>
+
+
+        <span>
+            Meus Planos
+        </span>
+
+
+        <!-- QUANTIDADE -->
+
+        <span
+            x-show="
+                planoEstudo.historico.length > 0
+            "
+
+            class="min-w-[22px]
+                   h-[22px]
+                   px-1.5
+                   rounded-full
+                   flex items-center
+                   justify-center
+                   text-[10px]
+                   font-black"
+
+            :class="
+                planoEstudo.visao === 'meus'
+                    ? 'bg-white text-slate-800'
+                    : 'bg-blue-100 text-blue-600'
+            "
+
+            x-text="
+                planoEstudo.historico.length
+            "
+        ></span>
+
+    </button>
+
+</div>
+
+<!-- FECHA O CABEÇALHO -->
+</div>
+
+<div
+    x-show="planoEstudo.visao === 'novo'"
+    x-cloak
+    class="space-y-6"
+>
 
     <!-- =================================================
          CARREGANDO
@@ -3885,6 +4069,236 @@
 
         </div>
 
+        <!-- =================================================
+     TIPO DE PLANEJAMENTO
+================================================== -->
+
+<div
+    class="bg-white dark:bg-slate-900
+           border border-slate-200 dark:border-slate-800
+           rounded-2xl shadow-sm overflow-hidden"
+>
+
+    <div
+        class="px-6 py-5
+               border-b border-slate-100
+               dark:border-slate-800"
+    >
+
+        <div class="flex items-center gap-3">
+
+            <div
+                class="w-10 h-10 rounded-xl
+                       bg-blue-50 text-blue-600
+                       flex items-center justify-center"
+            >
+                <i
+                    class="ph-bold ph-calendar-dots text-xl"
+                ></i>
+            </div>
+
+
+            <div>
+
+                <h2
+                    class="text-lg font-bold
+                           text-slate-900 dark:text-white"
+                >
+                    Como você quer organizar seu plano?
+                </h2>
+
+                <p
+                    class="text-sm text-slate-500
+                           dark:text-slate-400 mt-1"
+                >
+                    Escolha o período do planejamento que será
+                    criado especialmente para você.
+                </p>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="p-6">
+
+        <div
+            class="grid grid-cols-1
+                   md:grid-cols-2 gap-4"
+        >
+
+            <!-- SEMANAL -->
+
+            <label
+                class="relative border-2 rounded-2xl
+                       p-5 cursor-pointer
+                       transition-all duration-200"
+                :class="
+                    planoEstudo.tipoPlanejamento === 'semanal'
+                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                        : 'border-slate-200 dark:border-slate-700 hover:border-blue-300'
+                "
+            >
+
+                <input
+                    type="radio"
+                    name="tipoPlanejamento"
+                    value="semanal"
+                    x-model="planoEstudo.tipoPlanejamento"
+                    class="sr-only"
+                >
+
+
+                <div class="flex gap-4">
+
+                    <div
+                        class="w-12 h-12 rounded-xl
+                               flex-shrink-0
+                               flex items-center justify-center"
+                        :class="
+                            planoEstudo.tipoPlanejamento === 'semanal'
+                                ? 'bg-blue-600 text-white'
+                                : 'bg-slate-100 text-slate-500 dark:bg-slate-800'
+                        "
+                    >
+
+                        <i
+                            class="ph-bold ph-calendar-week text-2xl"
+                        ></i>
+
+                    </div>
+
+
+                    <div>
+
+                        <p
+                            class="font-bold
+                                   text-slate-800
+                                   dark:text-white"
+                        >
+                            Plano Semanal
+                        </p>
+
+                        <p
+                            class="text-sm text-slate-500
+                                   dark:text-slate-400
+                                   mt-1 leading-relaxed"
+                        >
+                            Um planejamento detalhado para
+                            organizar os próximos 7 dias de estudo.
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <div
+                    x-show="
+                        planoEstudo.tipoPlanejamento === 'semanal'
+                    "
+                    class="absolute top-3 right-3
+                           text-blue-600"
+                >
+
+                    <i
+                        class="ph-fill ph-check-circle text-xl"
+                    ></i>
+
+                </div>
+
+            </label>
+
+
+            <!-- MENSAL -->
+
+            <label
+                class="relative border-2 rounded-2xl
+                       p-5 cursor-pointer
+                       transition-all duration-200"
+                :class="
+                    planoEstudo.tipoPlanejamento === 'mensal'
+                        ? 'border-violet-500 bg-violet-50 dark:bg-violet-900/20'
+                        : 'border-slate-200 dark:border-slate-700 hover:border-violet-300'
+                "
+            >
+
+                <input
+                    type="radio"
+                    name="tipoPlanejamento"
+                    value="mensal"
+                    x-model="planoEstudo.tipoPlanejamento"
+                    class="sr-only"
+                >
+
+
+                <div class="flex gap-4">
+
+                    <div
+                        class="w-12 h-12 rounded-xl
+                               flex-shrink-0
+                               flex items-center justify-center"
+                        :class="
+                            planoEstudo.tipoPlanejamento === 'mensal'
+                                ? 'bg-violet-600 text-white'
+                                : 'bg-slate-100 text-slate-500 dark:bg-slate-800'
+                        "
+                    >
+
+                        <i
+                            class="ph-bold ph-calendar-blank text-2xl"
+                        ></i>
+
+                    </div>
+
+
+                    <div>
+
+                        <p
+                            class="font-bold
+                                   text-slate-800
+                                   dark:text-white"
+                        >
+                            Plano Mensal
+                        </p>
+
+                        <p
+                            class="text-sm text-slate-500
+                                   dark:text-slate-400
+                                   mt-1 leading-relaxed"
+                        >
+                            Uma visão mais ampla, distribuindo
+                            os estudos pelas próximas semanas.
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <div
+                    x-show="
+                        planoEstudo.tipoPlanejamento === 'mensal'
+                    "
+                    class="absolute top-3 right-3
+                           text-violet-600"
+                >
+
+                    <i
+                        class="ph-fill ph-check-circle text-xl"
+                    ></i>
+
+                </div>
+
+            </label>
+
+        </div>
+
+    </div>
+
+</div>
 
         <!-- =================================================
              GERAÇÃO
@@ -3921,6 +4335,7 @@
 
                     </div>
 
+                    
 
                     <p
                         class="text-sm text-slate-600
@@ -3940,6 +4355,7 @@
                     @click="gerarPlanoEstudo()"
                     :disabled="
                         !planoEstudoPodeGerar ||
+                        !planoEstudo.tipoPlanejamento ||
                         planoEstudo.gerando
                     "
                     class="px-7 py-4 rounded-2xl
@@ -3952,9 +4368,12 @@
                            disabled:opacity-40
                            disabled:cursor-not-allowed
                            disabled:hover:translate-y-0"
-                    :class="planoEstudoPodeGerar
-                        ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:-translate-y-0.5 hover:shadow-xl'
-                        : 'bg-slate-300 text-slate-500'"
+                    
+                         :class="
+                            planoEstudoPodeGerar &&
+                            planoEstudo.tipoPlanejamento
+                            ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:-translate-y-0.5 hover:shadow-xl'
+                            : 'bg-slate-300 text-slate-500'"
                 >
 
                     <i
@@ -3974,7 +4393,110 @@
                 </button>
 
             </div>
+<!-- =================================================
+     DOWNLOAD DO CRONOGRAMA
+================================================== -->
 
+<div
+    x-show="
+    planoEstudo.planoGeradoNestaSessao &&
+    planoEstudo.pdf.disponivel"
+    x-cloak
+    class="mt-5 pt-5
+           border-t border-blue-100
+           dark:border-blue-900"
+>
+
+    <div
+        class="bg-white
+               dark:bg-slate-900
+               border border-emerald-200
+               dark:border-emerald-900
+               rounded-2xl
+               p-5
+               shadow-sm
+               flex flex-col
+               md:flex-row
+               md:items-center
+               justify-between
+               gap-4"
+    >
+
+        <div class="flex items-center gap-4">
+
+            <div
+                class="w-11 h-11
+                       rounded-xl
+                       bg-emerald-100
+                       dark:bg-emerald-900/40
+                       flex items-center
+                       justify-center
+                       flex-shrink-0"
+            >
+
+                <i
+                    class="ph-fill
+                           ph-file-pdf
+                           text-xl
+                           text-emerald-700"
+                ></i>
+
+            </div>
+
+
+            <div>
+
+                <h3
+                    class="font-bold
+                           text-slate-900
+                           dark:text-white"
+                >
+                    Seu cronograma está pronto
+                </h3>
+
+
+                <p
+                    class="text-sm
+                           text-slate-500
+                           dark:text-slate-400"
+                >
+                    O PDF deste plano já está disponível.
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <a
+            :href="planoEstudo.pdf.urlDownload"
+
+            class="px-5 py-2.5
+                   rounded-xl
+                   bg-emerald-600
+                   hover:bg-emerald-700
+                   text-white
+                   font-bold
+                   text-sm
+                   flex items-center
+                   justify-center
+                   gap-2
+                   transition"
+        >
+
+            <i
+                class="ph-bold
+                       ph-download-simple
+                       text-lg"
+            ></i>
+
+            BAIXAR PDF
+
+        </a>
+
+    </div>
+
+</div>
 
             <!-- MOTIVO DE ESTAR BLOQUEADO -->
 
@@ -3994,9 +4516,9 @@
 
                     <i class="ph-bold ph-info"></i>
 
-                    Complete a Rotina Diária, o Perfil Acadêmico
-                    e escolha seu objetivo para liberar a geração
-                    do plano.
+                    Complete a Rotina Diária, o Perfil Acadêmico,
+                    escolha seu objetivo e defina se deseja um
+                    planejamento semanal ou mensal.
 
                 </p>
 
@@ -4007,6 +4529,485 @@
     </div>
 
 </div>
+
+
+<!-- =====================================================
+     MEUS PLANOS DE ESTUDOS
+====================================================== -->
+
+<div
+    x-show="
+        planoEstudo.visao === 'meus'
+    "
+    x-cloak
+    class="space-y-5"
+>
+
+    <!-- CABEÇALHO DA ÁREA -->
+
+    <div
+        class="bg-white
+               dark:bg-slate-900
+               border border-slate-200
+               dark:border-slate-800
+               rounded-2xl
+               overflow-hidden"
+    >
+
+        <div
+            class="px-6 py-5
+                   border-b border-slate-100
+                   dark:border-slate-800"
+        >
+
+            <div class="flex items-center gap-3">
+
+                <div
+                    class="w-10 h-10
+                           rounded-xl
+                           bg-blue-50
+                           text-blue-600
+                           flex items-center
+                           justify-center"
+                >
+
+                    <i
+                        class="ph-bold
+                               ph-folder-open
+                               text-xl"
+                    ></i>
+
+                </div>
+
+
+                <div>
+
+                    <h2
+                        class="text-lg
+                               font-bold
+                               text-slate-900
+                               dark:text-white"
+                    >
+                        Meus Planos de Estudos
+                    </h2>
+
+                    <p
+                        class="text-sm
+                               text-slate-500
+                               dark:text-slate-400"
+                    >
+                        Consulte os planos que você já criou
+                        e baixe seus cronogramas.
+                    </p>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- CARREGANDO -->
+
+        <div
+            x-show="
+                planoEstudo.historicoCarregando
+            "
+            class="py-14 text-center"
+        >
+
+            <i
+                class="ph-bold
+                       ph-spinner-gap
+                       animate-spin
+                       text-3xl
+                       text-blue-600"
+            ></i>
+
+            <p
+                class="text-sm
+                       text-slate-500
+                       mt-3"
+            >
+                Carregando seus planos...
+            </p>
+
+        </div>
+
+
+        <!-- ERRO -->
+
+        <div
+            x-show="
+                planoEstudo.historicoErro
+            "
+            x-cloak
+            class="m-5
+                   bg-red-50
+                   border border-red-200
+                   text-red-700
+                   rounded-xl
+                   p-4
+                   text-sm"
+            x-text="
+                planoEstudo.historicoErro
+            "
+        ></div>
+
+
+        <!-- SEM PLANOS -->
+
+        <div
+            x-show="
+                !planoEstudo.historicoCarregando &&
+                !planoEstudo.historicoErro &&
+                planoEstudo.historico.length === 0
+            "
+            x-cloak
+            class="py-16 text-center"
+        >
+
+            <div
+                class="w-14 h-14
+                       mx-auto
+                       rounded-2xl
+                       bg-slate-100
+                       dark:bg-slate-800
+                       text-slate-400
+                       flex items-center
+                       justify-center"
+            >
+
+                <i
+                    class="ph-bold
+                           ph-folder-dashed
+                           text-2xl"
+                ></i>
+
+            </div>
+
+
+            <h3
+                class="font-bold
+                       text-slate-800
+                       dark:text-white
+                       mt-4"
+            >
+                Você ainda não possui planos
+            </h3>
+
+
+            <p
+                class="text-sm
+                       text-slate-500
+                       mt-1"
+            >
+                Crie seu primeiro Plano de Estudo personalizado.
+            </p>
+
+
+            <button
+                type="button"
+                @click="
+                    abrirVisaoPlanos('novo')
+                "
+                class="mt-5
+                       px-5 py-2.5
+                       rounded-xl
+                       bg-blue-600
+                       hover:bg-blue-700
+                       text-white
+                       font-bold
+                       text-sm
+                       transition"
+            >
+                Criar novo plano
+            </button>
+
+        </div>
+
+
+        <!-- TABELA -->
+
+        <div
+            x-show="
+                !planoEstudo.historicoCarregando &&
+                planoEstudo.historico.length > 0
+            "
+            x-cloak
+            class="overflow-x-auto"
+        >
+
+            <table
+                class="w-full
+                       text-sm
+                       text-left"
+            >
+
+                <thead
+                    class="bg-slate-50
+                           dark:bg-slate-800/50
+                           text-xs
+                           uppercase
+                           tracking-wide
+                           text-slate-500"
+                >
+
+                    <tr>
+
+                        <th class="px-6 py-4">
+                            Plano
+                        </th>
+
+                        <th class="px-6 py-4">
+                            Período
+                        </th>
+
+                        <th class="px-6 py-4">
+                            Criado em
+                        </th>
+
+                        <th class="px-6 py-4">
+                            PDF
+                        </th>
+
+                        <th
+                            class="px-6 py-4
+                                   text-right"
+                        >
+                            Ação
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody
+                    class="divide-y
+                           divide-slate-100
+                           dark:divide-slate-800"
+                >
+
+                    <template
+                        x-for="
+                            plano in planoEstudo.historico
+                        "
+                        :key="plano.id"
+                    >
+
+                        <tr
+                            class="hover:bg-slate-50
+                                   dark:hover:bg-slate-800/40
+                                   transition"
+                        >
+
+                            <!-- PLANO -->
+
+                            <td class="px-6 py-5">
+
+                                <div
+                                    class="flex items-center
+                                           gap-3"
+                                >
+
+                                    <div
+                                        class="w-10 h-10
+                                               rounded-xl
+                                               flex items-center
+                                               justify-center"
+                                        :class="
+                                            plano.tipoPlanejamento === 'mensal'
+                                                ? 'bg-violet-100 text-violet-600'
+                                                : 'bg-blue-100 text-blue-600'
+                                        "
+                                    >
+
+                                        <i
+                                            class="ph-bold
+                                                   ph-calendar-blank
+                                                   text-lg"
+                                        ></i>
+
+                                    </div>
+
+
+                                    <div>
+
+                                        <p
+                                            class="font-bold
+                                                   text-slate-800
+                                                   dark:text-white"
+                                            x-text="
+                                                plano.tipoPlanejamento === 'mensal'
+                                                    ? 'Plano Mensal'
+                                                    : plano.tipoPlanejamento === 'semanal'
+                                                        ? 'Plano Semanal'
+                                                        : 'Plano de Estudos'
+                                            "
+                                        ></p>
+
+
+                                        <p
+                                            class="text-xs
+                                                   text-slate-400"
+                                            x-text="
+                                                `Plano #${plano.id}`
+                                            "
+                                        ></p>
+
+                                    </div>
+
+                                </div>
+
+                            </td>
+
+
+                            <!-- PERÍODO -->
+
+                            <td
+                                class="px-6 py-5
+                                       text-slate-600
+                                       dark:text-slate-300"
+                            >
+
+                                <span
+                                    x-text="
+                                        plano.dataInicio &&
+                                        plano.dataFim
+                                            ? `${plano.dataInicio} a ${plano.dataFim}`
+                                            : 'Não informado'
+                                    "
+                                ></span>
+
+                            </td>
+
+
+                            <!-- CRIADO -->
+
+                            <td
+                                class="px-6 py-5
+                                       text-slate-500"
+                                x-text="
+                                    plano.criadoEm ||
+                                    '-'
+                                "
+                            ></td>
+
+
+                            <!-- PDF -->
+
+                            <td class="px-6 py-5">
+
+                                <span
+                                    class="inline-flex
+                                           items-center
+                                           gap-1.5
+                                           px-3 py-1.5
+                                           rounded-full
+                                           text-xs
+                                           font-bold"
+
+                                    :class="
+                                        plano.pdfDisponivel
+                                            ? 'bg-emerald-100 text-emerald-700'
+                                            : 'bg-slate-100 text-slate-500'
+                                    "
+                                >
+
+                                    <i
+                                        class="ph-bold"
+                                        :class="
+                                            plano.pdfDisponivel
+                                                ? 'ph-check-circle'
+                                                : 'ph-clock'
+                                        "
+                                    ></i>
+
+                                    <span
+                                        x-text="
+                                            plano.pdfDisponivel
+                                                ? 'Disponível'
+                                                : 'Pendente'
+                                        "
+                                    ></span>
+
+                                </span>
+
+                            </td>
+
+
+                            <!-- AÇÃO -->
+
+                            <td
+                                class="px-6 py-5
+                                       text-right"
+                            >
+
+                                <a
+                                    x-show="
+                                        plano.pdfDisponivel &&
+                                        plano.pdf
+                                    "
+
+                                    :href="
+                                        plano.pdf
+                                            ? plano.pdf.urlDownload
+                                            : '#'
+                                    "
+
+                                    class="inline-flex
+                                           items-center
+                                           gap-2
+                                           px-4 py-2
+                                           rounded-xl
+                                           bg-blue-600
+                                           hover:bg-blue-700
+                                           text-white
+                                           font-bold
+                                           text-xs
+                                           transition"
+                                >
+
+                                    <i
+                                        class="ph-bold
+                                               ph-download-simple"
+                                    ></i>
+
+                                    Baixar
+
+                                </a>
+
+
+                                <span
+                                    x-show="
+                                        !plano.pdfDisponivel
+                                    "
+                                    class="text-xs
+                                           text-slate-400"
+                                >
+                                    PDF ainda não gerado
+                                </span>
+
+                            </td>
+
+                        </tr>
+
+                    </template>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- FECHA TODA A ABA PLANO DE ESTUDO -->
+</div>
+
 
                 <!-- CONFIGURAÇÕES TAB -->
                 <div x-show="currentTab === 'settings'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4" x-transition:enter-end="opacity-100 translate-y-0" class="max-w-3xl mx-auto space-y-6" x-cloak>
@@ -5468,6 +6469,12 @@
 
 planoEstudo: {
 
+    visao: 'novo',
+    historico: [],
+    historicoCarregando: false,
+    historicoErro: '',
+    planoGeradoNestaSessao: false,
+
     carregando: false,
 
     rotinaPreenchida: false,
@@ -5477,10 +6484,24 @@ planoEstudo: {
     objetivo: '',
 
     objetivoOutro: '',
-
+    tipoPlanejamento: '',
     gerando: false,
 
-    erro: ''
+    erro: '',
+
+pdf: {
+
+    carregando: false,
+
+    disponivel: false,
+
+    planoId: null,
+
+    nomeArquivo: '',
+
+    urlDownload: ''
+
+}
 
 },
 
@@ -5553,6 +6574,53 @@ objetivosPlanoEstudo: [
 
 ],
 
+// =====================================================
+// PLANO DE ESTUDO - PODE GERAR
+// =====================================================
+
+get planoEstudoPodeGerar() {
+
+    const rotinaOk =
+        this.planoEstudo.rotinaPreenchida === true;
+
+
+    const perfilOk =
+        this.planoEstudo.perfilAcademicoPreenchido === true;
+
+
+    const objetivoOk =
+        Boolean(
+            this.planoEstudo.objetivo
+        );
+
+
+    const outroObjetivoOk =
+        this.planoEstudo.objetivo !== 'outro' ||
+        Boolean(
+            String(
+                this.planoEstudo.objetivoOutro || ''
+            ).trim()
+        );
+
+
+    const tipoPlanejamentoOk =
+        [
+            'semanal',
+            'mensal'
+        ].includes(
+            this.planoEstudo.tipoPlanejamento
+        );
+
+
+    return (
+        rotinaOk &&
+        perfilOk &&
+        objetivoOk &&
+        outroObjetivoOk &&
+        tipoPlanejamentoOk
+    );
+
+},
 
         // ==========================================
         // TEMPO DISPONÍVEL PARA ESTUDOS
@@ -7959,6 +9027,8 @@ async carregarPreparacaoPlanoEstudo() {
         this.planoEstudo.objetivoOutro =
             dados.objetivoOutro || '';
 
+        this.planoEstudo.tipoPlanejamento =
+            dados.tipoPlanejamento || '';
 
         console.log(
             "✅ Preparação do plano:",
@@ -7995,12 +9065,236 @@ async carregarPreparacaoPlanoEstudo() {
 },
 
 // =====================================================
+// PLANO DE ESTUDO - ALTERAR VISÃO
+// =====================================================
+async abrirVisaoPlanos(visao) {
+
+    if (
+        ![
+            'novo',
+            'meus'
+        ].includes(visao)
+    ) {
+        return;
+    }
+
+
+    this.planoEstudo.visao =
+        visao;
+
+
+    // ==========================================
+    // NOVO PLANO
+    // ==========================================
+
+    if (
+        visao === 'novo'
+    ) {
+
+        // Nenhum PDF histórico deve aparecer
+        // nesta área.
+
+        this.planoEstudo.planoGeradoNestaSessao =
+            false;
+
+
+        this.planoEstudo.pdf.disponivel =
+            false;
+
+        this.planoEstudo.pdf.planoId =
+            null;
+
+        this.planoEstudo.pdf.nomeArquivo =
+            '';
+
+        this.planoEstudo.pdf.urlDownload =
+            '';
+
+
+        return;
+
+    }
+
+
+    // ==========================================
+    // MEUS PLANOS
+    // ==========================================
+
+    if (
+        visao === 'meus'
+    ) {
+
+        await this.carregarHistoricoPlanos();
+
+    }
+
+},
+
+
+// =====================================================
+// PLANO DE ESTUDO - HISTÓRICO
+// =====================================================
+
+async carregarHistoricoPlanos() {
+
+    if (!this.usuarioId) {
+        return;
+    }
+
+
+    this.planoEstudo.historicoCarregando =
+        true;
+
+    this.planoEstudo.historicoErro =
+        '';
+
+
+    try {
+
+        const resposta =
+            await fetch(
+                `/api/plano-estudo/${this.usuarioId}/planos`
+            );
+
+
+        const dados =
+            await resposta.json();
+
+
+        if (!resposta.ok) {
+
+            throw new Error(
+                dados.erro ||
+                "Não foi possível carregar seus planos."
+            );
+
+        }
+
+
+        this.planoEstudo.historico =
+            Array.isArray(dados.planos)
+                ? dados.planos
+                : [];
+
+
+    } catch (erro) {
+
+        console.error(
+            "Erro ao carregar histórico:",
+            erro
+        );
+
+
+        this.planoEstudo.historicoErro =
+            erro.message ||
+            "Não foi possível carregar seus planos.";
+
+
+    } finally {
+
+        this.planoEstudo.historicoCarregando =
+            false;
+
+    }
+
+},
+
+
+// =====================================================
 // PLANO DE ESTUDO - GERAR
 // =====================================================
 
+async carregarPdfPlanoEstudo() {
+
+    if (!this.usuarioId) {
+        return;
+    }
+
+
+    this.planoEstudo.pdf.carregando =
+        true;
+
+
+    try {
+
+        const resposta =
+            await fetch(
+                `/api/plano-estudo/${this.usuarioId}/pdf-atual`
+            );
+
+
+        const dados =
+            await resposta.json();
+
+
+        if (!resposta.ok) {
+
+            throw new Error(
+                dados.erro ||
+                "Erro ao verificar PDF."
+            );
+
+        }
+
+
+        this.planoEstudo.pdf.disponivel =
+            Boolean(
+                dados.pdfDisponivel
+            );
+
+
+        this.planoEstudo.pdf.planoId =
+            dados.planoId || null;
+
+
+        if (
+            dados.pdfDisponivel &&
+            dados.pdf
+        ) {
+
+            this.planoEstudo.pdf.nomeArquivo =
+                dados.pdf.nomeArquivo;
+
+
+            this.planoEstudo.pdf.urlDownload =
+                dados.pdf.urlDownload;
+
+        } else {
+
+            this.planoEstudo.pdf.nomeArquivo =
+                "";
+
+
+            this.planoEstudo.pdf.urlDownload =
+                "";
+
+        }
+
+
+    } catch (erro) {
+
+        console.error(
+            "Erro ao carregar PDF:",
+            erro
+        );
+
+
+        this.planoEstudo.pdf.disponivel =
+            false;
+
+    } finally {
+
+        this.planoEstudo.pdf.carregando =
+            false;
+
+    }
+
+},
+
+
 async gerarPlanoEstudo() {
 
-    if (!this.planoEstudoPodeGerar) {
+    if (!this.planoEstudoPodeGerar || !this.planoEstudo.tipoPlanejamento) {
 
         await abrirModalSistema({
 
@@ -8008,7 +9302,7 @@ async gerarPlanoEstudo() {
                 "Informações incompletas",
 
             mensagem:
-                "Complete sua Rotina Diária, seu Perfil Acadêmico e escolha um objetivo antes de gerar o Plano de Estudo.",
+                "Complete sua Rotina Diária, seu Perfil Acadêmico, escolha um objetivo e defina se deseja um planejamento semanal ou mensal.",
 
             tipo:
                 "aviso",
@@ -8051,7 +9345,10 @@ async gerarPlanoEstudo() {
                         this.planoEstudo.objetivo,
 
                     objetivoOutro:
-                        this.planoEstudo.objetivoOutro
+                        this.planoEstudo.objetivoOutro,
+
+                    tipoPlanejamento:
+                        this.planoEstudo.tipoPlanejamento
 
                 })
 

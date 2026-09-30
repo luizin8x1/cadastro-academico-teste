@@ -8,6 +8,8 @@ const bcrypt = require("bcryptjs");
 const cors = require("cors");
 const path = require("path");
 const Anthropic = require("@anthropic-ai/sdk");
+const PDFDocument = require("pdfkit");
+const crypto = require("crypto");
 
 const app = express();
 app.use(cors());
@@ -31,6 +33,9 @@ pool
   .query("SELECT NOW()")
   .then(() => console.log("Conectado ao banco Neon com sucesso."))
   .catch((err) => console.error("Erro ao conectar no banco:", err.message));
+
+
+
 
 // ---------- CADASTRO (nome/email/senha + perfil acadêmico, tudo de uma vez) ----------
 app.post("/api/cadastro", async (req, res) => {
@@ -2743,6 +2748,17 @@ const OBJETIVOS_PLANO_ESTUDO = new Set([
 ]);
 
 // =====================================================
+// PLANO DE ESTUDO - TIPOS DE PLANEJAMENTO
+// =====================================================
+
+const TIPOS_PLANEJAMENTO =
+    new Set([
+        "semanal",
+        "mensal"
+    ]);
+
+
+// =====================================================
 // PLANO DE ESTUDO - VERIFICAR PREPARAÇÃO
 // =====================================================
 
@@ -2831,7 +2847,8 @@ app.get(
                     `
                     SELECT
                         objetivo,
-                        objetivo_outro
+                        objetivo_outro,
+                        tipo_planejamento
 
                     FROM plano_estudo_objetivo
 
@@ -2870,15 +2887,27 @@ app.get(
                     objetivoSalvo?.objetivo || "",
 
                 objetivoOutro:
-                    objetivoSalvo?.objetivo_outro || "",
+                objetivoSalvo?.objetivo_outro || "",
+                    tipoPlanejamento:
+                objetivoSalvo?.tipo_planejamento || "",
+                    objetivoPreenchido:
+                        Boolean(
+                            objetivoSalvo?.objetivo
+                        ),
+                    tipoPlanejamentoPreenchido:
+                TIPOS_PLANEJAMENTO.has(
+                objetivoSalvo?.tipo_planejamento
+                ),
 
-                objetivoPreenchido:
-                    Boolean(objetivoSalvo),
-
-                podeGerar:
-                    rotinaPreenchida &&
-                    perfilAcademicoPreenchido &&
-                    Boolean(objetivoSalvo)
+podeGerar:
+    rotinaPreenchida &&
+    perfilAcademicoPreenchido &&
+    Boolean(
+        objetivoSalvo?.objetivo
+    ) &&
+    TIPOS_PLANEJAMENTO.has(
+        objetivoSalvo?.tipo_planejamento
+    )
 
             });
 
@@ -2902,6 +2931,1148 @@ app.get(
     }
 );
 
+
+// =====================================================
+// PLANO DE ESTUDO - MONTAR PAYLOAD PARA IA
+// =====================================================
+
+async function montarPayloadPlanoEstudo(usuarioId) {
+
+    // ==========================================
+    // 1. PERFIL ACADÊMICO
+    // ==========================================
+
+    const perfilResultado =
+        await pool.query(
+            `
+            SELECT
+
+                pa.serie,
+                pa.etapa_atual,
+                pa.rede_ensino,
+
+                pa.curso_desejado,
+                pa.universidade_desejada,
+                pa.tipo_universidade,
+
+                pa.objetivo_geral,
+
+                pa.trilha_sesi,
+                pa.etapa_sesi,
+
+                pa.nao_estuda_nenhuma,
+                pa.motivo_nao_estuda,
+
+                disciplina_nao_estuda.nome
+                    AS disciplina_nao_estuda
+
+            FROM perfil_academico pa
+
+            LEFT JOIN disciplina
+                AS disciplina_nao_estuda
+
+                ON disciplina_nao_estuda.id =
+                    pa.disciplina_nao_estuda_id
+
+            WHERE pa.usuario_id = $1
+            `,
+            [usuarioId]
+        );
+
+
+    if (perfilResultado.rows.length === 0) {
+
+        const erro =
+            new Error(
+                "Perfil Acadêmico não encontrado."
+            );
+
+        erro.status = 404;
+
+        throw erro;
+
+    }
+
+
+    // ==========================================
+    // 2. DIFICULDADES
+    // ==========================================
+
+    const dificuldadesResultado =
+        await pool.query(
+            `
+            SELECT
+
+                d.nome AS disciplina,
+
+                pd.conteudo_1,
+                pd.conteudo_2,
+                pd.conteudo_3
+
+            FROM perfil_dificuldade pd
+
+            INNER JOIN disciplina d
+                ON d.id = pd.disciplina_id
+
+            WHERE pd.usuario_id = $1
+
+            ORDER BY d.nome
+            `,
+            [usuarioId]
+        );
+
+
+    // ==========================================
+    // 3. TEMPO DISPONÍVEL
+    // ==========================================
+
+    const tempoResultado =
+        await pool.query(
+            `
+            SELECT
+
+                tempo_atual_minutos,
+                dias_disponiveis,
+                periodo_preferido,
+                tempo_disponivel_minutos,
+                fim_semana,
+                periodo_livre
+
+            FROM perfil_tempo_estudo
+
+            WHERE usuario_id = $1
+            `,
+            [usuarioId]
+        );
+
+
+    if (tempoResultado.rows.length === 0) {
+
+        const erro =
+            new Error(
+                "Tempo disponível para estudos não encontrado."
+            );
+
+        erro.status = 400;
+
+        throw erro;
+
+    }
+
+
+    // ==========================================
+    // 4. OBJETIVO DO PLANO
+    // ==========================================
+
+    const objetivoResultado =
+        await pool.query(
+            `
+            SELECT
+
+                objetivo,
+                objetivo_outro,
+                tipo_planejamento
+
+            FROM plano_estudo_objetivo
+
+            WHERE usuario_id = $1
+            `,
+            [usuarioId]
+        );
+
+
+    if (objetivoResultado.rows.length === 0) {
+
+        const erro =
+            new Error(
+                "Objetivo do Plano de Estudo não encontrado."
+            );
+
+        erro.status = 400;
+
+        throw erro;
+
+    }
+
+
+    // ==========================================
+    // 5. ROTINA ATIVA
+    // ==========================================
+
+    const rotinaResultado =
+        await pool.query(
+            `
+            SELECT
+
+                id,
+                preferencia_periodo,
+                duracao_bloco_min,
+                intervalo_min,
+                rotina_variavel
+
+            FROM rotina
+
+            WHERE usuario_id = $1
+              AND ativa = TRUE
+
+            ORDER BY
+                atualizada_em DESC,
+                criada_em DESC
+
+            LIMIT 1
+            `,
+            [usuarioId]
+        );
+
+
+    if (rotinaResultado.rows.length === 0) {
+
+        const erro =
+            new Error(
+                "Rotina Diária não encontrada."
+            );
+
+        erro.status = 400;
+
+        throw erro;
+
+    }
+
+
+    const rotinaBase =
+        rotinaResultado.rows[0];
+
+
+    const itensResultado =
+        await pool.query(
+            `
+            SELECT
+
+                dia_semana,
+                hora_inicio,
+                hora_fim,
+                tipo_atividade,
+                descricao,
+                tempo_deslocamento_min,
+                fixo,
+                bloqueia_estudo
+
+            FROM rotina_item
+
+            WHERE rotina_id = $1
+
+            ORDER BY
+                dia_semana ASC,
+                hora_inicio ASC
+            `,
+            [rotinaBase.id]
+        );
+
+
+    // ==========================================
+    // 6. PAYLOAD FINAL
+    // ==========================================
+
+    return {
+
+        perfil:
+            perfilResultado.rows[0],
+
+        dificuldades:
+            dificuldadesResultado.rows,
+
+        tempoEstudo:
+            tempoResultado.rows[0],
+
+        tipoPlanejamento:
+            objetivoResultado.rows[0].tipo_planejamento,
+
+        objetivoPlano:
+            objetivoResultado.rows[0],
+
+        rotina: {
+
+            preferenciaPeriodo:
+                rotinaBase.preferencia_periodo,
+
+            duracaoBlocoMin:
+                rotinaBase.duracao_bloco_min,
+
+            intervaloMin:
+                rotinaBase.intervalo_min,
+
+            rotinaVariavel:
+                rotinaBase.rotina_variavel,
+
+            compromissos:
+                itensResultado.rows
+
+        }
+
+    };
+
+}
+
+
+// =====================================================
+// PLANO DE ESTUDO - VISUALIZAR PAYLOAD
+// DIAGNÓSTICO - NÃO CHAMA IA
+// =====================================================
+
+app.get(
+    "/api/plano-estudo/payload/:usuarioId",
+    async (req, res) => {
+
+        const usuarioId =
+            parseInt(req.params.usuarioId, 10);
+
+
+        if (
+            !Number.isInteger(usuarioId) ||
+            usuarioId <= 0
+        ) {
+
+            return res.status(400).json({
+                sucesso: false,
+                erro: "ID de usuário inválido."
+            });
+
+        }
+
+
+        try {
+
+            const payload =
+                await montarPayloadPlanoEstudo(
+                    usuarioId
+                );
+
+
+            return res.json({
+
+                sucesso: true,
+
+                payload
+
+            });
+
+
+        } catch (erro) {
+
+            console.error(
+                "❌ Erro ao montar payload:",
+                erro
+            );
+
+
+            return res
+                .status(erro.status || 500)
+                .json({
+
+                    sucesso: false,
+
+                    erro:
+                        erro.message ||
+                        "Não foi possível montar o payload."
+
+                });
+
+        }
+
+    }
+);
+
+
+// =====================================================
+// PLANO DE ESTUDO - CONFIGURAÇÃO DO JSON DA IA
+// =====================================================
+
+const NOMES_DIAS_PLANO = {
+
+    1: "Segunda-feira",
+    2: "Terça-feira",
+    3: "Quarta-feira",
+    4: "Quinta-feira",
+    5: "Sexta-feira",
+    6: "Sábado",
+    7: "Domingo"
+
+};
+
+
+const DIAS_DISPONIVEIS_PLANO = {
+
+    "Seg": 1,
+    "Ter": 2,
+    "Qua": 3,
+    "Qui": 4,
+    "Sex": 5,
+    "Sáb": 6,
+    "Sab": 6,
+    "Dom": 7
+
+};
+
+// =====================================================
+// PLANO DE ESTUDO - MONTAR PROMPT PARA O CLAUDE
+// =====================================================
+
+function montarPromptPlanoEstudo(payload) {
+
+    const formatoResposta = {
+
+        versao: 1,
+
+        resumo:
+            "Breve explicação do plano criado.",
+
+        sessoes: [
+
+            {
+                diaSemana: 1,
+                dia: "Segunda-feira",
+                horaInicio: "19:00",
+                horaFim: "19:45",
+                disciplina: "Matemática",
+                conteudo: "Equações do 1º grau",
+                atividade:
+                    "Revisar conceitos e resolver exercícios.",
+                duracaoMin: 45,
+                prioridade: "alta"
+            }
+
+        ],
+
+        observacoes: [
+            "Orientação curta para o estudante."
+        ]
+
+    };
+
+
+    return `
+Você é um orientador pedagógico especializado em planejamento de estudos.
+
+Sua tarefa é criar um plano semanal REALISTA para um estudante.
+
+IMPORTANTE:
+- Utilize somente as informações fornecidas.
+- Não invente compromissos, dificuldades ou dados acadêmicos.
+- Nunca coloque sessão de estudo em horário ocupado pela rotina.
+- Compromissos com bloqueia_estudo=true impedem totalmente o uso daquele horário.
+- Utilize somente os dias que o estudante informou como disponíveis.
+- Respeite o tempo_disponivel_minutos por dia.
+- Priorize disciplinas e conteúdos indicados como dificuldade.
+- Considere a disciplina que o estudante praticamente não estuda, quando houver.
+- Considere o período do dia em que o estudante afirma render melhor.
+- O plano precisa ser sustentável, não excessivo.
+- Prefira sessões entre 25 e 90 minutos.
+- Evite horários incompatíveis com os compromissos cadastrados.
+- diaSemana usa obrigatoriamente:
+  1 = Segunda-feira
+  2 = Terça-feira
+  3 = Quarta-feira
+  4 = Quinta-feira
+  5 = Sexta-feira
+  6 = Sábado
+  7 = Domingo
+- horaInicio e horaFim devem usar HH:MM no formato 24 horas.
+- duracaoMin deve corresponder exatamente à diferença entre horaInicio e horaFim.
+- prioridade deve ser apenas "alta", "media" ou "normal".
+
+DADOS DO ESTUDANTE:
+
+${JSON.stringify(payload, null, 2)}
+
+FORMATO OBRIGATÓRIO DA RESPOSTA:
+
+${JSON.stringify(formatoResposta, null, 2)}
+
+Responda SOMENTE com JSON válido.
+
+Não use markdown.
+Não use blocos de código.
+Não escreva nenhuma explicação antes ou depois do JSON.
+`;
+
+}
+
+
+// =====================================================
+// PLANO DE ESTUDO - UTILITÁRIOS DE HORÁRIO
+// =====================================================
+
+function converterHoraParaMinutos(hora) {
+
+    if (
+        typeof hora !== "string" ||
+        !/^\d{2}:\d{2}/.test(hora)
+    ) {
+        return null;
+    }
+
+
+    const partes =
+        hora.substring(0, 5)
+            .split(":")
+            .map(Number);
+
+
+    const horas = partes[0];
+    const minutos = partes[1];
+
+
+    if (
+        horas < 0 ||
+        horas > 23 ||
+        minutos < 0 ||
+        minutos > 59
+    ) {
+        return null;
+    }
+
+
+    return horas * 60 + minutos;
+
+}
+
+
+// =====================================================
+// PLANO DE ESTUDO - VALIDAR JSON GERADO
+// =====================================================
+
+function validarPlanoGerado(
+    plano,
+    payload
+) {
+
+    if (
+        !plano ||
+        typeof plano !== "object" ||
+        Array.isArray(plano)
+    ) {
+
+        throw new Error(
+            "A IA não retornou um objeto JSON válido."
+        );
+
+    }
+
+
+    if (
+        plano.versao !== 1
+    ) {
+
+        throw new Error(
+            "Versão do plano inválida."
+        );
+
+    }
+
+
+    if (
+        typeof plano.resumo !== "string" ||
+        !plano.resumo.trim()
+    ) {
+
+        throw new Error(
+            "O plano não possui resumo válido."
+        );
+
+    }
+
+
+    if (
+        !Array.isArray(plano.sessoes) ||
+        plano.sessoes.length === 0
+    ) {
+
+        throw new Error(
+            "O plano não possui sessões de estudo."
+        );
+
+    }
+
+
+    if (
+        plano.sessoes.length > 50
+    ) {
+
+        throw new Error(
+            "O plano possui sessões demais."
+        );
+
+    }
+
+
+    const diasDisponiveis =
+        new Set(
+            (
+                payload.tempoEstudo
+                    .dias_disponiveis || []
+            )
+                .map(
+                    dia =>
+                        DIAS_DISPONIVEIS_PLANO[
+                            dia
+                        ]
+                )
+                .filter(Boolean)
+        );
+
+
+    const limiteDiario =
+        Number(
+            payload.tempoEstudo
+                .tempo_disponivel_minutos
+        );
+
+
+    const minutosPorDia = {};
+
+
+    plano.sessoes.forEach(
+        (sessao, indice) => {
+
+            const numero =
+                indice + 1;
+
+
+            if (
+                !Number.isInteger(
+                    sessao.diaSemana
+                ) ||
+                sessao.diaSemana < 1 ||
+                sessao.diaSemana > 7
+            ) {
+
+                throw new Error(
+                    `Sessão ${numero}: diaSemana inválido.`
+                );
+
+            }
+
+
+            if (
+                sessao.dia !==
+                NOMES_DIAS_PLANO[
+                    sessao.diaSemana
+                ]
+            ) {
+
+                throw new Error(
+                    `Sessão ${numero}: nome do dia incompatível.`
+                );
+
+            }
+
+
+            if (
+                diasDisponiveis.size > 0 &&
+                !diasDisponiveis.has(
+                    sessao.diaSemana
+                )
+            ) {
+
+                throw new Error(
+                    `Sessão ${numero}: dia não informado como disponível pelo estudante.`
+                );
+
+            }
+
+
+            const inicio =
+                converterHoraParaMinutos(
+                    sessao.horaInicio
+                );
+
+
+            const fim =
+                converterHoraParaMinutos(
+                    sessao.horaFim
+                );
+
+
+            if (
+                inicio === null ||
+                fim === null ||
+                fim <= inicio
+            ) {
+
+                throw new Error(
+                    `Sessão ${numero}: horário inválido.`
+                );
+
+            }
+
+
+            const duracaoCalculada =
+                fim - inicio;
+
+
+            if (
+                !Number.isInteger(
+                    sessao.duracaoMin
+                ) ||
+                sessao.duracaoMin !==
+                    duracaoCalculada
+            ) {
+
+                throw new Error(
+                    `Sessão ${numero}: duração incompatível com o horário.`
+                );
+
+            }
+
+
+            if (
+                sessao.duracaoMin < 15 ||
+                sessao.duracaoMin > 180
+            ) {
+
+                throw new Error(
+                    `Sessão ${numero}: duração fora do limite permitido.`
+                );
+
+            }
+
+
+            [
+                "disciplina",
+                "conteudo",
+                "atividade"
+            ].forEach(campo => {
+
+                if (
+                    typeof sessao[campo] !==
+                        "string" ||
+                    !sessao[campo].trim()
+                ) {
+
+                    throw new Error(
+                        `Sessão ${numero}: campo ${campo} inválido.`
+                    );
+
+                }
+
+            });
+
+
+            if (
+                ![
+                    "alta",
+                    "media",
+                    "normal"
+                ].includes(
+                    sessao.prioridade
+                )
+            ) {
+
+                throw new Error(
+                    `Sessão ${numero}: prioridade inválida.`
+                );
+
+            }
+
+
+            // ==========================================
+            // VERIFICAR CONFLITO COM A ROTINA
+            // ==========================================
+
+            const compromissos =
+                payload.rotina
+                    ?.compromissos || [];
+
+
+            compromissos
+                .filter(
+                    compromisso =>
+                        Number(
+                            compromisso.dia_semana
+                        ) ===
+                            sessao.diaSemana &&
+                        compromisso
+                            .bloqueia_estudo
+                )
+                .forEach(
+                    compromisso => {
+
+                        const inicioCompromisso =
+                            converterHoraParaMinutos(
+                                compromisso
+                                    .hora_inicio
+                            );
+
+
+                        const fimCompromisso =
+                            converterHoraParaMinutos(
+                                compromisso
+                                    .hora_fim
+                            );
+
+
+                        if (
+                            inicioCompromisso ===
+                                null ||
+                            fimCompromisso ===
+                                null
+                        ) {
+                            return;
+                        }
+
+
+                        const existeConflito =
+                            inicio <
+                                fimCompromisso &&
+                            fim >
+                                inicioCompromisso;
+
+
+                        if (existeConflito) {
+
+                            throw new Error(
+                                `Sessão ${numero}: conflito com compromisso da Rotina Diária.`
+                            );
+
+                        }
+
+                    }
+                );
+
+
+            minutosPorDia[
+                sessao.diaSemana
+            ] =
+                (
+                    minutosPorDia[
+                        sessao.diaSemana
+                    ] || 0
+                ) +
+                sessao.duracaoMin;
+
+        }
+    );
+
+
+    if (
+        Number.isFinite(limiteDiario) &&
+        limiteDiario > 0
+    ) {
+
+        Object.entries(
+            minutosPorDia
+        ).forEach(
+            ([dia, minutos]) => {
+
+                if (
+                    minutos >
+                    limiteDiario
+                ) {
+
+                    throw new Error(
+                        `O plano ultrapassa o tempo diário disponível em ${NOMES_DIAS_PLANO[dia]}.`
+                    );
+
+                }
+
+            }
+        );
+
+    }
+
+
+    if (
+        !Array.isArray(
+            plano.observacoes
+        )
+    ) {
+
+        plano.observacoes = [];
+
+    }
+
+
+    return plano;
+
+}
+
+// =====================================================
+// PLANO DE ESTUDO - GERAR COM CLAUDE
+// TESTE REAL - AINDA NÃO SALVA NO BANCO
+// =====================================================
+
+app.post(
+    "/api/plano-estudo/claude/:usuarioId",
+    async (req, res) => {
+
+        const usuarioId =
+            parseInt(
+                req.params.usuarioId,
+                10
+            );
+
+
+        if (
+            !Number.isInteger(usuarioId) ||
+            usuarioId <= 0
+        ) {
+
+            return res.status(400).json({
+
+                sucesso: false,
+
+                erro:
+                    "ID de usuário inválido."
+
+            });
+
+        }
+
+
+        if (
+            !process.env
+                .ANTHROPIC_API_KEY
+        ) {
+
+            return res.status(500).json({
+
+                sucesso: false,
+
+                erro:
+                    "ANTHROPIC_API_KEY não configurada."
+
+            });
+
+        }
+
+
+        try {
+
+            // ==========================================
+            // 1. BUSCAR DADOS REAIS DO ALUNO
+            // ==========================================
+
+            const payload =
+                await montarPayloadPlanoEstudo(
+                    usuarioId
+                );
+
+
+            // ==========================================
+            // 2. MONTAR PROMPT
+            // ==========================================
+
+            const prompt =
+                montarPromptPlanoEstudo(
+                    payload
+                );
+
+
+            // ==========================================
+            // 3. CHAMAR CLAUDE
+            // ==========================================
+
+            const respostaClaude =
+                await anthropic.messages.create({
+
+                    model:
+                        "claude-sonnet-4-6",
+
+                    max_tokens:
+                        3000,
+
+                    temperature:
+                        0.2,
+
+                    messages: [
+
+                        {
+                            role: "user",
+                            content: prompt
+                        }
+
+                    ]
+
+                });
+
+
+            // ==========================================
+            // 4. EXTRAIR TEXTO
+            // ==========================================
+
+            const textoResposta =
+                respostaClaude.content
+
+                    .filter(
+                        bloco =>
+                            bloco.type ===
+                            "text"
+                    )
+
+                    .map(
+                        bloco =>
+                            bloco.text
+                    )
+
+                    .join("\n")
+
+                    .trim();
+
+
+            if (!textoResposta) {
+
+                throw new Error(
+                    "Claude não retornou conteúdo."
+                );
+
+            }
+
+
+            // ==========================================
+            // 5. LIMPAR EVENTUAL MARKDOWN
+            // ==========================================
+
+            const textoLimpo =
+                textoResposta
+
+                    .replace(
+                        /^```json\s*/i,
+                        ""
+                    )
+
+                    .replace(
+                        /^```\s*/i,
+                        ""
+                    )
+
+                    .replace(
+                        /\s*```$/,
+                        ""
+                    )
+
+                    .trim();
+
+
+            // ==========================================
+            // 6. CONVERTER PARA JSON
+            // ==========================================
+
+            let plano;
+
+
+            try {
+
+                plano =
+                    JSON.parse(
+                        textoLimpo
+                    );
+
+            } catch (erroJson) {
+
+                console.error(
+                    "❌ JSON inválido retornado pelo Claude:",
+                    textoLimpo
+                );
+
+
+                return res
+                    .status(502)
+                    .json({
+
+                        sucesso: false,
+
+                        erro:
+                            "Claude respondeu, mas o JSON retornado é inválido."
+
+                    });
+
+            }
+
+
+            // ==========================================
+            // 7. VALIDAR PLANO
+            // ==========================================
+
+            const planoValidado =
+                validarPlanoGerado(
+                    plano,
+                    payload
+                );
+
+
+            // ==========================================
+            // 8. RETORNAR
+            // NÃO SALVA NADA AINDA
+            // ==========================================
+
+            return res.json({
+
+                sucesso: true,
+
+                modelo:
+                    respostaClaude.model,
+
+                uso: {
+
+                    tokensEntrada:
+                        respostaClaude
+                            .usage
+                            ?.input_tokens ||
+                        null,
+
+                    tokensSaida:
+                        respostaClaude
+                            .usage
+                            ?.output_tokens ||
+                        null
+
+                },
+
+                plano:
+                    planoValidado
+
+            });
+
+
+        } catch (erro) {
+
+            console.error(
+                "❌ Erro ao gerar Plano de Estudo com Claude:",
+                {
+                    status:
+                        erro.status,
+
+                    mensagem:
+                        erro.message
+                }
+            );
+
+
+            return res
+                .status(
+                    erro.status &&
+                    Number.isInteger(
+                        erro.status
+                    )
+                        ? erro.status
+                        : 500
+                )
+                .json({
+
+                    sucesso: false,
+
+                    erro:
+                        erro.message ||
+                        "Não foi possível gerar o Plano de Estudo."
+
+                });
+
+        }
+
+    }
+);
+
+
 // =====================================================
 // PLANO DE ESTUDO - GERAR
 // POR ENQUANTO FUNCIONA EM MODO DE TESTE
@@ -2917,7 +4088,8 @@ app.post(
 
         const {
             objetivo,
-            objetivoOutro
+            objetivoOutro,
+            tipoPlanejamento
         } = req.body;
 
 
@@ -2969,6 +4141,26 @@ app.post(
 
         }
 
+        // ==========================================
+// VALIDAR TIPO DE PLANEJAMENTO
+// ==========================================
+
+if (
+    !TIPOS_PLANEJAMENTO.has(
+        tipoPlanejamento
+    )
+) {
+
+    return res.status(400).json({
+
+        sucesso: false,
+
+        erro:
+            "Escolha se deseja um planejamento semanal ou mensal."
+
+    });
+
+}
 
         try {
 
@@ -3086,10 +4278,11 @@ app.post(
                     (
                         usuario_id,
                         objetivo,
-                        objetivo_outro
+                        objetivo_outro,
+                        tipo_planejamento
                     )
 
-                    VALUES ($1, $2, $3)
+                    VALUES ($1, $2, $3, $4)
 
                     ON CONFLICT (usuario_id)
 
@@ -3101,6 +4294,9 @@ app.post(
                         objetivo_outro =
                             EXCLUDED.objetivo_outro,
 
+                        tipo_planejamento =
+                            EXCLUDED.tipo_planejamento,
+
                         atualizado_em =
                             CURRENT_TIMESTAMP
 
@@ -3109,13 +4305,15 @@ app.post(
                         usuario_id,
                         objetivo,
                         objetivo_outro,
+                        tipo_planejamento,
                         criado_em,
                         atualizado_em
                     `,
                     [
                         usuarioId,
                         objetivo,
-                        objetivoOutroFinal
+                        objetivoOutroFinal,
+                        tipoPlanejamento
                     ]
                 );
 
@@ -3124,7 +4322,8 @@ app.post(
                 "🤖 Dados preparados para geração do plano:",
                 {
                     usuarioId,
-                    objetivo
+                    objetivo,
+                    tipoPlanejamento
                 }
             );
 
@@ -3172,6 +4371,1170 @@ app.post(
 
     }
 );
+
+// =====================================================
+// PDF - PLANO DE ESTUDOS
+// =====================================================
+
+function formatarDataPdf(data) {
+
+    if (!data) {
+        return "-";
+    }
+
+    const texto =
+        String(data).substring(0, 10);
+
+    const partes =
+        texto.split("-");
+
+    if (partes.length !== 3) {
+        return texto;
+    }
+
+    return `${partes[2]}/${partes[1]}/${partes[0]}`;
+}
+
+
+function nomeArquivoSeguro(texto) {
+
+    return String(texto || "estudante")
+
+        .normalize("NFD")
+
+        .replace(
+            /[\u0300-\u036f]/g,
+            ""
+        )
+
+        .replace(
+            /[^a-zA-Z0-9]+/g,
+            "-"
+        )
+
+        .replace(
+            /^-+|-+$/g,
+            ""
+        )
+
+        .toLowerCase();
+}
+
+
+function gerarBufferPdfPlano(
+    plano,
+    itens
+) {
+
+    return new Promise(
+        (resolve, reject) => {
+
+            const doc =
+                new PDFDocument({
+
+                    size: "A4",
+
+                    margins: {
+                        top: 45,
+                        bottom: 50,
+                        left: 45,
+                        right: 45
+                    },
+
+                    bufferPages: true
+
+                });
+
+
+            const partes = [];
+
+
+            doc.on(
+                "data",
+                parte =>
+                    partes.push(parte)
+            );
+
+
+            doc.on(
+                "error",
+                reject
+            );
+
+
+            doc.on(
+                "end",
+                () => {
+
+                    resolve(
+                        Buffer.concat(partes)
+                    );
+
+                }
+            );
+
+
+            // ==========================================
+            // CABEÇALHO
+            // ==========================================
+
+            doc
+                .rect(
+                    0,
+                    0,
+                    doc.page.width,
+                    115
+                )
+                .fill("#1e3a8a");
+
+
+            doc
+                .fillColor("#ffffff")
+                .font("Helvetica-Bold")
+                .fontSize(23)
+                .text(
+                    "ROTA DO SUCESSO",
+                    45,
+                    32
+                );
+
+
+            doc
+                .font("Helvetica")
+                .fontSize(12)
+                .text(
+                    "Cronograma Personalizado de Estudos",
+                    45,
+                    68
+                );
+
+
+            doc.y = 140;
+
+
+            // ==========================================
+            // ALUNO
+            // ==========================================
+
+            doc
+                .fillColor("#0f172a")
+                .font("Helvetica-Bold")
+                .fontSize(16)
+                .text(
+                    plano.aluno_nome ||
+                    "Estudante"
+                );
+
+
+            doc.moveDown(0.4);
+
+
+            doc
+                .font("Helvetica")
+                .fontSize(10)
+                .fillColor("#475569");
+
+
+            if (plano.serie) {
+
+                doc.text(
+                    `Série: ${plano.serie}`
+                );
+
+            }
+
+
+            if (plano.escola) {
+
+                doc.text(
+                    `Escola: ${plano.escola}`
+                );
+
+            }
+
+
+            if (
+                plano.data_inicio ||
+                plano.data_fim
+            ) {
+
+                doc.text(
+                    `Período do plano: ${formatarDataPdf(plano.data_inicio)} a ${formatarDataPdf(plano.data_fim)}`
+                );
+
+            }
+
+
+            doc.moveDown(1);
+
+
+            doc
+                .fillColor("#1e40af")
+                .font("Helvetica-Bold")
+                .fontSize(14)
+                .text(
+                    "Cronograma semanal"
+                );
+
+
+            doc.moveDown(0.7);
+
+
+            // ==========================================
+            // SESSÕES
+            // ==========================================
+
+            itens.forEach(
+                (item, indice) => {
+
+                    if (
+                        doc.y >
+                        doc.page.height - 180
+                    ) {
+
+                        doc.addPage();
+
+                    }
+
+
+                    const y =
+                        doc.y;
+
+
+                    doc
+                        .roundedRect(
+                            45,
+                            y,
+                            doc.page.width - 90,
+                            112,
+                            8
+                        )
+                        .fillAndStroke(
+                            "#f8fafc",
+                            "#dbeafe"
+                        );
+
+
+                    doc
+                        .fillColor("#1d4ed8")
+                        .font("Helvetica-Bold")
+                        .fontSize(11)
+                        .text(
+                            `${formatarDataPdf(item.data_prevista)}  |  ${item.hora_inicio || "--:--"} - ${item.hora_fim || "--:--"}`,
+                            60,
+                            y + 14
+                        );
+
+
+                    doc
+                        .fillColor("#0f172a")
+                        .font("Helvetica-Bold")
+                        .fontSize(12)
+                        .text(
+                            item.disciplina ||
+                            "Sessão de estudo",
+                            60,
+                            y + 38
+                        );
+
+
+                    if (item.conteudo) {
+
+                        doc
+                            .font("Helvetica")
+                            .fontSize(9)
+                            .fillColor("#334155")
+                            .text(
+                                `Conteúdo: ${item.conteudo}`,
+                                60,
+                                y + 58,
+                                {
+                                    width:
+                                        doc.page.width -
+                                        120
+                                }
+                            );
+
+                    }
+
+
+                    doc
+                        .font("Helvetica")
+                        .fontSize(9)
+                        .fillColor("#334155")
+                        .text(
+                            `Atividade: ${item.atividade || "Estudo programado"}`,
+                            60,
+                            y + 76,
+                            {
+                                width:
+                                    doc.page.width -
+                                    120
+                            }
+                        );
+
+
+                    doc
+                        .font("Helvetica")
+                        .fontSize(8)
+                        .fillColor("#64748b")
+                        .text(
+                            `Duração: ${item.duracao_min || "-"} minutos`,
+                            60,
+                            y + 96
+                        );
+
+
+                    doc.y =
+                        y + 128;
+
+                }
+            );
+
+
+            // ==========================================
+            // RODAPÉ
+            // ==========================================
+
+            const paginas =
+                doc.bufferedPageRange();
+
+
+            for (
+                let i = paginas.start;
+                i <
+                    paginas.start +
+                    paginas.count;
+                i++
+            ) {
+
+                doc.switchToPage(i);
+
+
+                doc
+                    .font("Helvetica")
+                    .fontSize(8)
+                    .fillColor("#94a3b8")
+                    .text(
+                        `Rota do Sucesso | Página ${i + 1} de ${paginas.count}`,
+                        45,
+                        doc.page.height - 30,
+                        {
+                            width:
+                                doc.page.width -
+                                90,
+                            align: "center"
+                        }
+                    );
+
+            }
+
+
+            doc.end();
+
+        }
+    );
+
+}
+
+
+// =====================================================
+// GERAR E SALVAR PDF
+// =====================================================
+
+async function gerarESalvarPdfPlano(
+    usuarioId,
+    planoId
+) {
+
+    // ==========================================
+    // DADOS PRINCIPAIS DO PLANO
+    // ==========================================
+
+    const resultadoPlano =
+        await pool.query(
+            `
+            SELECT
+
+                pe.id,
+
+                pe.usuario_id,
+
+                TO_CHAR(
+                    pe.data_inicio,
+                    'YYYY-MM-DD'
+                ) AS data_inicio,
+
+                TO_CHAR(
+                    pe.data_fim,
+                    'YYYY-MM-DD'
+                ) AS data_fim,
+
+                pe.versao,
+
+                u.nome
+                    AS aluno_nome,
+
+                pa.serie,
+
+                pa.escola,
+
+                pa.rede_ensino
+
+            FROM plano_estudo pe
+
+            INNER JOIN usuario u
+                ON u.id =
+                    pe.usuario_id
+
+            LEFT JOIN perfil_academico pa
+                ON pa.usuario_id =
+                    pe.usuario_id
+
+            WHERE pe.id = $1
+              AND pe.usuario_id = $2
+            `,
+            [
+                planoId,
+                usuarioId
+            ]
+        );
+
+
+    if (
+        resultadoPlano.rows.length === 0
+    ) {
+
+        const erro =
+            new Error(
+                "Plano de Estudo não encontrado."
+            );
+
+        erro.status = 404;
+
+        throw erro;
+
+    }
+
+
+    const plano =
+        resultadoPlano.rows[0];
+
+
+    // ==========================================
+    // SESSÕES DO PLANO
+    // ==========================================
+
+    const resultadoItens =
+        await pool.query(
+            `
+            SELECT
+
+                pei.id,
+
+                TO_CHAR(
+                    pei.data_prevista,
+                    'YYYY-MM-DD'
+                ) AS data_prevista,
+
+                CASE
+                    WHEN pei.hora_inicio IS NULL
+                    THEN NULL
+                    ELSE TO_CHAR(
+                        pei.hora_inicio,
+                        'HH24:MI'
+                    )
+                END AS hora_inicio,
+
+                CASE
+                    WHEN pei.hora_fim IS NULL
+                    THEN NULL
+                    ELSE TO_CHAR(
+                        pei.hora_fim,
+                        'HH24:MI'
+                    )
+                END AS hora_fim,
+
+                pei.atividade,
+
+                pei.metodo_estudo,
+
+                pei.duracao_min,
+
+                d.nome
+                    AS disciplina,
+
+                cc.titulo
+                    AS conteudo
+
+            FROM plano_estudo_item pei
+
+            LEFT JOIN disciplina d
+                ON d.id =
+                    pei.disciplina_id
+
+            LEFT JOIN conteudo_curricular cc
+                ON cc.id =
+                    pei.conteudo_curricular_id
+
+            WHERE pei.plano_id = $1
+
+            ORDER BY
+
+                pei.data_prevista ASC
+                    NULLS LAST,
+
+                pei.hora_inicio ASC
+                    NULLS LAST,
+
+                pei.id ASC
+            `,
+            [
+                planoId
+            ]
+        );
+
+
+    if (
+        resultadoItens.rows.length === 0
+    ) {
+
+        const erro =
+            new Error(
+                "O plano ainda não possui sessões de estudo."
+            );
+
+        erro.status = 400;
+
+        throw erro;
+
+    }
+
+
+    // ==========================================
+    // CRIAR PDF
+    // ==========================================
+
+    const pdfBuffer =
+        await gerarBufferPdfPlano(
+            plano,
+            resultadoItens.rows
+        );
+
+
+    // ==========================================
+    // HASH DO ARQUIVO
+    // ==========================================
+
+    const hash =
+        crypto
+            .createHash("sha256")
+            .update(pdfBuffer)
+            .digest("hex");
+
+
+    const nomeAluno =
+        nomeArquivoSeguro(
+            plano.aluno_nome
+        );
+
+
+    const nomeArquivo =
+        `cronograma-rota-do-sucesso-${nomeAluno}-plano-${planoId}.pdf`;
+
+
+    // ==========================================
+    // SALVAR NO POSTGRESQL
+    // ==========================================
+
+    const resultadoPdf =
+        await pool.query(
+            `
+            INSERT INTO plano_estudo_pdf
+            (
+                plano_id,
+                usuario_id,
+                nome_arquivo,
+                mime_type,
+                arquivo_pdf,
+                tamanho_bytes,
+                hash_sha256,
+                versao
+            )
+
+            VALUES
+            (
+                $1,
+                $2,
+                $3,
+                'application/pdf',
+                $4,
+                $5,
+                $6,
+                1
+            )
+
+            ON CONFLICT (plano_id)
+
+            DO UPDATE SET
+
+                arquivo_pdf =
+                    EXCLUDED.arquivo_pdf,
+
+                nome_arquivo =
+                    EXCLUDED.nome_arquivo,
+
+                tamanho_bytes =
+                    EXCLUDED.tamanho_bytes,
+
+                hash_sha256 =
+                    EXCLUDED.hash_sha256,
+
+                versao =
+                    plano_estudo_pdf.versao + 1,
+
+                atualizado_em =
+                    CURRENT_TIMESTAMP
+
+            RETURNING
+
+                id,
+                plano_id,
+                nome_arquivo,
+                tamanho_bytes,
+                versao
+            `,
+            [
+                planoId,
+                usuarioId,
+                nomeArquivo,
+                pdfBuffer,
+                pdfBuffer.length,
+                hash
+            ]
+        );
+
+
+    return resultadoPdf.rows[0];
+
+}
+
+// =====================================================
+// GERAR PDF DO PLANO
+// =====================================================
+
+app.post(
+    "/api/plano-estudo/:usuarioId/:planoId/pdf/gerar",
+    async (req, res) => {
+
+        const usuarioId =
+            parseInt(
+                req.params.usuarioId,
+                10
+            );
+
+        const planoId =
+            parseInt(
+                req.params.planoId,
+                10
+            );
+
+
+        try {
+
+            const pdf =
+                await gerarESalvarPdfPlano(
+                    usuarioId,
+                    planoId
+                );
+
+
+            return res.json({
+
+                sucesso: true,
+
+                mensagem:
+                    "PDF gerado e salvo com sucesso.",
+
+                pdf: {
+
+                    ...pdf,
+
+                    urlDownload:
+                        `/api/plano-estudo/${usuarioId}/${planoId}/pdf/download`
+
+                }
+
+            });
+
+
+        } catch (erro) {
+
+            console.error(
+                "Erro ao gerar PDF:",
+                erro
+            );
+
+
+            return res
+                .status(
+                    erro.status || 500
+                )
+                .json({
+
+                    sucesso: false,
+
+                    erro:
+                        erro.message ||
+                        "Erro ao gerar PDF."
+
+                });
+
+        }
+
+    }
+);
+
+// =====================================================
+// LISTAR PLANOS DE ESTUDO DO USUÁRIO
+// =====================================================
+
+app.get(
+    "/api/plano-estudo/:usuarioId/planos",
+    async (req, res) => {
+
+        const usuarioId =
+            parseInt(
+                req.params.usuarioId,
+                10
+            );
+
+
+        if (
+            !Number.isInteger(usuarioId) ||
+            usuarioId <= 0
+        ) {
+
+            return res.status(400).json({
+
+                sucesso: false,
+
+                erro:
+                    "ID de usuário inválido."
+
+            });
+
+        }
+
+
+        try {
+
+            const resultado =
+                await pool.query(
+                    `
+                    SELECT
+
+                        pe.id,
+
+                        pe.tipo_planejamento,
+
+                        TO_CHAR(
+                            pe.data_inicio,
+                            'DD/MM/YYYY'
+                        ) AS data_inicio,
+
+                        TO_CHAR(
+                            pe.data_fim,
+                            'DD/MM/YYYY'
+                        ) AS data_fim,
+
+                        pe.versao,
+
+                        pe.gerado_por_ia,
+
+                        TO_CHAR(
+                            pe.criado_em,
+                            'DD/MM/YYYY HH24:MI'
+                        ) AS criado_em,
+
+                        pdf.id
+                            AS pdf_id,
+
+                        pdf.nome_arquivo,
+
+                        pdf.tamanho_bytes,
+
+                        pdf.versao
+                            AS pdf_versao
+
+                    FROM plano_estudo pe
+
+                    LEFT JOIN plano_estudo_pdf pdf
+                        ON pdf.plano_id =
+                            pe.id
+
+                    WHERE pe.usuario_id = $1
+
+                    ORDER BY
+                        pe.criado_em DESC,
+                        pe.id DESC
+                    `,
+                    [
+                        usuarioId
+                    ]
+                );
+
+
+            const planos =
+                resultado.rows.map(
+                    plano => ({
+
+                        id:
+                            plano.id,
+
+                        tipoPlanejamento:
+                            plano.tipo_planejamento,
+
+                        dataInicio:
+                            plano.data_inicio,
+
+                        dataFim:
+                            plano.data_fim,
+
+                        versao:
+                            plano.versao,
+
+                        geradoPorIA:
+                            plano.gerado_por_ia,
+
+                        criadoEm:
+                            plano.criado_em,
+
+                        pdfDisponivel:
+                            Boolean(
+                                plano.pdf_id
+                            ),
+
+                        pdf:
+                            plano.pdf_id
+                                ? {
+
+                                    id:
+                                        plano.pdf_id,
+
+                                    nomeArquivo:
+                                        plano.nome_arquivo,
+
+                                    tamanhoBytes:
+                                        plano.tamanho_bytes,
+
+                                    versao:
+                                        plano.pdf_versao,
+
+                                    urlDownload:
+                                        `/api/plano-estudo/${usuarioId}/${plano.id}/pdf/download`
+
+                                }
+                                : null
+
+                    })
+                );
+
+
+            return res.json({
+
+                sucesso: true,
+
+                planos
+
+            });
+
+
+        } catch (erro) {
+
+            console.error(
+                "Erro ao listar Planos de Estudo:",
+                erro
+            );
+
+
+            return res
+                .status(500)
+                .json({
+
+                    sucesso: false,
+
+                    erro:
+                        "Não foi possível carregar seus Planos de Estudo."
+
+                });
+
+        }
+
+    }
+);
+
+// =====================================================
+// CONSULTAR PDF MAIS RECENTE
+// =====================================================
+
+app.get(
+    "/api/plano-estudo/:usuarioId/pdf-atual",
+    async (req, res) => {
+
+        const usuarioId =
+            parseInt(
+                req.params.usuarioId,
+                10
+            );
+
+
+        try {
+
+            const resultado =
+                await pool.query(
+                    `
+                    SELECT
+
+                        pe.id
+                            AS plano_id,
+
+                        pdf.id
+                            AS pdf_id,
+
+                        pdf.nome_arquivo,
+
+                        pdf.tamanho_bytes,
+
+                        pdf.versao
+
+                    FROM plano_estudo pe
+
+                    LEFT JOIN plano_estudo_pdf pdf
+                        ON pdf.plano_id =
+                            pe.id
+
+                    WHERE pe.usuario_id = $1
+
+                    ORDER BY
+                        pe.criado_em DESC,
+                        pe.id DESC
+
+                    LIMIT 1
+                    `,
+                    [
+                        usuarioId
+                    ]
+                );
+
+
+            if (
+                resultado.rows.length === 0
+            ) {
+
+                return res.json({
+
+                    sucesso: true,
+
+                    planoExiste: false,
+
+                    pdfDisponivel: false
+
+                });
+
+            }
+
+
+            const linha =
+                resultado.rows[0];
+
+
+            return res.json({
+
+                sucesso: true,
+
+                planoExiste: true,
+
+                planoId:
+                    linha.plano_id,
+
+                pdfDisponivel:
+                    Boolean(
+                        linha.pdf_id
+                    ),
+
+                pdf:
+                    linha.pdf_id
+                        ? {
+
+                            id:
+                                linha.pdf_id,
+
+                            nomeArquivo:
+                                linha.nome_arquivo,
+
+                            tamanhoBytes:
+                                linha.tamanho_bytes,
+
+                            versao:
+                                linha.versao,
+
+                            urlDownload:
+                                `/api/plano-estudo/${usuarioId}/${linha.plano_id}/pdf/download`
+
+                        }
+                        : null
+
+            });
+
+
+        } catch (erro) {
+
+            console.error(
+                "Erro ao verificar PDF:",
+                erro
+            );
+
+
+            return res
+                .status(500)
+                .json({
+
+                    sucesso: false,
+
+                    erro:
+                        "Não foi possível verificar o PDF."
+
+                });
+
+        }
+
+    }
+);
+
+
+// =====================================================
+// DOWNLOAD DO PDF
+// =====================================================
+
+app.get(
+    "/api/plano-estudo/:usuarioId/:planoId/pdf/download",
+    async (req, res) => {
+
+        const usuarioId =
+            parseInt(
+                req.params.usuarioId,
+                10
+            );
+
+        const planoId =
+            parseInt(
+                req.params.planoId,
+                10
+            );
+
+
+        try {
+
+            const resultado =
+                await pool.query(
+                    `
+                    SELECT
+
+                        nome_arquivo,
+                        mime_type,
+                        arquivo_pdf,
+                        tamanho_bytes
+
+                    FROM plano_estudo_pdf
+
+                    WHERE plano_id = $1
+                      AND usuario_id = $2
+                    `,
+                    [
+                        planoId,
+                        usuarioId
+                    ]
+                );
+
+
+            if (
+                resultado.rows.length === 0
+            ) {
+
+                return res
+                    .status(404)
+                    .json({
+
+                        sucesso: false,
+
+                        erro:
+                            "PDF não encontrado."
+
+                    });
+
+            }
+
+
+            const pdf =
+                resultado.rows[0];
+
+
+            res.setHeader(
+                "Content-Type",
+                pdf.mime_type
+            );
+
+
+            res.setHeader(
+                "Content-Length",
+                pdf.tamanho_bytes
+            );
+
+
+            res.setHeader(
+                "Content-Disposition",
+                `attachment; filename="${pdf.nome_arquivo}"`
+            );
+
+
+            res.setHeader(
+                "Cache-Control",
+                "private, no-store"
+            );
+
+
+            return res.end(
+                pdf.arquivo_pdf
+            );
+
+
+        } catch (erro) {
+
+            console.error(
+                "Erro no download do PDF:",
+                erro
+            );
+
+
+            return res
+                .status(500)
+                .json({
+
+                    sucesso: false,
+
+                    erro:
+                        "Não foi possível baixar o PDF."
+
+                });
+
+        }
+
+    }
+);
+
+
+
 
 // =====================================================
 // FOTO DE PERFIL

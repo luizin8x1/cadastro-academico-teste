@@ -4001,11 +4001,39 @@ selecionarMenu(menu) {
                     return 'text-slate-600 hover:bg-white/80 hover:text-slate-900';
                 },
 
-                sair() {
-                    sessionStorage.removeItem('usuarioId');
-                    sessionStorage.removeItem('tipoUsuario');
-                    window.location.href = 'login.html';
-                },
+                async sair() {
+
+    try {
+
+        const resposta = await fetch(
+            "/api/logout",
+            {
+                method: "POST",
+                credentials: "same-origin"
+            }
+        );
+
+        if (!resposta.ok) {
+            throw new Error("Falha ao encerrar a sessao.");
+        }
+
+        sessionStorage.removeItem("usuarioId");
+        sessionStorage.removeItem("tipoUsuario");
+
+        window.location.replace("login.html");
+
+    } catch (erro) {
+
+        console.error("Erro no logout:", erro);
+
+        alert(
+            "Nao foi possivel sair. " +
+            "Tente novamente."
+        );
+
+    }
+
+},
 
                 get primeiroNome() {
                     if (!this.nome) return 'Administrador';

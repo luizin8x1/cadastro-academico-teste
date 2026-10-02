@@ -6437,6 +6437,42 @@
         usuarioId: null,
         nome: '',
         email: '',
+        // Cores disponíveis nas configurações
+colors: [
+    { id: 'blue', bg: 'bg-blue-600' },
+    { id: 'purple', bg: 'bg-purple-600' },
+    { id: 'emerald', bg: 'bg-emerald-600' },
+    { id: 'amber', bg: 'bg-amber-500' },
+    { id: 'rose', bg: 'bg-rose-600' }
+],
+
+
+        // Aparencia da interface
+get isDarkClass() {
+    return (
+        this.theme === 'dark' ||
+        this.theme === 'hc' ||
+        (
+            this.theme === 'auto' &&
+            window.matchMedia(
+                '(prefers-color-scheme: dark)'
+            ).matches
+        )
+    );
+},
+
+// Data apresentada na pagina inicial
+get currentDate() {
+    return new Intl.DateTimeFormat(
+        'pt-BR',
+        {
+            weekday: 'long',
+            day: '2-digit',
+            month: 'long',
+            year: 'numeric'
+        }
+    ).format(new Date());
+},
         // Informações acadêmicas
         dataNascimento: '',
         serie: '',
@@ -7788,6 +7824,72 @@ async carregarCalendario() {
 
 },
 
+// Ícone correspondente ao tipo de atividade
+getCalendarItemIcon(item) {
+
+    if (!item) return 'calendar-blank';
+
+    if (item.tipo === 'tarefa') {
+        return 'check-square';
+    }
+
+    if (item.tipo === 'meta') {
+        return 'flag';
+    }
+
+    if (item.tipo === 'estudo') {
+        return 'book-open-text';
+    }
+
+    if (item.subtipo === 'prova') {
+        return 'exam';
+    }
+
+    if (item.subtipo === 'simulado') {
+        return 'clipboard-text';
+    }
+
+    if (item.subtipo === 'trabalho') {
+        return 'presentation';
+    }
+
+    return 'calendar-blank';
+
+},
+
+// Nome apresentado para cada atividade
+getCalendarItemLabel(item) {
+
+    if (!item) return 'Evento';
+
+    if (item.tipo === 'tarefa') {
+        return 'Tarefa';
+    }
+
+    if (item.tipo === 'meta') {
+        return 'Meta';
+    }
+
+    if (item.tipo === 'estudo') {
+        return 'Sessão de estudo';
+    }
+
+    if (item.subtipo === 'prova') {
+        return 'Prova';
+    }
+
+    if (item.subtipo === 'simulado') {
+        return 'Simulado';
+    }
+
+    if (item.subtipo === 'trabalho') {
+        return 'Trabalho';
+    }
+
+    return 'Evento';
+
+},
+
 getCalendarItemClass(item) {
 
     // TAREFA
@@ -8593,10 +8695,39 @@ async nextMonth() {
             });
         },
 
-        sair() {
-            sessionStorage.removeItem('usuarioId');
-            window.location.href = 'index.html';
-        },
+        async sair() {
+
+    try {
+
+        const resposta = await fetch(
+            "/api/logout",
+            {
+                method: "POST",
+                credentials: "same-origin"
+            }
+        );
+
+        if (!resposta.ok) {
+            throw new Error("Falha ao encerrar a sessao.");
+        }
+
+        sessionStorage.removeItem("usuarioId");
+        sessionStorage.removeItem("tipoUsuario");
+
+        window.location.replace("index.html");
+
+    } catch (erro) {
+
+        console.error("Erro no logout:", erro);
+
+        alert(
+            "Nao foi possivel sair. " +
+            "Verifique a conexao e tente novamente."
+        );
+
+    }
+
+},
 
     async carregarDisciplinas() {
 
@@ -10313,18 +10444,19 @@ function selecionarFotoPerfil(event) {
     leitor.readAsDataURL(arquivo);
 }
 
+document.addEventListener('input', function(event) {
 
-document
-    .getElementById('zoomCrop')
-    .addEventListener('input', function() {
+    if (event.target?.id !== 'zoomCrop') {
+        return;
+    }
 
         if (!cropperFoto) return;
 
         const zoomInicial =
-            parseFloat(this.dataset.zoomInicial || 1);
+            parseFloat(event.target.dataset.zoomInicial || 1);
 
         const aumento =
-            parseFloat(this.value);
+            parseFloat(event.target.value);
 
         cropperFoto.zoomTo(
             zoomInicial * (1 + aumento * 2)

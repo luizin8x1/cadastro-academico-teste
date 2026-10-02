@@ -5,6 +5,7 @@ require("dotenv").config();
 const express = require("express");
 const { Pool } = require("pg");
 const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 const cors = require("cors");
 const path = require("path");
 const fs = require("fs");
@@ -26,11 +27,214 @@ const validarPlanoClaude =
     const gerarBufferPdfV4 = require(
     "./services/gerar-pdf-v4");
 
+const AUTH_JWT_SECRET = process.env.AUTH_JWT_SECRET;
+
+if (
+    !AUTH_JWT_SECRET ||
+    Buffer.byteLength(AUTH_JWT_SECRET, "utf8") < 32
+) {
+    throw new Error(
+        "AUTH_JWT_SECRET ausente ou insuficiente."
+    );
+}
+
+function criarCookieAcesso(res, nome, dados) {
+
+    const token = jwt.sign(
+        dados,
+        AUTH_JWT_SECRET,
+        {
+            algorithm: "HS256",
+            expiresIn: "8h",
+            issuer: "rota-do-sucesso"
+        }
+    );
+
+    res.cookie(nome, token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+        maxAge: 8 * 60 * 60 * 1000
+    });
+
+}
+
 const app = express();
 app.use(cors());
 app.use(express.json({
     limit: "2mb"
 }));
+
+
+// ==========================================
+// ENCERRAR SESSAO
+// ==========================================
+
+app.post("/api/logout", (req, res) => {
+
+    const opcoes = {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/"
+    };
+
+    res.clearCookie("rota_aluno", opcoes);
+    res.clearCookie("rota_equipe", opcoes);
+
+    res.setHeader("Cache-Control", "no-store");
+
+    return res.json({
+        sucesso: true,
+        mensagem: "Sessao encerrada."
+    });
+
+});
+
+
+// ==========================================
+// PROTECAO DAS ROTAS DA API
+// ==========================================
+
+app.use("/api", (req, res, next) => {
+
+    const rota = req.path;
+
+    // Rotas que nao exigem login.
+    const rotasPublicas = new Set([
+        "/cadastro",
+        "/login",
+        "/equipe/validar-codigo",
+        "/contato",
+        "/disciplinas",
+        "/estatisticas",
+        "/frase-aleatoria"
+    ]);
+
+    if (rotasPublicas.has(rota)) {
+        return next();
+    }
+
+    // Identificar as rotas exclusivas da equipe.
+    const rotaEquipe =
+        rota.startsWith("/admin/") ||
+        rota.startsWith("/validacoes-erros") ||
+        rota === "/frases-motivacionais";
+
+    // Identificar as rotas dos estudantes.
+    const rotaEstudante = [
+        "/perfil/",
+        "/perfil-dificuldades/",
+        "/perfil-tempo-estudo/",
+        "/cronograma/",
+        "/assistente-ia/",
+        "/rotina",
+        "/plano-estudo/",
+        "/usuario/",
+        "/calendario/",
+        "/tarefas/"
+    ].some(inicio => rota.startsWith(inicio));
+
+    // Bloquear rotas que nao foram classificadas.
+    if (!rotaEquipe && !rotaEstudante) {
+        return res.status(403).json({
+            erro: "Acesso nao autorizado."
+        });
+    }
+
+    const nomeCookie =
+        rotaEquipe ? "rota_equipe" : "rota_aluno";
+
+    // Recuperar o cookie enviado pelo navegador.
+    const cookie = String(
+        req.headers.cookie || ""
+    )
+        .split(";")
+        .map(item => item.trim())
+        .find(item =>
+            item.startsWith(nomeCookie + "=")
+        );
+
+    if (!cookie) {
+        return res.status(401).json({
+            erro: "Realize o login para continuar."
+        });
+    }
+
+    let identidade;
+
+    try {
+        const token = decodeURIComponent(
+            cookie.substring(nomeCookie.length + 1)
+        );
+
+        identidade = jwt.verify(
+            token,
+            AUTH_JWT_SECRET,
+            {
+                algorithms: ["HS256"],
+                issuer: "rota-do-sucesso"
+            }
+        );
+
+    } catch (erro) {
+        return res.status(401).json({
+            erro: "Sessao invalida ou expirada."
+        });
+    }
+
+    // As rotas administrativas exigem login da equipe.
+    if (rotaEquipe) {
+        if (
+            identidade.tipo !== "equipe" ||
+            !Number.isSafeInteger(identidade.id)
+        ) {
+            return res.sendStatus(403);
+        }
+
+        return next();
+    }
+
+    // As demais rotas protegidas exigem login do aluno.
+    if (
+        identidade.tipo !== "aluno" ||
+        !Number.isSafeInteger(identidade.id)
+    ) {
+        return res.sendStatus(403);
+    }
+
+    // Identificar o estudante solicitado na URL.
+    const identificador = rota.match(
+        /\/([0-9]+)(?:\/|$)/
+    );
+
+    // O POST /api/rotina recebe o ID pelo corpo.
+    const usuarioSolicitado = identificador
+        ? Number(identificador[1])
+        : rota === "/rotina" &&
+          req.method === "POST"
+            ? Number(req.body?.usuarioId)
+            : NaN;
+
+    if (
+        !Number.isSafeInteger(usuarioSolicitado) ||
+        usuarioSolicitado <= 0
+    ) {
+        return res.status(400).json({
+            erro: "Identificador invalido."
+        });
+    }
+
+    if (usuarioSolicitado !== identidade.id) {
+        return res.status(403).json({
+            erro: "Voce nao pode acessar os dados de outro usuario."
+        });
+    }
+
+    next();
+
+});
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 app.use(express.static(path.join(__dirname, "public")));
@@ -479,15 +683,27 @@ app.post("/api/login", async (req, res) => {
     const usuario = resultado.rows[0];
 
     const senhaCorreta = await bcrypt.compare(
-      senha,
-      usuario.senha_hash
-    );
+    senha,
+    usuario.senha_hash
+);
 
-    if (!senhaCorreta) {
-      return res.status(401).json({
+if (!senhaCorreta) {
+    return res.status(401).json({
         erro: "E-mail ou senha inválidos."
-      });
-    }
+    });
+}
+
+    if (usuario.status !== "ativo") {
+    return res.status(403).json({
+        erro: "Conta indisponivel."
+    });
+}
+
+criarCookieAcesso(res, "rota_aluno", {
+    tipo: "aluno",
+    id: usuario.id,
+    perfil: usuario.tipo_usuario
+});
 
     return res.json({
   sucesso: true,
@@ -2645,6 +2861,17 @@ app.post("/api/equipe/validar-codigo", async (req, res) => {
             });
 
         }
+
+        // Criar o cookie de autenticacao da equipe
+        criarCookieAcesso(
+            res,
+            "rota_equipe",
+            {
+                tipo: "equipe",
+                id: integranteEncontrado.id,
+                equipe: integranteEncontrado.equipe
+            }
+        );
 
 
         // ----------------------------------------------------

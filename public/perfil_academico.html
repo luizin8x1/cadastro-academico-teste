@@ -276,7 +276,7 @@
                                     <input 
                                         type="radio" 
                                         name="objetivo" 
-                                        required
+                                        :required="serie.endsWith('_em')"
                                         :value="option.id" 
                                         x-model="selectedObjetivo"
                                         class="accent-blue-600 hc:accent-yellow-400"
@@ -290,7 +290,7 @@
                                 <input 
                                     type="text" 
                                     maxlength="150"
-                                    :required="selectedObjetivo === 'outro'"
+                                    :required="serie.endsWith('_em') && selectedObjetivo === 'outro'"
                                     x-model="objetivoOutroTexto"
                                     placeholder="Especifique seu objetivo"
                                     class="w-full px-4 py-3 bg-white dark:bg-slate-900 hc:bg-black border border-slate-200 dark:border-slate-800 hc:border-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 hc:focus:ring-yellow-400 transition-all text-slate-700 dark:text-slate-200 hc:text-white"
@@ -446,14 +446,23 @@
 
                     // --- Validações complementares (campos que o HTML sozinho não cobre) ---
 
-                    if (!this.selectedObjetivo || !OBJETIVO_MAP[this.selectedObjetivo]) {
-                        this.erro = 'Selecione o que você deseja alcançar.';
-                        return;
-                    }
-                    if (this.selectedObjetivo === 'outro' && this.objetivoOutroTexto.trim().length === 0) {
-                        this.erro = 'Especifique seu objetivo no campo "Outro".';
-                        return;
-                    }
+                    if (
+    this.serie.endsWith('_em') &&
+    (!this.selectedObjetivo ||
+     !OBJETIVO_MAP[this.selectedObjetivo])
+) {
+    this.erro = 'Selecione o que você deseja alcançar.';
+    return;
+}
+
+if (
+    this.serie.endsWith('_em') &&
+    this.selectedObjetivo === 'outro' &&
+    this.objetivoOutroTexto.trim().length === 0
+) {
+    this.erro = 'Especifique seu objetivo no campo "Outro".';
+    return;
+}
                     if (this.dataNascimento > this.maxNascimento) {
                         this.erro = 'A data de nascimento não pode ser no futuro.';
                         return;
@@ -489,8 +498,15 @@
                         curso: cursoNormalizado,
                         universidade: universidadeNormalizada,
                         tipoInstituicao: tipoInstituicaoNormalizado,
-                        objetivo: OBJETIVO_MAP[this.selectedObjetivo],
-                        objetivoOutro: this.selectedObjetivo === 'outro' ? this.objetivoOutroTexto.trim() : null,
+                        objetivo: this.serie.endsWith('_em')
+    ? OBJETIVO_MAP[this.selectedObjetivo]
+    : null,
+
+objetivoOutro:
+    this.serie.endsWith('_em') &&
+    this.selectedObjetivo === 'outro'
+        ? this.objetivoOutroTexto.trim()
+        : null,
                     };
 
                     try {
@@ -531,9 +547,63 @@
                             return;
                         }
 
-                        sessionStorage.removeItem('cadastroPendente');
-                        sessionStorage.setItem('usuarioId', dados.usuarioId);
-                        window.location.href = "main.html";
+                        // A conta foi criada. Agora precisamos autenticar o aluno.
+let respostaLogin;
+
+try {
+    respostaLogin = await fetch('/api/login', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            email: cadastroPendente.email,
+            senha: cadastroPendente.senha
+        })
+    });
+} catch (falhaLogin) {
+    sessionStorage.removeItem('cadastroPendente');
+
+    this.erro =
+        'Sua conta foi criada, mas não foi possível entrar ' +
+        'automaticamente. Acesse a tela de login.';
+
+    return;
+}
+
+if (!respostaLogin.ok) {
+    sessionStorage.removeItem('cadastroPendente');
+
+    this.erro =
+        'Sua conta foi criada. Faça login para continuar.';
+
+    return;
+}
+
+const sessao = await respostaLogin.json();
+
+if (
+    !sessao.usuarioId ||
+    Number(sessao.usuarioId) !== Number(dados.usuarioId)
+) {
+    sessionStorage.removeItem('cadastroPendente');
+
+    this.erro =
+        'Conta criada, mas não foi possível confirmar ' +
+        'a autenticação. Entre pela tela de login.';
+
+    return;
+}
+
+sessionStorage.removeItem('cadastroPendente');
+
+sessionStorage.setItem(
+    'usuarioId',
+    String(sessao.usuarioId)
+);
+
+window.location.href = 'main.html';
 
                     } catch (err) {
                         console.error('[cadastro] Não foi possível falar com o servidor', err);

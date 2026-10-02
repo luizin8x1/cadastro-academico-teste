@@ -68,7 +68,56 @@
             }
         })();
     </script>
-    
+    <style>
+    .rota-v4-relogio {
+        width: 96px;
+        height: 96px;
+        margin: auto;
+        border: 5px solid #2563eb;
+        border-radius: 50%;
+        position: relative;
+        background: #eff6ff;
+        box-shadow: 0 0 0 9px rgba(37, 99, 235, 0.08);
+    }
+
+    .rota-v4-relogio::before {
+        content: "";
+        position: absolute;
+        width: 4px;
+        height: 32px;
+        top: 11px;
+        left: calc(50% - 2px);
+        background: #2563eb;
+        border-radius: 4px;
+        transform-origin: center 32px;
+        animation: rota-v4-girar 2.2s linear infinite;
+    }
+
+    .rota-v4-relogio::after {
+        content: "";
+        position: absolute;
+        width: 12px;
+        height: 12px;
+        top: calc(50% - 6px);
+        left: calc(50% - 6px);
+        border-radius: 50%;
+        background: #1d4ed8;
+    }
+
+    @keyframes rota-v4-girar {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .rota-v4-relogio::before {
+            animation: none;
+        }
+    }
+</style>
+
+
 </head>
 <body 
     x-data="studyApp()" 
@@ -78,6 +127,63 @@
         'hc': theme === 'hc' 
     }"
     class="bg-slate-50 text-slate-900 dark:text-slate-100 antialiased selection:bg-blue-200 selection:text-blue-900 transition-colors duration-300 hc:bg-black hc:text-white"
+>
+
+<!-- TELA DE ESPERA DA GERAÇÃO V4 -->
+<div
+    x-show="planoEstudo.gerando"
+    x-transition.opacity
+    x-cloak
+    role="status"
+    aria-live="polite"
+    class="fixed inset-0 z-[9999]
+           flex items-center justify-center
+           bg-slate-950/70 backdrop-blur-sm p-4"
+>
+    <div class="w-full max-w-md rounded-3xl
+                bg-white dark:bg-slate-900
+                p-9 text-center shadow-2xl">
+
+        <div
+            class="rota-v4-relogio"
+            aria-hidden="true">
+        </div>
+
+        <h2 class="mt-9 text-2xl font-extrabold
+                   text-slate-900 dark:text-white">
+            Criando sua Rota do Sucesso
+        </h2>
+
+        <p
+            class="mt-3 text-slate-600 dark:text-slate-300"
+            x-text="planoEstudo.etapaGeracao ||
+                    'Preparando seu plano personalizado...'">
+        </p>
+
+        <div class="mt-6 flex justify-center gap-2">
+            <span
+                class="h-2 w-2 rounded-full
+                       bg-blue-600 animate-pulse">
+            </span>
+
+            <span
+                class="h-2 w-2 rounded-full
+                       bg-blue-500 animate-pulse">
+            </span>
+
+            <span
+                class="h-2 w-2 rounded-full
+                       bg-blue-400 animate-pulse">
+            </span>
+        </div>
+
+        <p class="mt-4 text-xs text-slate-400">
+            Aguarde. Não feche esta página.
+        </p>
+
+    </div>
+</div>
+
 
 <!-- AVISO DO PERFIL ACADÊMICO -->
 <div
@@ -4228,6 +4334,7 @@
                     name="tipoPlanejamento"
                     value="mensal"
                     x-model="planoEstudo.tipoPlanejamento"
+                     disabled
                     class="sr-only"
                 >
 
@@ -6517,7 +6624,8 @@ planoEstudo: {
     objetivoOutro: '',
     tipoPlanejamento: '',
     gerando: false,
-
+    etapaGeracao: '',
+    gerandoIA: false,
     erro: '',
 
 pdf: {
@@ -9415,6 +9523,10 @@ async carregarPdfPlanoEstudo() {
 
 async gerarPlanoEstudo() {
 
+if (this.planoEstudo.gerando) {
+    return;
+}
+
     if (!this.planoEstudoPodeGerar || !this.planoEstudo.tipoPlanejamento) {
 
         await abrirModalSistema({
@@ -9439,9 +9551,25 @@ async gerarPlanoEstudo() {
         return;
     }
 
+    if (this.planoEstudo.tipoPlanejamento !== 'semanal') {
+
+    await abrirModalSistema({
+        titulo: "Plano mensal em validação",
+        mensagem:
+            "Neste momento, o Claude V4 está habilitado " +
+            "apenas para planos semanais.",
+        tipo: "aviso",
+        textoConfirmar: "Entendi",
+        mostrarCancelar: false
+    });
+
+    return;
+}
 
     this.planoEstudo.gerando = true;
 
+    this.planoEstudo.etapaGeracao =
+    "Validando sua rotina e suas informações acadêmicas...";
 
     try {
 
@@ -9518,27 +9646,40 @@ async gerarPlanoEstudo() {
 
 
         // ==========================================
-        // SUCESSO - MODO DE TESTE
-        // ==========================================
+// GERAR PLANO COM CLAUDE V4
+// ==========================================
 
-        await abrirModalSistema({
+const { planoId, avisoPdf } =
+    await window.executarGeracaoV4(this);
 
-            titulo:
-                "Tudo pronto para a IA!",
+// O servidor confirmou a gravação do plano.
+this.planoEstudo.planoGeradoNestaSessao = true;
 
-            mensagem:
-                "A Rotina Diária, o Perfil Acadêmico e o objetivo foram validados com sucesso. Nesta etapa de teste nenhuma Inteligência Artificial foi acionada ainda.",
+// Encerrar o relógio antes de exibir o resultado.
+this.planoEstudo.gerando = false;
 
-            tipo:
-                "sucesso",
+// Abrir automaticamente Meus Planos.
+await this.abrirVisaoPlanos('meus');
 
-            textoConfirmar:
-                "Concluir",
+// Apresentar a confirmação ao aluno.
+await abrirModalSistema({
 
-            mostrarCancelar:
-                false
+    titulo: "Seu Plano de Estudos está pronto!",
 
-        });
+    mensagem:
+        "Seu planejamento foi salvo em Meus Planos." +
+        avisoPdf,
+
+    tipo:
+        avisoPdf ? "aviso" : "sucesso",
+
+    textoConfirmar:
+        "Ver meus planos",
+
+    mostrarCancelar:
+        false
+
+});
 
 
     } catch (erro) {
@@ -9555,8 +9696,10 @@ async gerarPlanoEstudo() {
                 "Não foi possível gerar",
 
             mensagem:
-                erro.message ||
-                "Ocorreu um erro ao preparar o Plano de Estudo.",
+    (erro.message ||
+        "Ocorreu um erro ao gerar o Plano de Estudos.") +
+    " Antes de solicitar outra geração, confira " +
+    "Meus Planos para evitar uma cobrança desnecessária.",
 
             tipo:
                 "erro",
@@ -9572,7 +9715,7 @@ async gerarPlanoEstudo() {
     } finally {
 
         this.planoEstudo.gerando = false;
-
+        this.planoEstudo.etapaGeracao = '';
     }
 
 },
@@ -9601,6 +9744,17 @@ async carregarPerfilAcademico() {
         const resposta = await fetch(
             `/api/perfil/${this.usuarioId}`
         );
+
+        if (
+    resposta.status === 401 ||
+    resposta.status === 403
+) {
+    sessionStorage.removeItem('usuarioId');
+
+    window.location.replace('login.html');
+
+    return;
+}
 
         console.log(
             "Status da API Perfil Acadêmico:",
@@ -11063,17 +11217,14 @@ async function carregarRotina() {
 
                     <button
     type="button"
-    onclick="abrirRepeticaoDia(${dia.id})"
-    class="inline-flex items-center gap-2
-           text-xs font-medium
-           text-slate-500 dark:text-slate-400
-           hover:text-blue-600
-           dark:hover:text-blue-400
-           transition">
-
-    <span>⧉</span>
-    Copiar dia inteiro
-
+    onclick="abrirCriacaoRotina()"
+    class="mt-6 inline-flex items-center gap-2
+           px-6 py-3 rounded-xl
+           bg-blue-600 hover:bg-blue-700
+           text-white font-semibold transition"
+>
+    <span>+</span>
+    Criar minha Rotina Diária
 </button>
 
                 </div>
@@ -13614,7 +13765,48 @@ document.addEventListener("DOMContentLoaded", () => {
     </div>
 </div>
 
+<!-- ANIMAÇÃO DE GERAÇÃO DO PLANO -->
+<div
+    x-show="planoEstudo.gerandoIA"
+    x-transition.opacity
+    x-cloak
+    role="status"
+    aria-live="polite"
+    class="fixed inset-0 z-[9999]
+           bg-slate-950/70 backdrop-blur-sm
+           flex items-center justify-center p-5"
+>
+    <div class="bg-white dark:bg-slate-900
+                rounded-3xl shadow-2xl
+                max-w-md w-full p-10 text-center">
 
+        <div class="w-24 h-24 mx-auto mb-7
+                    rounded-full bg-blue-50
+                    flex items-center justify-center">
+
+            <i class="ph-bold ph-clock
+                      text-6xl text-blue-600
+                      animate-spin"></i>
+        </div>
+
+        <h2 class="text-2xl font-bold mb-3
+                   text-slate-900 dark:text-white">
+            Criando sua Rota do Sucesso
+        </h2>
+
+        <p class="text-slate-500 dark:text-slate-300">
+            A Inteligência Artificial está organizando
+            seus estudos de acordo com seus objetivos,
+            dificuldades e horários disponíveis.
+        </p>
+
+        <p class="text-blue-600 font-semibold mt-6">
+            Aguarde, estamos preparando seu plano...
+        </p>
+    </div>
+</div>
+
+<script src="js/fluxo-plano-v4.js"></script>
 
 </body>
 </html>

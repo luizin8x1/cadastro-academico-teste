@@ -8894,6 +8894,19 @@ app.get(
     }
 );
 
+// =====================================================
+// REGISTRAR AS ROTAS DO CLAUDE V4
+// =====================================================
+
+require("./services/registrar-plano-v4")({
+    app,
+    pool,
+    anthropic,
+    montarPayloadPlanoEstudo,
+    prepararDadosClaude
+});
+
+
 app.listen(PORT, () => {
   console.log(`Servidor rodando em http://localhost:${PORT}`);
 });

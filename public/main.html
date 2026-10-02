@@ -10930,19 +10930,19 @@ async function carregarRotina() {
                     </p>
 
                     <button
-                        type="button"
-                        onclick="abrirCriacaoRotina()"
-                        class="mt-8 inline-flex items-center gap-2
-                               bg-blue-600 hover:bg-blue-700
-                               text-white font-semibold
-                               px-8 py-4 rounded-xl
-                               transition shadow-sm">
+    type="button"
+    onclick="abrirRepeticaoDia(${dia.id})"
+    class="inline-flex items-center gap-2
+           text-xs font-medium
+           text-slate-500 dark:text-slate-400
+           hover:text-blue-600
+           dark:hover:text-blue-400
+           transition">
 
-                        <span class="text-xl">+</span>
+    <span>⧉</span>
+    Copiar dia inteiro
 
-                        Criar Rotina Diária
-
-                    </button>
+</button>
 
                 </div>
             `;
@@ -11483,12 +11483,43 @@ function abrirModalSistema({
 
         cancelar.classList.toggle("hidden", !mostrarCancelar);
 
+// ==============================
+// TIPO: ERRO
+// ==============================
+if (tipo === "erro") {
+
+    icone.setAttribute(
+        "data-lucide",
+        "triangle-alert"
+    );
+
+    iconeContainer.className =
+        `flex h-12 w-12 shrink-0 items-center justify-center
+         rounded-2xl bg-red-50 text-red-600
+         dark:bg-red-950/40`;
+
+    confirmar.className =
+        `rounded-xl bg-red-600 px-5 py-2.5
+         font-semibold text-white shadow-sm
+         hover:bg-red-700 hover:shadow-md
+         transition-all`;
+
+    faixa.className =
+        `h-1.5 bg-gradient-to-r
+         from-red-600 via-orange-400 to-red-600`;
+
+}
+
+
         // ==============================
         // TIPO: PERIGO
         // ==============================
-        if (tipo === "perigo") {
+        else if (tipo === "perigo") {
 
-            icone.setAttribute("data-lucide", "trash-2");
+            icone.setAttribute(
+    "data-lucide",
+    "triangle-alert"
+);
 
             iconeContainer.className =
                 `flex h-12 w-12 shrink-0 items-center justify-center
@@ -11576,7 +11607,37 @@ function fecharModalSistema(resultado) {
     }
 }
 
+// =====================================================
+// ALERTA PADRÃO DO ROTA DO SUCESSO
+// Substitui visualmente o alert() do navegador
+// =====================================================
 
+function alertaSistema(
+    mensagem,
+    {
+        titulo = "Atenção",
+        tipo = "info",
+        textoBotao = "Entendi"
+    } = {}
+) {
+
+    return abrirModalSistema({
+
+        titulo,
+
+        mensagem,
+
+        tipo,
+
+        textoConfirmar:
+            textoBotao,
+
+        mostrarCancelar:
+            false
+
+    });
+
+}
 
 function preencherFormularioRotina(rotina) {
 
@@ -11904,7 +11965,7 @@ function adicionarCompromisso(dia) {
             </div>
 
             <!-- Tipo -->
-            <div class="md:col-span-3">
+            <div class="md:col-span-2">
 
                 <label class="block text-xs font-semibold
                               text-slate-600 dark:text-slate-300 mb-2">
@@ -11929,23 +11990,62 @@ function adicionarCompromisso(dia) {
 
             </div>
 
-            <!-- Excluir -->
-            <div class="md:col-span-1">
+            <!-- Ações -->
+<div class="md:col-span-2">
 
-                <button
-                    type="button"
-                    onclick="removerCompromisso(${id}, ${dia})"
-                    title="Excluir compromisso"
-                    class="w-full h-[42px] rounded-lg
-                           text-red-500 hover:bg-red-50
-                           dark:hover:bg-red-950/30 transition">
+    <label class="block text-xs font-semibold
+                  text-slate-600 dark:text-slate-300 mb-2">
+        Ações
+    </label>
 
-                    🗑️
+    <div class="flex items-center gap-2">
 
-                </button>
+        <!-- Repetir atividade -->
+        <button
+            type="button"
+            onclick="abrirRepeticaoCompromisso(${id}, ${dia})"
+            title="Repetir esta atividade em outros dias"
+            class="flex-1 h-[42px]
+                   rounded-lg
+                   border border-blue-200
+                   text-blue-600
+                   hover:bg-blue-50
+                   dark:border-blue-900
+                   dark:text-blue-400
+                   dark:hover:bg-blue-950/30
+                   transition
+                   font-semibold">
 
-            </div>
+            ↻
 
+        </button>
+
+        <!-- Excluir -->
+        <button
+            type="button"
+            onclick="removerCompromisso(${id}, ${dia})"
+            title="Excluir compromisso"
+            class="w-11 h-[42px]
+                   rounded-lg
+                   text-red-500
+                   hover:bg-red-50
+                   dark:hover:bg-red-950/30
+                   transition">
+
+            🗑️
+
+        </button>
+
+    </div>
+
+</div>
+
+        </div>
+
+<!-- Painel para repetir somente esta atividade -->
+        <div
+            id="repetir-compromisso-${id}"
+            class="hidden mt-4">
         </div>
 
     `;
@@ -11982,6 +12082,586 @@ function removerCompromisso(id, dia) {
             areaRepetir.classList.add("hidden");
         }
     }
+}
+
+
+// =====================================================
+// REPETIR UMA ATIVIDADE ESPECÍFICA
+// =====================================================
+
+function abrirRepeticaoCompromisso(
+    id,
+    diaOrigem
+) {
+
+    const compromisso =
+        document.getElementById(
+            `compromisso-${id}`
+        );
+
+    const painel =
+        document.getElementById(
+            `repetir-compromisso-${id}`
+        );
+
+
+    if (
+        !compromisso ||
+        !painel
+    ) {
+        return;
+    }
+
+
+    // Se já estiver aberto, fecha
+    if (
+        !painel.classList.contains(
+            "hidden"
+        )
+    ) {
+
+        fecharRepeticaoCompromisso(id);
+
+        return;
+    }
+
+
+    const atividade =
+        compromisso
+            .querySelector(".atividade")
+            .value
+            .trim();
+
+
+    const dias = [
+        {
+            id: 1,
+            nome: "Segunda"
+        },
+        {
+            id: 2,
+            nome: "Terça"
+        },
+        {
+            id: 3,
+            nome: "Quarta"
+        },
+        {
+            id: 4,
+            nome: "Quinta"
+        },
+        {
+            id: 5,
+            nome: "Sexta"
+        },
+        {
+            id: 6,
+            nome: "Sábado"
+        },
+        {
+            id: 7,
+            nome: "Domingo"
+        }
+    ];
+
+
+    const destinos =
+        dias.filter(
+            dia =>
+                dia.id !== diaOrigem
+        );
+
+
+    painel.innerHTML = `
+
+        <div
+            class="rounded-xl
+                   border border-blue-100
+                   dark:border-blue-900/60
+                   bg-blue-50/60
+                   dark:bg-blue-950/20
+                   p-4"
+        >
+
+            <div
+                class="flex flex-col
+                       lg:flex-row
+                       lg:items-center
+                       lg:justify-between
+                       gap-4"
+            >
+
+                <div class="min-w-0">
+
+                    <p
+                        class="text-xs
+                               font-bold
+                               uppercase
+                               tracking-wide
+                               text-blue-600
+                               dark:text-blue-400"
+                    >
+                        Repetir atividade
+                    </p>
+
+                    <p
+                        class="font-semibold
+                               text-slate-800
+                               dark:text-white
+                               mt-1"
+                    >
+                        ${
+                            escapeHtmlRotina(
+                                atividade ||
+                                "Esta atividade"
+                            )
+                        }
+                    </p>
+
+
+                    <div
+                        class="flex flex-wrap
+                               gap-x-4 gap-y-3
+                               mt-3"
+                    >
+
+                        ${
+                            destinos
+                                .map(
+                                    dia => `
+
+                                        <label
+                                            class="flex
+                                                   items-center
+                                                   gap-2
+                                                   text-sm
+                                                   text-slate-600
+                                                   dark:text-slate-300
+                                                   cursor-pointer"
+                                        >
+
+                                            <input
+                                                type="checkbox"
+                                                value="${dia.id}"
+
+                                                class="
+                                                    dia-repeticao-compromisso-${id}
+                                                    h-4 w-4
+                                                    accent-blue-600
+                                                "
+                                            >
+
+                                            ${dia.nome}
+
+                                        </label>
+
+                                    `
+                                )
+                                .join("")
+                        }
+
+                    </div>
+
+                </div>
+
+
+                <div
+                    class="flex items-center
+                           gap-2
+                           flex-shrink-0"
+                >
+
+                    <button
+                        type="button"
+
+                        onclick="
+                            fecharRepeticaoCompromisso(
+                                ${id}
+                            )
+                        "
+
+                        class="px-4 py-2
+                               rounded-lg
+                               border
+                               border-slate-300
+                               dark:border-slate-600
+                               text-sm
+                               text-slate-600
+                               dark:text-slate-300
+                               hover:bg-white
+                               dark:hover:bg-slate-800
+                               transition"
+                    >
+                        Cancelar
+                    </button>
+
+
+                    <button
+                        type="button"
+
+                        onclick="
+                            confirmarRepeticaoCompromisso(
+                                ${id},
+                                ${diaOrigem}
+                            )
+                        "
+
+                        class="px-4 py-2
+                               rounded-lg
+                               bg-blue-600
+                               hover:bg-blue-700
+                               text-white
+                               text-sm
+                               font-semibold
+                               transition"
+                    >
+                        Repetir
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    `;
+
+
+    painel.classList.remove(
+        "hidden"
+    );
+
+}
+
+
+function fecharRepeticaoCompromisso(id) {
+
+    const painel =
+        document.getElementById(
+            `repetir-compromisso-${id}`
+        );
+
+
+    if (!painel) {
+        return;
+    }
+
+
+    painel.classList.add(
+        "hidden"
+    );
+
+    painel.innerHTML = "";
+
+}
+
+
+// =====================================================
+// LER OS DADOS DE UM COMPROMISSO
+// =====================================================
+
+function obterDadosCompromisso(
+    compromisso
+) {
+
+    return {
+
+        atividade:
+            compromisso
+                .querySelector(
+                    ".atividade"
+                )
+                .value
+                .trim(),
+
+        horaInicio:
+            compromisso
+                .querySelector(
+                    ".hora-inicio"
+                )
+                .value,
+
+        horaFim:
+            compromisso
+                .querySelector(
+                    ".hora-fim"
+                )
+                .value,
+
+        tipo:
+            compromisso
+                .querySelector(
+                    ".tipo-atividade"
+                )
+                .value
+
+    };
+
+}
+
+
+// =====================================================
+// VERIFICAR SE JÁ EXISTE COMPROMISSO IGUAL
+// =====================================================
+
+function compromissoJaExisteNoDia(
+    diaDestino,
+    dados
+) {
+
+    const destino =
+        document.getElementById(
+            `dia-${diaDestino}`
+        );
+
+
+    if (!destino) {
+        return false;
+    }
+
+
+    const compromissos =
+        destino.querySelectorAll(
+            ".compromisso-rotina"
+        );
+
+
+    return Array
+        .from(compromissos)
+        .some(
+            compromisso => {
+
+                const existente =
+                    obterDadosCompromisso(
+                        compromisso
+                    );
+
+
+                return (
+
+                    existente.atividade
+                        .toLowerCase() ===
+                    dados.atividade
+                        .toLowerCase() &&
+
+                    existente.horaInicio ===
+                        dados.horaInicio &&
+
+                    existente.horaFim ===
+                        dados.horaFim &&
+
+                    existente.tipo ===
+                        dados.tipo
+
+                );
+
+            }
+        );
+
+}
+
+
+// =====================================================
+// COPIAR UM ÚNICO COMPROMISSO
+// =====================================================
+
+function copiarCompromissoParaDia(
+    compromissoOrigem,
+    diaDestino
+) {
+
+    const dados =
+        obterDadosCompromisso(
+            compromissoOrigem
+        );
+
+
+    // Não duplica uma atividade
+    // exatamente igual no mesmo dia
+    if (
+        compromissoJaExisteNoDia(
+            diaDestino,
+            dados
+        )
+    ) {
+
+        return false;
+
+    }
+
+
+    adicionarCompromisso(
+        diaDestino
+    );
+
+
+    const destino =
+        document.getElementById(
+            `dia-${diaDestino}`
+        );
+
+
+    const compromissosDestino =
+        destino.querySelectorAll(
+            ".compromisso-rotina"
+        );
+
+
+    const novo =
+        compromissosDestino[
+            compromissosDestino.length - 1
+        ];
+
+
+    if (!novo) {
+        return false;
+    }
+
+
+    novo
+        .querySelector(
+            ".atividade"
+        )
+        .value =
+            dados.atividade;
+
+
+    novo
+        .querySelector(
+            ".hora-inicio"
+        )
+        .value =
+            dados.horaInicio;
+
+
+    novo
+        .querySelector(
+            ".hora-fim"
+        )
+        .value =
+            dados.horaFim;
+
+
+    novo
+        .querySelector(
+            ".tipo-atividade"
+        )
+        .value =
+            dados.tipo;
+
+
+    return true;
+
+}
+
+
+// =====================================================
+// CONFIRMAR REPETIÇÃO DE UMA ATIVIDADE
+// =====================================================
+
+function confirmarRepeticaoCompromisso(
+    id,
+    diaOrigem
+) {
+
+    const compromisso =
+        document.getElementById(
+            `compromisso-${id}`
+        );
+
+
+    if (!compromisso) {
+        return;
+    }
+
+
+    const dados =
+        obterDadosCompromisso(
+            compromisso
+        );
+
+
+    // Mesma validação básica
+    // utilizada ao salvar a rotina
+    if (
+        !dados.atividade ||
+        !dados.horaInicio
+    ) {
+
+        alertaSistema(
+        "Preencha a atividade e o horário de início antes de repeti-la.",
+            {
+                titulo: "Complete a atividade",
+                tipo: "info"
+            }
+        );
+
+        return;
+    }
+
+
+    const selecionados =
+        document.querySelectorAll(
+            `.dia-repeticao-compromisso-${id}:checked`
+        );
+
+
+    if (
+        selecionados.length === 0
+    ) {
+
+        alertaSistema(
+    "Selecione pelo menos um dia para repetir esta atividade.",
+    {
+        titulo: "Escolha os dias",
+        tipo: "info"
+    }
+);
+
+        return;
+    }
+
+
+    let adicionados = 0;
+    let ignorados = 0;
+
+
+    selecionados.forEach(
+        checkbox => {
+
+            const diaDestino =
+                Number(
+                    checkbox.value
+                );
+
+
+            const adicionou =
+                copiarCompromissoParaDia(
+                    compromisso,
+                    diaDestino
+                );
+
+
+            if (adicionou) {
+
+                adicionados++;
+
+            } else {
+
+                ignorados++;
+
+            }
+
+        }
+    );
+
+
+    fecharRepeticaoCompromisso(
+        id
+    );
+
+
+
 }
 
 function abrirRepeticaoDia(diaOrigem) {
@@ -12094,7 +12774,13 @@ function confirmarRepeticaoDia(diaOrigem) {
         origem.querySelectorAll(".compromisso-rotina");
 
     if (compromissosOrigem.length === 0) {
-        alert("Cadastre pelo menos um compromisso antes de repetir este dia.");
+        alertaSistema(
+        "Cadastre pelo menos um compromisso antes de copiar este dia.",
+        {
+            titulo: "Nenhum compromisso",
+            tipo: "info"
+        }
+    );
         return;
     }
 
@@ -12103,7 +12789,13 @@ function confirmarRepeticaoDia(diaOrigem) {
     );
 
     if (selecionados.length === 0) {
-        alert("Selecione pelo menos um dia.");
+        alertaSistema(
+        "Selecione pelo menos um dia para continuar.",
+        {
+        titulo: "Escolha os dias",
+        tipo: "info"
+        }
+);
         return;
     }
 
@@ -12121,60 +12813,43 @@ function confirmarRepeticaoDia(diaOrigem) {
     fecharRepeticaoDia(diaOrigem);
 }
 
-function copiarCompromissosDoDia(diaOrigem, diaDestino) {
 
-    const origem = document.getElementById(`dia-${diaOrigem}`);
-    const destino = document.getElementById(`dia-${diaDestino}`);
+function copiarCompromissosDoDia(
+    diaOrigem,
+    diaDestino
+) {
 
-    const compromissos =
-        origem.querySelectorAll(".compromisso-rotina");
+    const origem =
+        document.getElementById(
+            `dia-${diaOrigem}`
+        );
 
-    // Remove "Nenhum compromisso cadastrado"
-    const vazio =
-        document.getElementById(`vazio-dia-${diaDestino}`);
 
-    if (vazio) {
-        vazio.remove();
+    if (!origem) {
+        return;
     }
 
-    compromissos.forEach(compromisso => {
 
-        const atividade =
-            compromisso.querySelector(".atividade").value;
-
-        const horaInicio =
-            compromisso.querySelector(".hora-inicio").value;
-
-        const horaFim =
-            compromisso.querySelector(".hora-fim").value;
-
-        const tipo =
-            compromisso.querySelector(".tipo-atividade").value;
+    const compromissos =
+        origem.querySelectorAll(
+            ".compromisso-rotina"
+        );
 
 
-        // Cria novo compromisso
-        adicionarCompromisso(diaDestino);
+    compromissos.forEach(
+        compromisso => {
 
+            copiarCompromissoParaDia(
+                compromisso,
+                diaDestino
+            );
 
-        // Recupera o último compromisso criado
-        const compromissosDestino =
-            destino.querySelectorAll(".compromisso-rotina");
+        }
+    );
 
-        const novo =
-            compromissosDestino[compromissosDestino.length - 1];
-
-
-        // Copia os valores
-        novo.querySelector(".atividade").value = atividade;
-        novo.querySelector(".hora-inicio").value = horaInicio;
-        novo.querySelector(".hora-fim").value = horaFim;
-        novo.querySelector(".tipo-atividade").value = tipo;
-
-    });
 }
-async function salvarRotina() {
 
-    alert("ENTROU NA FUNÇÃO SALVAR ROTINA");
+async function salvarRotina() {
 
     const usuarioId = sessionStorage.getItem("usuarioId");
 
@@ -12191,7 +12866,13 @@ async function salvarRotina() {
     console.log("Quantidade de compromissos:", compromissos.length);
 
     if (compromissos.length === 0) {
-        alert("Cadastre pelo menos um compromisso.");
+        await alertaSistema(
+    "Cadastre pelo menos um compromisso.",
+    {
+        titulo: "Rotina incompleta",
+        tipo: "info"
+    }
+);
         return;
     }
 
@@ -12229,9 +12910,13 @@ async function salvarRotina() {
     });
 
     if (possuiErro) {
-        alert(
-            "Preencha pelo menos a atividade e o horário de início de todos os compromissos."
-        );
+        await alertaSistema(
+    "Preencha pelo menos a atividade e o horário de início de todos os compromissos.",
+    {
+        titulo: "Verifique os compromissos",
+        tipo: "info"
+    }
+);
         return;
     }
 
@@ -12260,7 +12945,14 @@ async function salvarRotina() {
             );
         }
 
-        alert("Rotina salva com sucesso!");
+        await alertaSistema(
+    "Sua rotina diária foi salva com sucesso.",
+    {
+        titulo: "Rotina salva",
+        tipo: "sucesso",
+        textoBotao: "Continuar"
+    }
+);
 
         carregarRotina();
 
@@ -12268,10 +12960,16 @@ async function salvarRotina() {
 
         console.error("Erro ao salvar rotina:", erro);
 
-        alert(
-            erro.message ||
-            "Não foi possível salvar sua rotina."
-        );
+        await alertaSistema(
+    erro.message ||
+    "Não foi possível salvar sua rotina.",
+    {
+        titulo: "Erro ao salvar",
+        tipo: "erro",
+        textoBotao: "Entendi"
+    }
+);
+
     }
 }
 

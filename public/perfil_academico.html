@@ -207,6 +207,8 @@
                                 <option value="1_em">1º Ano do Ensino Médio</option>
                                 <option value="2_em">2º Ano do Ensino Médio</option>
                                 <option value="3_em">3º Ano do Ensino Médio</option>
+                                <option value="4_em">Já me formei</option>
+                                <option value="5_em">Não estudo atualmente</option>
                                 
                             </select>
                             <i class="ph ph-caret-down absolute right-3.5 text-slate-400 text-lg pointer-events-none"></i>
@@ -343,10 +345,21 @@
     <script>
         // Conversão dos valores em texto usados neste formulário para os códigos
         // numéricos que a tabela "usuario" no banco espera.
-        const SERIE_MAP = {
-            '5_ef': 1, '6_ef': 2, '7_ef': 3, '8_ef': 4, '9_ef': 5,
-            '1_em': 6, '2_em': 7, '3_em': 8,
-        };
+        const SERIES_VALIDAS =
+    new Set([
+        '5_ef',
+        '6_ef',
+        '7_ef',
+        '8_ef',
+        '9_ef',
+
+        '1_em',
+        '2_em',
+        '3_em',
+
+        '4_em',
+        '5_em'
+    ]);
         const REDE_MAP = { publica: 1, particular: 2 };
         const OBJETIVO_MAP = { enem: 1, vestibular: 2, notas: 3, estudos: 4, recuperacao: 5, concurso: 6, outro: 7 };
 
@@ -445,10 +458,16 @@
                         this.erro = 'A data de nascimento não pode ser no futuro.';
                         return;
                     }
-                    if (!SERIE_MAP[this.serie]) {
-                        this.erro = 'Selecione sua série/ano escolar.';
-                        return;
+                    if (
+                        !SERIES_VALIDAS.has(
+                            this.serie
+                            )
+                    ) {
+                    this.erro =
+                        'Selecione sua série/ano escolar.';
+                    return;
                     }
+
                     if (!REDE_MAP[this.redeEnsino]) {
                         this.erro = 'Selecione a rede de ensino da sua escola.';
                         return;
@@ -465,7 +484,7 @@
                     const payload = {
                         ...cadastroPendente,
                         dataNascimento: this.dataNascimento,
-                        serie: SERIE_MAP[this.serie],
+                        serie: this.serie,
                         redeEnsino: REDE_MAP[this.redeEnsino],
                         curso: cursoNormalizado,
                         universidade: universidadeNormalizada,

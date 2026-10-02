@@ -1,2 +1,6 @@
 node_modules/
 .env
+tests/claude-225-v3*.json
+tests/claude-225-v4*.json
+tests/claude-225-v4*.txt
+tests/guia-v4-preview.pdf

@@ -7,9 +7,24 @@ const { Pool } = require("pg");
 const bcrypt = require("bcryptjs");
 const cors = require("cors");
 const path = require("path");
+const fs = require("fs");
 const Anthropic = require("@anthropic-ai/sdk");
 const PDFDocument = require("pdfkit");
 const crypto = require("crypto");
+const prepararDadosClaude =
+    require("./services/preparar-dados-claude");
+
+const montarPromptPedagogico =
+    require("./services/prompt-plano-claude");
+
+const schemaPlanoClaude =
+    require("./services/schema-plano-claude");
+
+const validarPlanoClaude =
+    require("./services/validar-plano-claude");
+
+    const gerarBufferPdfV4 = require(
+    "./services/gerar-pdf-v4");
 
 const app = express();
 app.use(cors());
@@ -35,7 +50,193 @@ pool
   .catch((err) => console.error("Erro ao conectar no banco:", err.message));
 
 
+// =====================================================
+// SÉRIES E ETAPAS ACADÊMICAS
+// =====================================================
 
+const SERIES_ACADEMICAS = {
+
+    "5_ef": {
+        serie: "5º",
+        etapaAtual: 1
+    },
+
+    "6_ef": {
+        serie: "6º",
+        etapaAtual: 1
+    },
+
+    "7_ef": {
+        serie: "7º",
+        etapaAtual: 1
+    },
+
+    "8_ef": {
+        serie: "8º",
+        etapaAtual: 1
+    },
+
+    "9_ef": {
+        serie: "9º",
+        etapaAtual: 1
+    },
+
+    "1_em": {
+        serie: "1º",
+        etapaAtual: 2
+    },
+
+    "2_em": {
+        serie: "2º",
+        etapaAtual: 2
+    },
+
+    "3_em": {
+        serie: "3º",
+        etapaAtual: 2
+    },
+
+    "4_em": {
+        serie: "Já me formei",
+        etapaAtual: 2
+    },
+
+    "5_em": {
+        serie: "Não estudo atualmente",
+        etapaAtual: 2
+    }
+
+};
+
+
+function obterSerieAcademica(codigo) {
+
+    return SERIES_ACADEMICAS[
+        String(codigo || "").trim()
+    ] || null;
+
+}
+
+
+function rotuloEtapaAcademica(etapa) {
+
+    const valor =
+        Number(etapa);
+
+    if (valor === 1) {
+        return "Ensino Fundamental";
+    }
+
+    if (valor === 2) {
+        return "Ensino Médio";
+    }
+
+    return "";
+
+}
+
+
+// =====================================================
+// COMPATIBILIDADE COM DADOS ANTIGOS
+// =====================================================
+
+const CODIGO_SERIE_POR_VALOR = {
+
+    // 5º EF
+    "1": "5_ef",
+    "5_ef": "5_ef",
+    "5º": "5_ef",
+    "5º Ano - Ensino Fundamental": "5_ef",
+
+    // 6º EF
+    "2": "6_ef",
+    "6_ef": "6_ef",
+    "6º": "6_ef",
+    "6º Ano - Ensino Fundamental": "6_ef",
+
+    // 7º EF
+    "3": "7_ef",
+    "7_ef": "7_ef",
+    "7º": "7_ef",
+    "7º Ano - Ensino Fundamental": "7_ef",
+
+    // 8º EF
+    "4": "8_ef",
+    "8_ef": "8_ef",
+    "8º": "8_ef",
+    "8º Ano - Ensino Fundamental": "8_ef",
+
+    // 9º EF
+    "5": "9_ef",
+    "9_ef": "9_ef",
+    "9º": "9_ef",
+    "9º Ano - Ensino Fundamental": "9_ef",
+
+    // 1º EM
+    "6": "1_em",
+    "1_em": "1_em",
+    "1º": "1_em",
+    "1º Ano - Ensino Médio": "1_em",
+
+    // 2º EM
+    "7": "2_em",
+    "2_em": "2_em",
+    "2º": "2_em",
+    "2º Ano - Ensino Médio": "2_em",
+
+    // 3º EM
+    "8": "3_em",
+    "3_em": "3_em",
+    "3º": "3_em",
+    "3º Ano - Ensino Médio": "3_em",
+
+    // Situações após EM
+    "4_em": "4_em",
+    "Já me formei": "4_em",
+
+    "5_em": "5_em",
+    "Não estudo atualmente": "5_em"
+
+};
+
+
+function interpretarSerieSalva(valor) {
+
+    const codigo =
+        CODIGO_SERIE_POR_VALOR[
+            String(valor || "").trim()
+        ] || "";
+
+
+    const configuracao =
+        obterSerieAcademica(codigo);
+
+
+    if (!configuracao) {
+
+        return {
+            codigo: "",
+            serie:
+                String(valor || "").trim(),
+            etapaAtual: null
+        };
+
+    }
+
+
+    return {
+
+        codigo,
+
+        serie:
+            configuracao.serie,
+
+        etapaAtual:
+            configuracao.etapaAtual
+
+    };
+
+}
 
 // ---------- CADASTRO (nome/email/senha + perfil acadêmico, tudo de uma vez) ----------
 app.post("/api/cadastro", async (req, res) => {
@@ -59,21 +260,60 @@ app.post("/api/cadastro", async (req, res) => {
     !senha ||
     !dataNascimento ||
     !serie ||
-    !redeEnsino ||
-    !curso ||
-    !universidade ||
-    !tipoInstituicao ||
-    !objetivo
-  ) {
+    !redeEnsino
+) {
+
     return res
-      .status(400)
-      .json({ erro: "Preencha todos os campos obrigatórios." });
-  }
+        .status(400)
+        .json({
+            erro:
+                "Preencha todos os campos obrigatórios."
+        });
+
+}
+
   if (senha.length < 6) {
     return res
       .status(400)
       .json({ erro: "A senha deve ter pelo menos 6 caracteres." });
   }
+"const s=require('./services/schema-plano-claude'); console.log('Versão:',s.properties.versao.const); console.log('Campos:',s.required.join(', ')); console.log('Sugestões de questões:',Boolean(s.properties.sessoes.items.properties.sugestaoQuestoes))"
+
+const serieAcademica =
+    obterSerieAcademica(
+        serie
+    );
+
+
+if (!serieAcademica) {
+
+    return res
+        .status(400)
+        .json({
+            erro:
+                "Série/ano escolar inválido."
+        });
+
+}
+
+
+const ehEnsinoMedio =
+    serieAcademica.etapaAtual === 2;
+
+
+if (
+    ehEnsinoMedio &&
+    !objetivo
+) {
+
+    return res
+        .status(400)
+        .json({
+            erro:
+                "Informe o objetivo acadêmico."
+        });
+
+}
 
   try {
     const existe = await pool.query(
@@ -95,9 +335,20 @@ const redeEnsinoBanco =
   redeEnsino;
 
 const tipoInstituicaoBanco =
-  String(tipoInstituicao) === "1" ? "publica" :
-  String(tipoInstituicao) === "2" ? "particular" :
-  tipoInstituicao;
+
+    tipoInstituicao === null ||
+    tipoInstituicao === undefined ||
+    tipoInstituicao === ""
+
+        ? null
+
+        : String(tipoInstituicao) === "1"
+            ? "publica"
+
+            : String(tipoInstituicao) === "2"
+                ? "particular"
+
+                : tipoInstituicao;
 
  const client = await pool.connect();
 
@@ -120,23 +371,64 @@ try {
   const usuarioId = resultadoUsuario.rows[0].id;
 
   // 2º INSERT: perfil acadêmico
-  await client.query(
-    `INSERT INTO perfil_academico
-      (usuario_id, data_nascimento, serie, rede_ensino,
-       curso_desejado, universidade_desejada,
-       tipo_universidade, objetivo_geral)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-[
-  usuarioId,
-  dataNascimento,
-  serie,
-  redeEnsinoBanco,
-  curso,
-  universidade,
-  tipoInstituicaoBanco,
-  objetivo
-]
-  );
+await client.query(
+    `
+    INSERT INTO perfil_academico
+    (
+        usuario_id,
+        data_nascimento,
+
+        serie,
+        etapa_atual,
+
+        rede_ensino,
+
+        curso_desejado,
+        universidade_desejada,
+        tipo_universidade,
+        objetivo_geral
+    )
+
+    VALUES
+    (
+        $1,
+        $2,
+        $3,
+        $4,
+        $5,
+        $6,
+        $7,
+        $8,
+        $9
+    )
+    `,
+    [
+        usuarioId,
+
+        dataNascimento,
+
+        serieAcademica.serie,
+        serieAcademica.etapaAtual,
+
+        redeEnsinoBanco,
+
+        ehEnsinoMedio
+            ? curso || null
+            : null,
+
+        ehEnsinoMedio
+            ? universidade || null
+            : null,
+
+        ehEnsinoMedio
+            ? tipoInstituicaoBanco
+            : null,
+
+        ehEnsinoMedio
+            ? objetivo
+            : null
+    ]
+);
 
   await client.query("COMMIT");
 
@@ -265,6 +557,23 @@ app.get("/api/perfil/:usuarioId", async (req, res) => {
         }
 
         const linha = resultado.rows[0];
+        const serieInterpretada =
+            interpretarSerieSalva(
+            linha.serie
+        );
+
+        const etapaAcademica =
+
+        [1, 2].includes(
+            Number(
+                linha.etapa_atual
+            )
+        )
+
+        ? Number(
+            linha.etapa_atual
+        )
+        : serieInterpretada.etapaAtual;
 
         return res.json({
 
@@ -274,8 +583,11 @@ app.get("/api/perfil/:usuarioId", async (req, res) => {
 
             // Perfil acadêmico
             dataNascimento: linha.data_nascimento,
-            serie: linha.serie,
-            etapaAtual: linha.etapa_atual,
+            serie:    serieInterpretada.serie,
+            serieCodigo:    serieInterpretada.codigo,
+            etapaAtual:
+                        rotuloEtapaAcademica(
+                        etapaAcademica),
             escola: linha.escola,
             redeEnsino: linha.rede_ensino,
             cursoDesejado: linha.curso_desejado,
@@ -302,76 +614,222 @@ app.get("/api/perfil/:usuarioId", async (req, res) => {
     }
 });
 
-// ---------- ATUALIZAR PERFIL ACADÊMICO ----------
-app.put("/api/perfil/:usuarioId", async (req, res) => {
-  const usuarioId = parseInt(req.params.usuarioId, 10);
+// =====================================================
+// ATUALIZAR PERFIL ACADÊMICO
+// =====================================================
 
-  if (isNaN(usuarioId)) {
-    return res.status(400).json({ erro: "ID de usuário inválido." });
-  }
+app.put(
+    "/api/perfil/:usuarioId",
+    async (req, res) => {
 
-  const {
-    dataNascimento,
-    serie,
-    redeEnsino,
-    curso,
-    universidade,
-    tipoInstituicao,
-    objetivo,
-    objetivoOutro,
-  } = req.body;
+        const usuarioId =
+            parseInt(
+                req.params.usuarioId,
+                10
+            );
 
-  if (
-    !dataNascimento ||
-    !serie ||
-    !redeEnsino ||
-    !curso ||
-    !universidade ||
-    !tipoInstituicao ||
-    !objetivo
-  ) {
-    return res
-      .status(400)
-      .json({ erro: "Preencha todos os campos obrigatórios." });
-  }
 
-  try {
-    const resultado = await pool.query(
-      `UPDATE usuario SET
-        data_nascimento = $1,
-        serie = $2,
-        rede_de_ensino = $3,
-        curso = $4,
-        universidade = $5,
-        tipo_instituicao_superior = $6,
-        objetivo = $7,
-        objetivo_outro = $8
-       WHERE id = $9
-       RETURNING id`,
-      [
-        dataNascimento,
-        serie,
-        redeEnsino,
-        curso,
-        universidade,
-        tipoInstituicao,
-        objetivo,
-        objetivoOutro || null,
-        usuarioId,
-      ]
-    );
+        if (
+            !Number.isInteger(usuarioId) ||
+            usuarioId <= 0
+        ) {
 
-    if (resultado.rows.length === 0) {
-      return res.status(404).json({ erro: "Usuário não encontrado." });
+            return res
+                .status(400)
+                .json({
+                    erro:
+                        "ID de usuário inválido."
+                });
+
+        }
+
+
+        const {
+
+            dataNascimento,
+            serie,
+            redeEnsino,
+
+            curso,
+            universidade,
+            tipoInstituicao,
+
+            objetivo
+
+        } = req.body;
+
+
+        if (
+            !dataNascimento ||
+            !serie ||
+            !redeEnsino
+        ) {
+
+            return res
+                .status(400)
+                .json({
+                    erro:
+                        "Preencha os dados acadêmicos obrigatórios."
+                });
+
+        }
+
+
+        // ==========================================
+        // INTERPRETAR SÉRIE
+        // ==========================================
+
+        const serieAcademica =
+            obterSerieAcademica(
+                serie
+            );
+
+
+        if (!serieAcademica) {
+
+            return res
+                .status(400)
+                .json({
+                    erro:
+                        "Série/ano escolar inválido."
+                });
+
+        }
+
+
+        const ehEnsinoMedio =
+            serieAcademica.etapaAtual === 2;
+
+
+        // ==========================================
+        // NORMALIZAR REDE DE ENSINO
+        // ==========================================
+
+        const redeEnsinoBanco =
+
+            String(redeEnsino) === "1"
+                ? "publica"
+
+                : String(redeEnsino) === "2"
+                    ? "particular"
+
+                    : redeEnsino;
+
+
+        // ==========================================
+        // NORMALIZAR TIPO DE UNIVERSIDADE
+        // ==========================================
+
+        const tipoInstituicaoBanco =
+
+            !tipoInstituicao
+
+                ? null
+
+                : String(tipoInstituicao) === "1"
+                    ? "publica"
+
+                    : String(tipoInstituicao) === "2"
+                        ? "particular"
+
+                        : tipoInstituicao;
+
+
+        try {
+
+            const resultado =
+                await pool.query(
+                    `
+                    UPDATE perfil_academico
+
+                    SET
+                        data_nascimento = $1,
+
+                        serie = $2,
+                        etapa_atual = $3,
+
+                        rede_ensino = $4,
+
+                        curso_desejado = $5,
+                        universidade_desejada = $6,
+                        tipo_universidade = $7,
+                        objetivo_geral = $8
+
+                    WHERE usuario_id = $9
+
+                    RETURNING usuario_id
+                    `,
+                    [
+                        dataNascimento,
+
+                        serieAcademica.serie,
+                        serieAcademica.etapaAtual,
+
+                        redeEnsinoBanco,
+
+                        ehEnsinoMedio
+                            ? String(
+                                curso || ""
+                            ).trim() || null
+                            : null,
+
+                        ehEnsinoMedio
+                            ? String(
+                                universidade || ""
+                            ).trim() || null
+                            : null,
+
+                        ehEnsinoMedio
+                            ? tipoInstituicaoBanco
+                            : null,
+
+                        ehEnsinoMedio
+                            ? objetivo || null
+                            : null,
+
+                        usuarioId
+                    ]
+                );
+
+
+            if (
+                resultado.rows.length === 0
+            ) {
+
+                return res
+                    .status(404)
+                    .json({
+                        erro:
+                            "Perfil Acadêmico não encontrado."
+                    });
+
+            }
+
+
+            return res.json({
+                sucesso: true
+            });
+
+
+        } catch (erro) {
+
+            console.error(
+                "Erro ao atualizar Perfil Acadêmico:",
+                erro
+            );
+
+
+            return res
+                .status(500)
+                .json({
+                    erro:
+                        "Erro ao atualizar perfil."
+                });
+
+        }
+
     }
-
-    res.json({ sucesso: true });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ erro: "Erro ao atualizar perfil." });
-  }
-});
-
+);
 
 // =====================================================
 // PERFIL ACADÊMICO - DIFICULDADES
@@ -3213,6 +3671,505 @@ async function montarPayloadPlanoEstudo(usuarioId) {
 
 }
 
+// ==========================================
+// CLAUDE V3 - PRÉ-VISUALIZAÇÃO
+// NÃO CHAMA A IA E NÃO GRAVA NO BANCO
+// ==========================================
+
+app.get(
+    "/api/plano-estudo/claude-v3/preview/:usuarioId",
+    async (req, res) => {
+
+        // Rota disponível somente em desenvolvimento.
+        if (process.env.NODE_ENV === "production") {
+
+            return res.status(404).json({
+                erro: "Rota indisponível."
+            });
+
+        }
+
+        const usuarioId =
+            Number(req.params.usuarioId);
+
+        if (
+            !Number.isInteger(usuarioId) ||
+            usuarioId <= 0
+        ) {
+
+            return res.status(400).json({
+                erro: "Usuário inválido."
+            });
+
+        }
+
+        try {
+
+            // 1. Recuperar os dados do estudante.
+
+            const payload =
+                await montarPayloadPlanoEstudo(
+                    usuarioId
+                );
+
+            // 2. Selecionar somente o necessário.
+
+            const dadosClaude =
+                prepararDadosClaude(
+                    payload
+                );
+
+            // 3. Consultar as disciplinas reais.
+
+            const resultado =
+                await pool.query(`
+                    SELECT DISTINCT nome
+
+                    FROM disciplina
+
+                    WHERE nome IS NOT NULL
+                      AND TRIM(nome) <> ''
+
+                    ORDER BY nome
+                `);
+
+            const disciplinas =
+                resultado.rows.map(
+                    item => item.nome
+                );
+
+            if (disciplinas.length === 0) {
+
+                throw new Error(
+                    "Nenhuma disciplina cadastrada."
+                );
+
+            }
+
+            // 4. Determinar um período de teste.
+
+            const dataInicio =
+                String(
+                    req.query.dataInicio || ""
+                );
+
+            const data =
+                new Date(
+                    dataInicio + "T12:00:00Z"
+                );
+
+            if (
+                !/^\d{4}-\d{2}-\d{2}$/.test(dataInicio) ||
+                Number.isNaN(data.getTime()) ||
+                data.toISOString().slice(0, 10) !==
+                    dataInicio
+            ) {
+
+                return res.status(400).json({
+                    erro:
+                        "Informe dataInicio no formato YYYY-MM-DD."
+                });
+
+            }
+
+            const quantidadeDias =
+                dadosClaude.tipoPlanejamento ===
+                    "mensal"
+                    ? 29
+                    : 6;
+
+            data.setUTCDate(
+                data.getUTCDate() +
+                quantidadeDias
+            );
+
+            const dataFim =
+                data.toISOString().slice(0, 10);
+
+            // 5. Preparar o prompt completo.
+
+            const prompt =
+                montarPromptPedagogico(
+
+                    dadosClaude,
+
+                    {
+                        dataInicio,
+                        dataFim,
+                        disciplinas
+                    }
+
+                );
+
+            // 6. Conferir o esquema de resposta.
+
+            return res.json({
+
+                sucesso: true,
+
+                usuarioId,
+
+                objetivo:
+                    dadosClaude.objetivoPlano,
+
+                tipoPlanejamento:
+                    dadosClaude.tipoPlanejamento,
+
+                periodo: {
+                    dataInicio,
+                    dataFim
+                },
+
+                disciplinasDisponiveis:
+                    disciplinas,
+
+                dificuldadesInformadas:
+                    dadosClaude.dificuldades.length,
+
+                compromissosInformados:
+                    dadosClaude.rotinaDiaria
+                        .compromissos.length,
+
+                promptPreparado:
+                    Boolean(
+                        prompt.system &&
+                        prompt.user
+                    ),
+
+                caracteresInstrucoes:
+                    prompt.system.length,
+
+                caracteresDados:
+                    prompt.user.length,
+
+                versaoResposta:
+                    schemaPlanoClaude
+                        .properties.versao.const,
+
+                camposResposta:
+                    schemaPlanoClaude.required,
+
+                claudeAcionado: false
+
+            });
+
+        } catch (erro) {
+
+            console.error(
+                "Erro na pré-visualização Claude V3:",
+                erro
+            );
+
+            return res.status(
+                erro.status || 500
+            ).json({
+
+                sucesso: false,
+
+                erro:
+                    erro.message ||
+                    "Erro ao preparar o plano."
+
+            });
+
+        }
+
+    }
+);
+
+// ==========================================
+// CLAUDE V3 - PRIMEIRA GERAÇÃO EXPERIMENTAL
+// APENAS USUÁRIO 225
+// NÃO GRAVA PLANOS NO NEON
+// ==========================================
+
+let testeClaudeV3EmAndamento = false;
+
+app.post(
+    "/api/plano-estudo/claude-v3/teste/225",
+    async (req, res) => {
+
+        // Segurança: somente ambiente local.
+        const endereco =
+            req.socket.remoteAddress;
+
+        const acessoLocal = [
+            "127.0.0.1",
+            "::1",
+            "::ffff:127.0.0.1"
+        ].includes(endereco);
+
+        if (
+            process.env.NODE_ENV === "production" ||
+            !acessoLocal
+        ) {
+            return res.sendStatus(403);
+        }
+
+        // Evitar chamadas acidentais.
+        if (
+            req.body?.confirmar !==
+            "GERAR_TESTE_225"
+        ) {
+            return res.status(400).json({
+                erro: "Confirmação obrigatória."
+            });
+        }
+
+        if (testeClaudeV3EmAndamento) {
+            return res.status(409).json({
+                erro: "Já existe um teste em andamento."
+            });
+        }
+
+        if (!process.env.ANTHROPIC_API_KEY) {
+            return res.status(500).json({
+                erro: "Chave da Anthropic não configurada."
+            });
+        }
+
+        testeClaudeV3EmAndamento = true;
+
+        try {
+
+            // Recuperar os dados do usuário 225.
+            const payload =
+                await montarPayloadPlanoEstudo(225);
+
+            const dadosClaude =
+                prepararDadosClaude(payload);
+
+            // Consultar as disciplinas cadastradas.
+            const resultado =
+                await pool.query(`
+                    SELECT DISTINCT nome
+                    FROM disciplina
+                    WHERE nome IS NOT NULL
+                      AND TRIM(nome) <> ''
+                    ORDER BY nome
+                `);
+
+            const disciplinas =
+                resultado.rows.map(
+                    item => item.nome
+                );
+
+            if (!disciplinas.length) {
+                throw new Error(
+                    "Nenhuma disciplina encontrada."
+                );
+            }
+
+            // Testar somente a primeira semana.
+            // Não modifica a escolha mensal no banco.
+            const dadosTeste = {
+                ...dadosClaude,
+                tipoPlanejamento: "semanal"
+            };
+
+            const prompt =
+                montarPromptPedagogico(
+                    dadosTeste,
+                    {
+                        dataInicio: "2026-10-05",
+                        dataFim: "2026-10-11",
+                        disciplinas
+                    }
+                );
+
+            // Uma chamada experimental ao Claude.
+            const respostaClaude =
+                await anthropic.messages.create(
+                    {
+                        model: "claude-sonnet-4-6",
+
+                        max_tokens: 5000,
+
+                        system: prompt.system,
+
+                        messages: [
+                            {
+                                role: "user",
+
+                                content:
+                                    prompt.user +
+                                    "\n\nPara este teste, " +
+                                    "produza no máximo 5 sessões. " +
+                                    "Use somente os dias disponíveis " +
+                                    "dentro do período solicitado. " +
+                                    "Não crie sessões artificiais " +
+                                    "para completar a quantidade."
+                            }
+                        ],
+
+                        output_config: {
+                            format: {
+                                type: "json_schema",
+                                schema: schemaPlanoClaude
+                            }
+                        }
+                    },
+
+                    {
+                        maxRetries: 0
+                    }
+                );
+
+            // Não tentar interpretar saída incompleta.
+            if (
+                respostaClaude.stop_reason !==
+                "end_turn"
+            ) {
+
+                return res.status(502).json({
+                    sucesso: false,
+
+                    erro:
+                        "Claude não concluiu a resposta.",
+
+                    motivo:
+                        respostaClaude.stop_reason,
+
+                    uso:
+                        respostaClaude.usage
+                });
+
+            }
+
+            const textoResposta =
+                respostaClaude.content
+                    .filter(
+                        bloco =>
+                            bloco.type === "text"
+                    )
+                    .map(
+                        bloco => bloco.text
+                    )
+                    .join("")
+                    .trim();
+
+            const plano =
+                JSON.parse(textoResposta);
+
+            // Verificação estrutural preliminar.
+            if (
+                plano.versao !== 3 ||
+                !Array.isArray(plano.sessoes)
+            ) {
+
+                throw new Error(
+                    "A resposta não possui a estrutura esperada."
+                );
+
+            }
+
+           // ==========================================
+// VALIDAR A RESPOSTA DO CLAUDE
+// ==========================================
+
+const validacao =
+    validarPlanoClaude(
+
+        plano,
+
+        dadosTeste,
+
+        {
+            dataInicio: "2026-10-05",
+            dataFim: "2026-10-11",
+            disciplinas
+        }
+
+    );
+
+
+// Impedir o aproveitamento de planos
+// com erros técnicos.
+
+if (!validacao.valido) {
+
+    return res.status(422).json({
+
+        sucesso: false,
+
+        mensagem:
+            "O Claude gerou um plano que não passou na validação.",
+
+        modelo:
+            respostaClaude.model,
+
+        uso:
+            respostaClaude.usage,
+
+        validacao,
+
+        plano,
+
+        gravadoNoBanco: false
+
+    });
+
+}
+
+
+// ==========================================
+// RETORNAR O PLANO VALIDADO
+// ==========================================
+
+return res.json({
+
+    sucesso: true,
+
+    usuarioId: 225,
+
+    modelo:
+        respostaClaude.model,
+
+    uso:
+        respostaClaude.usage,
+
+    validacao,
+
+    revisaoPedagogicaNecessaria:
+        validacao.alertas.length > 0,
+
+    gravadoNoBanco: false,
+
+    plano
+
+});
+
+        } catch (erro) {
+
+            console.error(
+                "Erro no teste Claude V3:",
+                erro.status,
+                erro.message
+            );
+
+            return res.status(
+                Number.isInteger(erro.status)
+                    ? erro.status
+                    : 500
+            ).json({
+
+                sucesso: false,
+
+                erro:
+                    erro.message ||
+                    "Falha na geração experimental."
+
+            });
+
+        } finally {
+
+            testeClaudeV3EmAndamento = false;
+
+        }
+
+    }
+);
+
 
 // =====================================================
 // PLANO DE ESTUDO - VISUALIZAR PAYLOAD
@@ -3243,18 +4200,28 @@ app.get(
         try {
 
             const payload =
-                await montarPayloadPlanoEstudo(
-                    usuarioId
-                );
+    await montarPayloadPlanoEstudo(
+        usuarioId
+    );
 
 
-            return res.json({
+// Preparar os dados que o Claude receberá
 
-                sucesso: true,
+const dadosClaude =
+    prepararDadosClaude(
+        payload
+    );
 
-                payload
 
-            });
+return res.json({
+
+    sucesso: true,
+
+    payload,
+
+    dadosClaude
+
+});
 
 
         } catch (erro) {
@@ -4372,6 +5339,361 @@ if (
     }
 );
 
+
+// =====================================================
+// PLANO DE ESTUDO -> CALENDÁRIO
+// SINCRONIZAR SESSÕES GERADAS PELA IA
+// =====================================================
+
+async function sincronizarPlanoComCalendario(
+    usuarioId,
+    planoId
+) {
+
+    const client =
+        await pool.connect();
+
+
+    try {
+
+        await client.query("BEGIN");
+
+
+        // ==========================================
+        // 1. CONFIRMAR O PLANO
+        // ==========================================
+
+        const planoResultado =
+            await client.query(
+                `
+                SELECT
+                    id,
+                    usuario_id,
+                    tipo_planejamento,
+                    data_inicio,
+                    data_fim
+
+                FROM plano_estudo
+
+                WHERE id = $1
+                  AND usuario_id = $2
+                `,
+                [
+                    planoId,
+                    usuarioId
+                ]
+            );
+
+
+        if (
+            planoResultado.rows.length === 0
+        ) {
+
+            const erro =
+                new Error(
+                    "Plano de Estudo não encontrado para sincronização."
+                );
+
+            erro.status = 404;
+
+            throw erro;
+
+        }
+
+
+        // ==========================================
+        // 2. BUSCAR SESSÕES DO PLANO
+        // ==========================================
+
+        const sessoesResultado =
+            await client.query(
+                `
+                SELECT
+
+                    pei.id,
+
+                    pei.disciplina_id,
+
+                    pei.data_prevista,
+
+                    pei.hora_inicio,
+
+                    pei.hora_fim,
+
+                    COALESCE(
+                    NULLIF(pei.atividade_detalhada_ia, ''),
+                    pei.atividade
+                    ) AS atividade,
+
+                    COALESCE(
+                    NULLIF(pei.metodologia_detalhada_ia, ''),
+                    pei.metodo_estudo
+                    ) AS metodo_estudo,
+
+                    pei.duracao_min,
+
+                    d.nome AS disciplina,
+
+                    COALESCE(
+                    NULLIF(pei.conteudo_ia, ''),
+                    cc.titulo
+                    ) AS conteudo
+
+                FROM plano_estudo_item pei
+
+                LEFT JOIN disciplina d
+                    ON d.id =
+                        pei.disciplina_id
+
+                LEFT JOIN conteudo_curricular cc
+                    ON cc.id =
+                        pei.conteudo_curricular_id
+
+                WHERE pei.plano_id = $1
+                  AND pei.data_prevista IS NOT NULL
+
+                ORDER BY
+                    pei.data_prevista ASC,
+                    pei.hora_inicio ASC NULLS LAST,
+                    pei.id ASC
+                `,
+                [
+                    planoId
+                ]
+            );
+
+
+        const sessoes =
+            sessoesResultado.rows;
+
+
+        // ==========================================
+        // 4. CRIAR OS COMPROMISSOS
+        // ==========================================
+
+        let totalInseridos = 0;
+
+
+        for (
+            const sessao of sessoes
+        ) {
+
+            const disciplina =
+                String(
+                    sessao.disciplina ||
+                    "Estudo"
+                ).trim();
+
+
+            const conteudo =
+                String(
+                    sessao.conteudo ||
+                    ""
+                ).trim();
+
+
+            // Exemplo:
+            // Física — Leis de Newton
+            const titulo =
+                (
+                    conteudo
+                        ? `${disciplina} — ${conteudo}`
+                        : disciplina
+                )
+                    .substring(
+                        0,
+                        180
+                    );
+
+
+            let descricao =
+                String(
+                    sessao.atividade ||
+                    "Sessão programada pelo Plano de Estudos."
+                ).trim();
+
+
+            if (
+                sessao.metodo_estudo
+            ) {
+
+                descricao +=
+                    ` | Método: ${sessao.metodo_estudo}`;
+
+            }
+
+
+            await client.query(
+                `
+                INSERT INTO calendario_item
+                (
+                    usuario_id,
+                    criado_por_usuario_id,
+
+                    tipo,
+                    subtipo,
+
+                    titulo,
+                    descricao,
+
+                    disciplina_id,
+
+                    data_inicio,
+                    hora_inicio,
+
+                    data_fim,
+                    hora_fim,
+
+                    prioridade,
+
+                    concluido,
+
+                    origem,
+                    origem_id,
+
+                    editavel_usuario
+                )
+
+                VALUES
+                (
+                    $1,
+                    $1,
+
+                    'estudo',
+                    'plano_estudo',
+
+                    $2,
+                    $3,
+
+                    $4,
+
+                    $5,
+                    $6,
+
+                    $5,
+                    $7,
+
+                    NULL,
+
+                    FALSE,
+
+                    'plano_ia',
+                    $8,
+
+                    FALSE
+                )
+                    ON CONFLICT
+    (usuario_id, origem, tipo, origem_id)
+    WHERE origem_id IS NOT NULL
+
+DO UPDATE SET
+
+    titulo =
+        EXCLUDED.titulo,
+
+    descricao =
+        EXCLUDED.descricao,
+
+    disciplina_id =
+        EXCLUDED.disciplina_id,
+
+    data_inicio =
+        EXCLUDED.data_inicio,
+
+    hora_inicio =
+        EXCLUDED.hora_inicio,
+
+    data_fim =
+        EXCLUDED.data_fim,
+
+    hora_fim =
+        EXCLUDED.hora_fim,
+
+    tipo =
+        EXCLUDED.tipo,
+
+    subtipo =
+        EXCLUDED.subtipo,
+
+    editavel_usuario =
+        FALSE,
+
+    atualizado_em =
+        CURRENT_TIMESTAMP
+                `,
+                [
+                    usuarioId,
+
+                    titulo,
+
+                    descricao,
+
+                    sessao.disciplina_id,
+
+                    sessao.data_prevista,
+
+                    sessao.hora_inicio,
+
+                    sessao.hora_fim,
+
+                    sessao.id
+                ]
+            );
+
+
+            totalInseridos++;
+
+        }
+
+
+        await client.query("COMMIT");
+
+
+        console.log(
+            "📅 Plano sincronizado com o calendário:",
+            {
+                usuarioId,
+                planoId,
+                sessoes:
+                    totalInseridos
+            }
+        );
+
+
+        return {
+
+            sucesso: true,
+
+            total:
+                totalInseridos
+
+        };
+
+
+    } catch (erro) {
+
+        await client.query(
+            "ROLLBACK"
+        );
+
+
+        console.error(
+            "❌ Erro ao sincronizar Plano de Estudo com o calendário:",
+            erro
+        );
+
+
+        throw erro;
+
+
+    } finally {
+
+        client.release();
+
+    }
+
+}
+
 // =====================================================
 // PDF - PLANO DE ESTUDOS
 // =====================================================
@@ -4435,13 +5757,19 @@ function gerarBufferPdfPlano(
                     size: "A4",
 
                     margins: {
-                        top: 45,
-                        bottom: 50,
-                        left: 45,
-                        right: 45
+                        top: 40,
+                        bottom: 60,
+                        left: 42,
+                        right: 42
                     },
 
-                    bufferPages: true
+                    bufferPages: true,
+
+                    info: {
+                        Title: `Plano de Estudos - ${plano.aluno_nome || "Estudante"}`,
+                        Author: "Rota do Sucesso",
+                        Subject: "Cronograma personalizado de estudos"
+                    }
 
                 });
 
@@ -4451,8 +5779,7 @@ function gerarBufferPdfPlano(
 
             doc.on(
                 "data",
-                parte =>
-                    partes.push(parte)
+                parte => partes.push(parte)
             );
 
 
@@ -4475,225 +5802,850 @@ function gerarBufferPdfPlano(
 
 
             // ==========================================
-            // CABEÇALHO
+            // IDENTIDADE VISUAL
             // ==========================================
 
+            const CORES = {
+                azulEscuro: "#0F2B63",
+                azul: "#2563EB",
+                azulClaro: "#EFF6FF",
+                ciano: "#06B6D4",
+                amarelo: "#FACC15",
+                texto: "#0F172A",
+                textoSecundario: "#475569",
+                textoSuave: "#64748B",
+                fundo: "#F8FAFC",
+                borda: "#E2E8F0",
+                branco: "#FFFFFF"
+            };
+
+
+            const margemX = 42;
+
+            const larguraConteudo =
+                doc.page.width -
+                (margemX * 2);
+
+
+            const caminhoLogo =
+                path.join(
+                    __dirname,
+                    "public",
+                    "img",
+                    "logo_1.png"
+                );
+
+
+            const logoExiste =
+                fs.existsSync(caminhoLogo);
+
+
+            const tipoPlano =
+                String(
+                    plano.tipo_planejamento || ""
+                ).toLowerCase();
+
+
+            const tipoPlanoLabel =
+                tipoPlano === "mensal"
+                    ? "Plano mensal"
+                    : tipoPlano === "semanal"
+                        ? "Plano semanal"
+                        : "Plano de estudos";
+
+
+            const totalMinutos =
+                itens.reduce(
+                    (total, item) =>
+                        total +
+                        Number(
+                            item.duracao_min || 0
+                        ),
+                    0
+                );
+
+
+            const formatarDuracao =
+                minutos => {
+
+                    const total =
+                        Number(minutos || 0);
+
+                    const horas =
+                        Math.floor(total / 60);
+
+                    const restantes =
+                        total % 60;
+
+
+                    if (horas > 0 && restantes > 0) {
+                        return `${horas}h ${restantes}min`;
+                    }
+
+                    if (horas > 0) {
+                        return `${horas}h`;
+                    }
+
+                    return `${restantes}min`;
+                };
+
+
+            const redeEnsino =
+                plano.rede_ensino === "publica"
+                    ? "Pública"
+                    : plano.rede_ensino === "particular"
+                        ? "Particular"
+                        : plano.rede_ensino || "-";
+
+
+            // ==========================================
+            // CABEÇALHO PRINCIPAL
+            // ==========================================
+
+            const desenharCabecalhoPrincipal = () => {
+
+                const x = margemX;
+                const y = 32;
+                const altura = 118;
+
+
+                doc
+                    .roundedRect(
+                        x,
+                        y,
+                        larguraConteudo,
+                        altura,
+                        18
+                    )
+                    .fill(CORES.azulEscuro);
+
+
+                doc
+                    .rect(
+                        x,
+                        y + altura - 6,
+                        larguraConteudo,
+                        6
+                    )
+                    .fill(CORES.amarelo);
+
+
+                doc
+                    .roundedRect(
+                        x + 18,
+                        y + 18,
+                        150,
+                        70,
+                        14
+                    )
+                    .fill(CORES.branco);
+
+
+                if (logoExiste) {
+
+                    doc.image(
+                        caminhoLogo,
+                        x + 29,
+                        y + 32,
+                        {
+                            fit: [128, 42],
+                            align: "center",
+                            valign: "center"
+                        }
+                    );
+
+                } else {
+
+                    doc
+                        .fillColor(CORES.azulEscuro)
+                        .font("Helvetica-Bold")
+                        .fontSize(12)
+                        .text(
+                            "ROTA DO SUCESSO",
+                            x + 32,
+                            y + 47,
+                            {
+                                width: 120,
+                                align: "center"
+                            }
+                        );
+
+                }
+
+
+                doc
+                    .fillColor(CORES.branco)
+                    .font("Helvetica-Bold")
+                    .fontSize(22)
+                    .text(
+                        "PLANO DE ESTUDOS",
+                        x + 190,
+                        y + 25,
+                        {
+                            width:
+                                larguraConteudo - 210
+                        }
+                    );
+
+
+                doc
+                    .font("Helvetica")
+                    .fontSize(10.5)
+                    .fillColor("#DCE8FF")
+                    .text(
+                        "Sua rota personalizada para estudar com mais organização e foco.",
+                        x + 190,
+                        y + 56,
+                        {
+                            width:
+                                larguraConteudo - 210
+                        }
+                    );
+
+
+                doc
+                    .roundedRect(
+                        x + 190,
+                        y + 84,
+                        108,
+                        22,
+                        11
+                    )
+                    .fill(CORES.amarelo);
+
+
+                doc
+                    .fillColor(CORES.azulEscuro)
+                    .font("Helvetica-Bold")
+                    .fontSize(8.5)
+                    .text(
+                        tipoPlanoLabel.toUpperCase(),
+                        x + 190,
+                        y + 91,
+                        {
+                            width: 108,
+                            align: "center",
+                            lineBreak: false
+                        }
+                    );
+
+
+                doc.y = 168;
+
+            };
+
+
+            // ==========================================
+            // CABEÇALHO DAS PÁGINAS SEGUINTES
+            // ==========================================
+
+            const desenharCabecalhoSecundario = () => {
+
+                if (logoExiste) {
+
+                    doc.image(
+                        caminhoLogo,
+                        margemX,
+                        25,
+                        {
+                            fit: [105, 34]
+                        }
+                    );
+
+                } else {
+
+                    doc
+                        .fillColor(CORES.azulEscuro)
+                        .font("Helvetica-Bold")
+                        .fontSize(10)
+                        .text(
+                            "ROTA DO SUCESSO",
+                            margemX,
+                            31
+                        );
+
+                }
+
+
+                doc
+                    .fillColor(CORES.textoSuave)
+                    .font("Helvetica-Bold")
+                    .fontSize(9)
+                    .text(
+                        tipoPlanoLabel,
+                        margemX,
+                        32,
+                        {
+                            width: larguraConteudo,
+                            align: "right",
+                            lineBreak: false
+                        }
+                    );
+
+
+                doc
+                    .moveTo(
+                        margemX,
+                        66
+                    )
+                    .lineTo(
+                        margemX + larguraConteudo,
+                        66
+                    )
+                    .lineWidth(1)
+                    .strokeColor(CORES.borda)
+                    .stroke();
+
+
+                doc.y = 82;
+
+            };
+
+
+            // ==========================================
+            // CONTROLE DE QUEBRA DE PÁGINA
+            // ==========================================
+
+            const garantirEspaco =
+                alturaNecessaria => {
+
+                    const limiteConteudo =
+                        doc.page.height - 92;
+
+
+                    if (
+                        doc.y + alturaNecessaria >
+                        limiteConteudo
+                    ) {
+
+                        doc.addPage();
+
+                        desenharCabecalhoSecundario();
+
+                    }
+
+                };
+
+
+            // ==========================================
+            // PRIMEIRA PÁGINA
+            // ==========================================
+
+            desenharCabecalhoPrincipal();
+
+
+            // ==========================================
+            // CARD DO ESTUDANTE
+            // ==========================================
+
+            const yAluno = doc.y;
+
+
             doc
-                .rect(
-                    0,
-                    0,
-                    doc.page.width,
-                    115
+                .roundedRect(
+                    margemX,
+                    yAluno,
+                    larguraConteudo,
+                    88,
+                    14
                 )
-                .fill("#1e3a8a");
+                .fillAndStroke(
+                    CORES.branco,
+                    CORES.borda
+                );
 
 
             doc
-                .fillColor("#ffffff")
+                .fillColor(CORES.azul)
                 .font("Helvetica-Bold")
-                .fontSize(23)
+                .fontSize(8.5)
                 .text(
-                    "ROTA DO SUCESSO",
-                    45,
-                    32
+                    "ESTUDANTE",
+                    margemX + 18,
+                    yAluno + 14
                 );
 
 
             doc
-                .font("Helvetica")
-                .fontSize(12)
-                .text(
-                    "Cronograma Personalizado de Estudos",
-                    45,
-                    68
-                );
-
-
-            doc.y = 140;
-
-
-            // ==========================================
-            // ALUNO
-            // ==========================================
-
-            doc
-                .fillColor("#0f172a")
+                .fillColor(CORES.texto)
                 .font("Helvetica-Bold")
                 .fontSize(16)
                 .text(
                     plano.aluno_nome ||
-                    "Estudante"
+                    "Estudante",
+                    margemX + 18,
+                    yAluno + 29,
+                    {
+                        width:
+                            larguraConteudo - 36
+                    }
                 );
 
 
-            doc.moveDown(0.4);
+            const infoY =
+                yAluno + 58;
 
 
             doc
+                .fillColor(CORES.textoSecundario)
                 .font("Helvetica")
-                .fontSize(10)
-                .fillColor("#475569");
-
-
-            if (plano.serie) {
-
-                doc.text(
-                    `Série: ${plano.serie}`
+                .fontSize(9.5)
+                .text(
+                    `Série/ano: ${plano.serie || "-"}`,
+                    margemX + 18,
+                    infoY,
+                    {
+                        width: 115,
+                        lineBreak: false
+                    }
                 );
 
-            }
+
+            doc
+                .text(
+                    `Rede: ${redeEnsino}`,
+                    margemX + 145,
+                    infoY,
+                    {
+                        width: 120,
+                        lineBreak: false
+                    }
+                );
 
 
             if (plano.escola) {
 
                 doc.text(
-                    `Escola: ${plano.escola}`
+                    `Escola: ${plano.escola}`,
+                    margemX + 278,
+                    infoY,
+                    {
+                        width:
+                            larguraConteudo - 296,
+                        lineBreak: false,
+                        ellipsis: true
+                    }
                 );
 
             }
 
 
-            if (
-                plano.data_inicio ||
-                plano.data_fim
-            ) {
-
-                doc.text(
-                    `Período do plano: ${formatarDataPdf(plano.data_inicio)} a ${formatarDataPdf(plano.data_fim)}`
-                );
-
-            }
+            doc.y =
+                yAluno + 106;
 
 
-            doc.moveDown(1);
-
+            // ==========================================
+            // RESUMO DO PLANO
+            // ==========================================
 
             doc
-                .fillColor("#1e40af")
+                .fillColor(CORES.texto)
                 .font("Helvetica-Bold")
                 .fontSize(14)
                 .text(
-                    "Cronograma semanal"
+                    "Visão geral do plano",
+                    margemX,
+                    doc.y
                 );
 
 
-            doc.moveDown(0.7);
+            doc.moveDown(0.55);
 
 
-            // ==========================================
-            // SESSÕES
-            // ==========================================
+            const yResumo = doc.y;
 
-            itens.forEach(
-                (item, indice) => {
+            const gapResumo = 10;
 
-                    if (
-                        doc.y >
-                        doc.page.height - 180
-                    ) {
-
-                        doc.addPage();
-
-                    }
+            const larguraCardResumo =
+                (
+                    larguraConteudo -
+                    (gapResumo * 2)
+                ) / 3;
 
 
-                    const y =
-                        doc.y;
+            const cardsResumo = [
+                {
+                    label: "SESSÕES",
+                    valor: `${itens.length}`
+                },
+                {
+                    label: "TEMPO PLANEJADO",
+                    valor: formatarDuracao(totalMinutos)
+                },
+                {
+                    label: "PERÍODO",
+                    valor:
+                        `${formatarDataPdf(plano.data_inicio)} a ${formatarDataPdf(plano.data_fim)}`
+                }
+            ];
+
+
+            cardsResumo.forEach(
+                (card, indice) => {
+
+                    const x =
+                        margemX +
+                        indice *
+                        (
+                            larguraCardResumo +
+                            gapResumo
+                        );
 
 
                     doc
                         .roundedRect(
-                            45,
-                            y,
-                            doc.page.width - 90,
-                            112,
-                            8
+                            x,
+                            yResumo,
+                            larguraCardResumo,
+                            62,
+                            12
                         )
                         .fillAndStroke(
-                            "#f8fafc",
-                            "#dbeafe"
+                            CORES.fundo,
+                            CORES.borda
                         );
 
 
                     doc
-                        .fillColor("#1d4ed8")
+                        .fillColor(CORES.textoSuave)
                         .font("Helvetica-Bold")
-                        .fontSize(11)
+                        .fontSize(7.5)
                         .text(
-                            `${formatarDataPdf(item.data_prevista)}  |  ${item.hora_inicio || "--:--"} - ${item.hora_fim || "--:--"}`,
-                            60,
-                            y + 14
+                            card.label,
+                            x + 12,
+                            yResumo + 12,
+                            {
+                                width:
+                                    larguraCardResumo - 24
+                            }
                         );
 
 
                     doc
-                        .fillColor("#0f172a")
+                        .fillColor(CORES.texto)
                         .font("Helvetica-Bold")
-                        .fontSize(12)
+                        .fontSize(
+                            indice === 2
+                                ? 9.5
+                                : 15
+                        )
+                        .text(
+                            card.valor,
+                            x + 12,
+                            yResumo + 31,
+                            {
+                                width:
+                                    larguraCardResumo - 24
+                            }
+                        );
+
+                }
+            );
+
+
+            doc.y =
+                yResumo + 84;
+
+
+            // ==========================================
+            // TÍTULO DO CRONOGRAMA
+            // ==========================================
+
+            doc
+                .fillColor(CORES.texto)
+                .font("Helvetica-Bold")
+                .fontSize(16)
+                .text(
+                    "Seu cronograma",
+                    margemX,
+                    doc.y
+                );
+
+
+            doc
+                .fillColor(CORES.textoSuave)
+                .font("Helvetica")
+                .fontSize(9.5)
+                .text(
+                    "Siga as sessões abaixo e ajuste o ritmo quando necessário.",
+                    margemX,
+                    doc.y + 4
+                );
+
+
+            doc.moveDown(1.15);
+
+
+            // ==========================================
+            // SESSÕES DE ESTUDO
+            // ==========================================
+
+            itens.forEach(
+                item => {
+
+                    const atividade =
+                        item.atividade ||
+                        "Estudo programado";
+
+
+                    const conteudo =
+                        item.conteudo
+                            ? `Conteúdo: ${item.conteudo}`
+                            : "";
+
+
+                    const metodo =
+                        item.metodo_estudo
+                            ? `Método: ${item.metodo_estudo}`
+                            : "";
+
+
+                    const larguraTexto =
+                        larguraConteudo - 40;
+
+
+                    doc
+                        .font("Helvetica")
+                        .fontSize(9.5);
+
+
+                    const alturaConteudo =
+                        conteudo
+                            ? doc.heightOfString(
+                                conteudo,
+                                {
+                                    width: larguraTexto
+                                }
+                            )
+                            : 0;
+
+
+                    const alturaAtividade =
+                        doc.heightOfString(
+                            `Atividade: ${atividade}`,
+                            {
+                                width: larguraTexto
+                            }
+                        );
+
+
+                    const alturaMetodo =
+                        metodo
+                            ? 15
+                            : 0;
+
+
+                    const alturaCard =
+                        Math.max(
+                            112,
+                            78 +
+                            alturaConteudo +
+                            alturaAtividade +
+                            alturaMetodo
+                        );
+
+
+                    garantirEspaco(
+                        alturaCard + 14
+                    );
+
+
+                    const y = doc.y;
+
+
+                    doc
+                        .roundedRect(
+                            margemX,
+                            y,
+                            larguraConteudo,
+                            alturaCard,
+                            14
+                        )
+                        .fillAndStroke(
+                            CORES.branco,
+                            CORES.borda
+                        );
+
+
+                    doc
+                        .roundedRect(
+                            margemX + 8,
+                            y + 14,
+                            5,
+                            alturaCard - 28,
+                            2.5
+                        )
+                        .fill(CORES.azul);
+
+
+                    // DATA
+                    doc
+                        .roundedRect(
+                            margemX + 22,
+                            y + 14,
+                            88,
+                            24,
+                            12
+                        )
+                        .fill(CORES.azulClaro);
+
+
+                    doc
+                        .fillColor(CORES.azul)
+                        .font("Helvetica-Bold")
+                        .fontSize(8.5)
+                        .text(
+                            formatarDataPdf(
+                                item.data_prevista
+                            ),
+                            margemX + 22,
+                            y + 22,
+                            {
+                                width: 88,
+                                align: "center",
+                                lineBreak: false
+                            }
+                        );
+
+
+                    // HORÁRIO
+                    doc
+                        .fillColor(CORES.textoSecundario)
+                        .font("Helvetica-Bold")
+                        .fontSize(9)
+                        .text(
+                            `${item.hora_inicio || "--:--"} - ${item.hora_fim || "--:--"}`,
+                            margemX + 122,
+                            y + 22,
+                            {
+                                width: 110,
+                                lineBreak: false
+                            }
+                        );
+
+
+                    // DURAÇÃO
+                    doc
+                        .roundedRect(
+                            margemX +
+                            larguraConteudo -
+                            92,
+                            y + 14,
+                            74,
+                            24,
+                            12
+                        )
+                        .fill("#ECFEFF");
+
+
+                    doc
+                        .fillColor("#0E7490")
+                        .font("Helvetica-Bold")
+                        .fontSize(8.5)
+                        .text(
+                            `${item.duracao_min || "-"} min`,
+                            margemX +
+                            larguraConteudo -
+                            92,
+                            y + 22,
+                            {
+                                width: 74,
+                                align: "center",
+                                lineBreak: false
+                            }
+                        );
+
+
+                    // DISCIPLINA
+                    doc
+                        .fillColor(CORES.texto)
+                        .font("Helvetica-Bold")
+                        .fontSize(13)
                         .text(
                             item.disciplina ||
                             "Sessão de estudo",
-                            60,
-                            y + 38
+                            margemX + 22,
+                            y + 49,
+                            {
+                                width:
+                                    larguraConteudo - 44
+                            }
                         );
 
 
-                    if (item.conteudo) {
+                    let cursor =
+                        y + 70;
+
+
+                    if (conteudo) {
 
                         doc
+                            .fillColor(CORES.textoSecundario)
                             .font("Helvetica")
-                            .fontSize(9)
-                            .fillColor("#334155")
+                            .fontSize(9.5)
                             .text(
-                                `Conteúdo: ${item.conteudo}`,
-                                60,
-                                y + 58,
+                                conteudo,
+                                margemX + 22,
+                                cursor,
                                 {
-                                    width:
-                                        doc.page.width -
-                                        120
+                                    width: larguraTexto
+                                }
+                            );
+
+
+                        cursor +=
+                            alturaConteudo + 5;
+
+                    }
+
+
+                    doc
+                        .fillColor(CORES.textoSecundario)
+                        .font("Helvetica")
+                        .fontSize(9.5)
+                        .text(
+                            `Atividade: ${atividade}`,
+                            margemX + 22,
+                            cursor,
+                            {
+                                width: larguraTexto
+                            }
+                        );
+
+
+                    cursor +=
+                        alturaAtividade + 5;
+
+
+                    if (metodo) {
+
+                        doc
+                            .fillColor(CORES.textoSuave)
+                            .font("Helvetica-Oblique")
+                            .fontSize(8.5)
+                            .text(
+                                metodo,
+                                margemX + 22,
+                                cursor,
+                                {
+                                    width: larguraTexto
                                 }
                             );
 
                     }
 
 
-                    doc
-                        .font("Helvetica")
-                        .fontSize(9)
-                        .fillColor("#334155")
-                        .text(
-                            `Atividade: ${item.atividade || "Estudo programado"}`,
-                            60,
-                            y + 76,
-                            {
-                                width:
-                                    doc.page.width -
-                                    120
-                            }
-                        );
-
-
-                    doc
-                        .font("Helvetica")
-                        .fontSize(8)
-                        .fillColor("#64748b")
-                        .text(
-                            `Duração: ${item.duracao_min || "-"} minutos`,
-                            60,
-                            y + 96
-                        );
-
-
                     doc.y =
-                        y + 128;
+                        y +
+                        alturaCard +
+                        14;
 
                 }
             );
 
 
             // ==========================================
-            // RODAPÉ
+            // RODAPÉ EM TODAS AS PÁGINAS
             // ==========================================
 
             const paginas =
@@ -4711,21 +6663,66 @@ function gerarBufferPdfPlano(
                 doc.switchToPage(i);
 
 
+                const margemInferiorOriginal =
+                    doc.page.margins.bottom;
+
+
+                doc.page.margins.bottom = 0;
+
+
+                const yRodape =
+                    doc.page.height - 34;
+
+
                 doc
+                    .moveTo(
+                        margemX,
+                        yRodape - 10
+                    )
+                    .lineTo(
+                        margemX + larguraConteudo,
+                        yRodape - 10
+                    )
+                    .lineWidth(0.8)
+                    .strokeColor(CORES.borda)
+                    .stroke();
+
+
+                doc
+                    .fillColor(CORES.textoSuave)
                     .font("Helvetica")
-                    .fontSize(8)
-                    .fillColor("#94a3b8")
+                    .fontSize(7.5)
                     .text(
-                        `Rota do Sucesso | Página ${i + 1} de ${paginas.count}`,
-                        45,
-                        doc.page.height - 30,
+                        "Rota do Sucesso - seu caminho, seu ritmo, sua evolução.",
+                        margemX,
+                        yRodape,
                         {
                             width:
-                                doc.page.width -
-                                90,
-                            align: "center"
+                                larguraConteudo - 90,
+                            lineBreak: false
                         }
                     );
+
+
+                doc
+                    .fillColor(CORES.textoSuave)
+                    .font("Helvetica-Bold")
+                    .fontSize(7.5)
+                    .text(
+                        `Página ${i + 1} de ${paginas.count}`,
+                        margemX,
+                        yRodape,
+                        {
+                            width:
+                                larguraConteudo,
+                            align: "right",
+                            lineBreak: false
+                        }
+                    );
+
+
+                doc.page.margins.bottom =
+                    margemInferiorOriginal;
 
             }
 
@@ -4771,6 +6768,14 @@ async function gerarESalvarPdfPlano(
                 ) AS data_fim,
 
                 pe.versao,
+
+                pe.tipo_planejamento,
+                pe.versao_esquema_ia,
+                pe.resumo_ia,
+                pe.diagnostico_ia,
+                pe.distribuicao_ia,
+                pe.recomendacoes_ia,
+
 
                 u.nome
                     AS aluno_nome,
@@ -4855,17 +6860,27 @@ async function gerarESalvarPdfPlano(
                     )
                 END AS hora_fim,
 
-                pei.atividade,
+                COALESCE(
+    NULLIF(pei.atividade_detalhada_ia, ''),
+    pei.atividade
+) AS atividade,
 
-                pei.metodo_estudo,
+COALESCE(
+    NULLIF(pei.metodologia_detalhada_ia, ''),
+    pei.metodo_estudo
+) AS metodo_estudo,
 
                 pei.duracao_min,
+                pei.prioridade,
+                pei.sugestao_questoes_ia,
+
 
                 d.nome
                     AS disciplina,
 
+                COALESCE(NULLIF(pei.conteudo_ia, ''),
                 cc.titulo
-                    AS conteudo
+                ) AS conteudo
 
             FROM plano_estudo_item pei
 
@@ -4916,7 +6931,17 @@ async function gerarESalvarPdfPlano(
     // ==========================================
 
     const pdfBuffer =
-        await gerarBufferPdfPlano(
+
+    Number(
+        plano.versao_esquema_ia
+    ) === 4
+
+        ? await gerarBufferPdfV4(
+            plano,
+            resultadoItens.rows
+        )
+
+        : await gerarBufferPdfPlano(
             plano,
             resultadoItens.rows
         );
@@ -5042,30 +7067,50 @@ app.post(
 
         try {
 
-            const pdf =
-                await gerarESalvarPdfPlano(
-                    usuarioId,
-                    planoId
-                );
+           const pdf =
+    await gerarESalvarPdfPlano(
+        usuarioId,
+        planoId
+    );
 
 
-            return res.json({
+// ==========================================
+// SINCRONIZAR PLANO COM O CALENDÁRIO
+// ==========================================
 
-                sucesso: true,
+const calendario =
+    await sincronizarPlanoComCalendario(
+        usuarioId,
+        planoId
+    );
 
-                mensagem:
-                    "PDF gerado e salvo com sucesso.",
 
-                pdf: {
+return res.json({
 
-                    ...pdf,
+    sucesso: true,
 
-                    urlDownload:
-                        `/api/plano-estudo/${usuarioId}/${planoId}/pdf/download`
+    mensagem:
+        "PDF gerado e Plano de Estudos adicionado ao calendário.",
 
-                }
+    pdf: {
 
-            });
+        ...pdf,
+
+        urlDownload:
+            `/api/plano-estudo/${usuarioId}/${planoId}/pdf/download`
+
+    },
+
+    calendario: {
+
+        sincronizado: true,
+
+        compromissosCriados:
+            calendario.total
+
+    }
+
+});
 
 
         } catch (erro) {

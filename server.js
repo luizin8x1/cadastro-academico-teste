@@ -97,7 +97,7 @@ app.post("/api/logout", (req, res) => {
 // PROTECAO DAS ROTAS DA API
 // ==========================================
 
-app.use("/api", (req, res, next) => {
+app.use("/api", async (req, res, next) => {
 
     const rota = req.path;
 
@@ -133,7 +133,9 @@ app.use("/api", (req, res, next) => {
         "/plano-estudo/",
         "/usuario/",
         "/calendario/",
-        "/tarefas/"
+        "/tarefas/",
+        "/compromissos/",
+        "/progresso/"
     ].some(inicio => rota.startsWith(inicio));
 
     // Bloquear rotas que nao foram classificadas.
@@ -184,17 +186,64 @@ app.use("/api", (req, res, next) => {
         });
     }
 
+// Conferir se a conta do token ainda existe e esta ativa.
+if (
+    !Number.isSafeInteger(identidade.id) ||
+    identidade.id <= 0
+) {
+    return res.status(401).json({
+        erro: "Sessao invalida."
+    });
+}
+
+let contaAutenticada;
+
+try {
+    contaAutenticada = await pool.query(
+        `SELECT id, status, tipo_usuario
+         FROM usuario
+         WHERE id = $1`,
+        [identidade.id]
+    );
+
+} catch (erro) {
+    console.error(
+        "Falha na validacao de sessao:",
+        erro.message
+    );
+
+    return res.status(503).json({
+        erro:
+            "Nao foi possivel validar a sessao. " +
+            "Tente novamente."
+    });
+}
+
+if (
+    !contaAutenticada.rowCount ||
+    contaAutenticada.rows[0].status !== "ativo"
+) {
+    return res.status(401).json({
+        erro: "Sessao encerrada ou conta indisponivel."
+    });
+}
+
+
     // As rotas administrativas exigem login da equipe.
     if (rotaEquipe) {
-        if (
-            identidade.tipo !== "equipe" ||
-            !Number.isSafeInteger(identidade.id)
-        ) {
-            return res.sendStatus(403);
-        }
+    if (
+        identidade.tipo !== "equipe" ||
+        identidade.perfil !== "administrador" ||
+contaAutenticada.rows[0].tipo_usuario !==
+    "administrador" ||
+!Number.isSafeInteger(identidade.id)
 
-        return next();
+    ) {
+        return res.sendStatus(403);
     }
+
+    return next();
+}
 
     // As demais rotas protegidas exigem login do aluno.
     if (
@@ -231,6 +280,7 @@ app.use("/api", (req, res, next) => {
             erro: "Voce nao pode acessar os dados de outro usuario."
         });
     }
+    req.usuarioAutenticadoId = identidade.id;
 
     next();
 
@@ -705,6 +755,26 @@ criarCookieAcesso(res, "rota_aluno", {
     perfil: usuario.tipo_usuario
 });
 
+// Somente administradores recebem também
+// o cookie de autenticação da equipe.
+if (usuario.tipo_usuario === "administrador") {
+    criarCookieAcesso(res, "rota_equipe", {
+        tipo: "equipe",
+        id: usuario.id,
+        perfil: "administrador"
+    });
+} else {
+    // Impede reutilizar uma sessão administrativa
+    // após entrar com outra conta no navegador.
+    res.clearCookie("rota_equipe", {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/"
+    });
+}
+
+
     return res.json({
   sucesso: true,
   usuarioId: usuario.id,
@@ -722,6 +792,270 @@ criarCookieAcesso(res, "rota_aluno", {
     });
   }
 });
+
+// =====================================================
+// EXCLUSAO DA PROPRIA CONTA (SOMENTE O TITULAR)
+// =====================================================
+
+app.delete(
+    "/api/usuario/:usuarioId/excluir",
+    async (req, res) => {
+
+        const usuarioId = Number(
+            req.params.usuarioId
+        );
+
+        const {
+            senha,
+            confirmacao
+        } = req.body || {};
+
+        // Confirmar a identidade do titular.
+        if (
+            !Number.isSafeInteger(usuarioId) ||
+            usuarioId <= 0 ||
+            req.usuarioAutenticadoId !== usuarioId
+        ) {
+            return res.status(403).json({
+                erro: "Operacao nao autorizada."
+            });
+        }
+
+        // Exigir senha e confirmacao explicita.
+        if (
+            typeof senha !== "string" ||
+            !senha ||
+            senha.length > 200 ||
+            confirmacao !== "EXCLUIR"
+        ) {
+            return res.status(400).json({
+                erro:
+                    "Informe sua senha e digite " +
+                    "EXCLUIR para confirmar."
+            });
+        }
+
+        let cliente;
+        let transacaoAberta = false;
+
+        try {
+
+            cliente = await pool.connect();
+
+            await cliente.query("BEGIN");
+            transacaoAberta = true;
+
+            // Bloquear a conta durante a operacao.
+            const titular = await cliente.query(
+                `SELECT
+                    id,
+                    senha_hash,
+                    tipo_usuario
+
+                 FROM usuario
+
+                 WHERE id = $1
+                   AND status = 'ativo'
+
+                 FOR UPDATE`,
+                [usuarioId]
+            );
+
+            if (!titular.rowCount) {
+
+                await cliente.query("ROLLBACK");
+                transacaoAberta = false;
+
+                return res.status(404).json({
+                    erro: "Conta nao encontrada."
+                });
+            }
+
+            // Administradores não podem utilizar
+            // a exclusão destinada aos estudantes.
+            if (
+                titular.rows[0].tipo_usuario ===
+                "administrador"
+            ) {
+
+                await cliente.query("ROLLBACK");
+                transacaoAberta = false;
+
+                return res.status(403).json({
+                    erro:
+                        "Contas administrativas exigem " +
+                        "outro procedimento."
+                });
+            }
+
+            // Conferir a senha sem registrá-la em logs.
+            const senhaCorreta = await bcrypt.compare(
+                senha,
+                titular.rows[0].senha_hash
+            );
+
+            if (!senhaCorreta) {
+
+                await cliente.query("ROLLBACK");
+                transacaoAberta = false;
+
+                return res.status(403).json({
+                    erro: "Senha incorreta."
+                });
+            }
+
+            // Impedir a exclusão quando existir
+            // uma geração recente do Claude em andamento.
+            const geracaoAtiva = await cliente.query(
+                `SELECT 1
+
+                 FROM plano_v4_solicitacao
+
+                 WHERE usuario_id = $1
+
+                   AND status IN (
+                       'iniciado',
+                       'respondido'
+                   )
+
+                   AND atualizado_em >
+                       NOW() - INTERVAL '30 minutes'
+
+                 LIMIT 1`,
+                [usuarioId]
+            );
+
+            if (geracaoAtiva.rowCount) {
+
+                await cliente.query("ROLLBACK");
+                transacaoAberta = false;
+
+                return res.status(409).json({
+                    erro:
+                        "Ha uma geracao de plano recente " +
+                        "em andamento. Aguarde e tente novamente."
+                });
+            }
+
+            // ----------------------------------
+            // EXCLUSÕES EXPLÍCITAS
+            // ----------------------------------
+
+            // Exercícios possuem vínculos que
+            // impedem sua exclusão automática.
+            await cliente.query(
+                `DELETE FROM exercicio
+                 WHERE usuario_id = $1`,
+                [usuarioId]
+            );
+
+            // Solicitações do Claude V4 não
+            // possuem exclusão automática pelo usuário.
+            await cliente.query(
+                `DELETE FROM plano_v4_solicitacao
+                 WHERE usuario_id = $1`,
+                [usuarioId]
+            );
+
+            // ----------------------------------
+            // EXCLUIR A CONTA
+            // ----------------------------------
+
+            // Os demais dados relacionados serão
+            // tratados pelas chaves estrangeiras
+            // configuradas com ON DELETE CASCADE.
+            const resultado = await cliente.query(
+                `DELETE FROM usuario
+                 WHERE id = $1
+                 RETURNING id`,
+                [usuarioId]
+            );
+
+            if (resultado.rowCount !== 1) {
+                throw new Error(
+                    "A exclusao da conta nao foi confirmada."
+                );
+            }
+
+            // Confirmar todas as exclusões juntas.
+            await cliente.query("COMMIT");
+            transacaoAberta = false;
+
+            // ----------------------------------
+            // ENCERRAR OS COOKIES
+            // ----------------------------------
+
+            const opcoesCookie = {
+                httpOnly: true,
+                secure:
+                    process.env.NODE_ENV ===
+                    "production",
+                sameSite: "lax",
+                path: "/"
+            };
+
+            res.clearCookie(
+                "rota_aluno",
+                opcoesCookie
+            );
+
+            res.clearCookie(
+                "rota_equipe",
+                opcoesCookie
+            );
+
+            res.setHeader(
+                "Cache-Control",
+                "no-store"
+            );
+
+            return res.json({
+                sucesso: true,
+                mensagem: "Conta excluida."
+            });
+
+        } catch (erro) {
+
+            if (cliente && transacaoAberta) {
+                await cliente.query("ROLLBACK")
+                    .catch(() => {});
+            }
+
+            if (erro.code === "23503") {
+
+                console.error(
+                    "Exclusao bloqueada por relacionamento:",
+                    erro.constraint
+                );
+
+                return res.status(409).json({
+                    erro:
+                        "Ha outros vinculos com esta conta. " +
+                        "Nenhum dado foi excluido."
+                });
+            }
+
+            console.error(
+                "Falha ao excluir conta:",
+                erro.message
+            );
+
+            return res.status(500).json({
+                erro:
+                    "Falha na operacao. Confirme a situacao " +
+                    "da conta antes de repetir."
+            });
+
+        } finally {
+
+            if (cliente) {
+                cliente.release();
+            }
+
+        }
+    }
+);
+
 
 // =====================================================
 // BUSCAR DADOS DO USUÁRIO + PERFIL ACADÊMICO
@@ -753,6 +1087,7 @@ app.get("/api/perfil/:usuarioId", async (req, res) => {
                 pa.universidade_desejada,
                 pa.tipo_universidade,
                 pa.objetivo_geral,
+                pa.objetivo_outro,
                 pa.trilha_sesi,
                 pa.etapa_sesi
 
@@ -810,6 +1145,7 @@ app.get("/api/perfil/:usuarioId", async (req, res) => {
             universidadeDesejada: linha.universidade_desejada,
             tipoUniversidade: linha.tipo_universidade,
             objetivoGeral: linha.objetivo_geral,
+            objetivoOutro: linha.objetivo_outro,
             trilhaSesi: linha.trilha_sesi,
             etapaSesi: linha.etapa_sesi
         });
@@ -1044,6 +1380,221 @@ app.put(
 
         }
 
+    }
+);
+
+
+// =====================================================
+// EDITAR INFORMAÇÕES EDUCACIONAIS
+// =====================================================
+
+app.put(
+    "/api/perfil/:usuarioId/educacional",
+    async (req, res) => {
+
+        const usuarioId = Number(req.params.usuarioId);
+
+        const texto = valor =>
+            String(valor ?? "").trim();
+
+        const {
+            nome,
+            dataNascimento,
+            serie,
+            escola,
+            redeEnsino,
+            curso,
+            universidade,
+            tipoInstituicao,
+            objetivo,
+            objetivoOutro
+        } = req.body || {};
+
+        const nomeLimpo = texto(nome);
+        const escolaLimpa = texto(escola);
+        const rede = texto(redeEnsino);
+        const tipo = texto(tipoInstituicao);
+
+        const serieAcademica =
+            obterSerieAcademica(serie);
+
+        const ehEM =
+            serieAcademica?.etapaAtual === 2;
+
+        const objetivoNumero = Number(objetivo);
+        const objetivoOutroLimpo = texto(objetivoOutro);
+
+        // VALIDAÇÕES GERAIS
+
+        if (
+            !Number.isSafeInteger(usuarioId) ||
+            usuarioId <= 0 ||
+            nomeLimpo.length < 2 ||
+            nomeLimpo.length > 100 ||
+            !serieAcademica ||
+            !["publica", "particular"].includes(rede) ||
+            escolaLimpa.length > 100 ||
+            texto(curso).length > 100 ||
+            texto(universidade).length > 100 ||
+            (tipo && !["publica", "particular"].includes(tipo)) ||
+            objetivoOutroLimpo.length > 150
+        ) {
+            return res.status(400).json({
+                erro: "Confira os dados informados."
+            });
+        }
+
+        // VALIDAR DATA
+
+        const data = new Date(
+            `${dataNascimento}T12:00:00Z`
+        );
+
+        if (
+            typeof dataNascimento !== "string" ||
+            !/^\d{4}-\d{2}-\d{2}$/.test(dataNascimento) ||
+            Number.isNaN(data.getTime()) ||
+            data.toISOString().slice(0, 10) !== dataNascimento ||
+            data.getTime() > Date.now() ||
+            data.getUTCFullYear() < 1900
+        ) {
+            return res.status(400).json({
+                erro: "Informe uma data válida."
+            });
+        }
+
+        // OBJETIVO OBRIGATÓRIO SOMENTE PARA EM
+
+        if (
+            ehEM &&
+            (
+                !Number.isInteger(objetivoNumero) ||
+                objetivoNumero < 1 ||
+                objetivoNumero > 7 ||
+                (
+                    objetivoNumero === 7 &&
+                    !objetivoOutroLimpo
+                )
+            )
+        ) {
+            return res.status(400).json({
+                erro: "Selecione o objetivo acadêmico."
+            });
+        }
+
+        const client = await pool.connect();
+
+        try {
+
+            await client.query("BEGIN");
+
+            // ATUALIZAR NOME
+
+            const usuario = await client.query(
+                `
+                UPDATE usuario
+                SET nome = $1
+                WHERE id = $2
+                RETURNING id
+                `,
+                [nomeLimpo, usuarioId]
+            );
+
+            if (!usuario.rowCount) {
+                await client.query("ROLLBACK");
+
+                return res.status(404).json({
+                    erro: "Usuário não encontrado."
+                });
+            }
+
+            // ATUALIZAR PERFIL
+
+            const perfil = await client.query(
+                `
+                UPDATE perfil_academico
+
+                SET
+                    data_nascimento = $1,
+                    serie = $2,
+                    etapa_atual = $3,
+                    escola = $4,
+                    rede_ensino = $5,
+                    curso_desejado = $6,
+                    universidade_desejada = $7,
+                    tipo_universidade = $8,
+                    objetivo_geral = $9,
+                    objetivo_outro = $10
+
+                WHERE usuario_id = $11
+
+                RETURNING usuario_id
+                `,
+                [
+                    dataNascimento,
+                    serieAcademica.serie,
+                    serieAcademica.etapaAtual,
+                    escolaLimpa || null,
+                    rede,
+
+                    ehEM
+                        ? texto(curso) || null
+                        : null,
+
+                    ehEM
+                        ? texto(universidade) || null
+                        : null,
+
+                    ehEM
+                        ? tipo || null
+                        : null,
+
+                    ehEM
+                        ? objetivoNumero
+                        : null,
+
+                    ehEM && objetivoNumero === 7
+                        ? objetivoOutroLimpo
+                        : null,
+
+                    usuarioId
+                ]
+            );
+
+            if (!perfil.rowCount) {
+
+                await client.query("ROLLBACK");
+
+                return res.status(404).json({
+                    erro: "Perfil acadêmico não encontrado."
+                });
+            }
+
+            await client.query("COMMIT");
+
+            return res.json({
+                sucesso: true
+            });
+
+        } catch (erro) {
+
+            await client.query("ROLLBACK")
+                .catch(() => {});
+
+            console.error(
+                "Erro ao editar informações educacionais:",
+                erro
+            );
+
+            return res.status(500).json({
+                erro: "Não foi possível salvar o perfil."
+            });
+
+        } finally {
+
+            client.release();
+
+        }
     }
 );
 
@@ -2587,6 +3138,1293 @@ app.get("/api/frase-aleatoria", async (req, res) => {
     });
   }
 });
+
+// =====================================================
+// ADMIN - GERENCIAMENTO SEGURO DE USUARIOS
+// =====================================================
+
+// Lista paginada, sem expor senhas ou tokens.
+app.get('/api/admin/dados/usuarios', async (req, res) => {
+    const busca = String(req.query.busca || '').trim().slice(0, 80);
+    const situacao = String(req.query.situacao || 'todos');
+    const pagina = Number(req.query.pagina || 1);
+    const tamanhoPagina = 25;
+
+    if (
+        !['todos', 'ativo', 'outros'].includes(situacao) ||
+        !Number.isSafeInteger(pagina) ||
+        pagina < 1 || pagina > 100000
+    ) {
+        return res.status(400).json({
+            erro: 'Filtros inválidos.'
+        });
+    }
+
+    const filtro = `
+        FROM usuario u
+
+        LEFT JOIN perfil_academico p
+            ON p.usuario_id = u.id
+
+        WHERE COALESCE(u.tipo_usuario, '') <> 'administrador'
+
+        AND (
+            $1::text = ''
+            OR u.nome ILIKE '%' || $1 || '%'
+            OR u.email ILIKE '%' || $1 || '%'
+            OR u.id::text = $1
+            OR COALESCE(p.serie::text, '') ILIKE '%' || $1 || '%'
+            OR COALESCE(p.escola, '') ILIKE '%' || $1 || '%'
+        )
+
+        AND (
+            $2::text = 'todos'
+            OR ($2::text = 'ativo' AND u.status = 'ativo')
+            OR (
+                $2::text = 'outros'
+                AND u.status IS DISTINCT FROM 'ativo'
+            )
+        )
+    `;
+
+    try {
+        const parametros = [busca, situacao];
+
+        const [contagem, registros] = await Promise.all([
+            pool.query(
+                `SELECT COUNT(*)::int AS total ${filtro}`,
+                parametros
+            ),
+
+            pool.query(`
+                SELECT
+                    u.id,
+                    u.nome,
+                    u.email,
+                    u.status,
+                    u.tipo_usuario,
+                    p.serie,
+                    p.etapa_atual,
+                    p.escola,
+                    p.rede_ensino,
+                    p.curso_desejado,
+                    p.universidade_desejada,
+                    p.tipo_universidade,
+                    p.objetivo_geral
+
+                ${filtro}
+
+                ORDER BY u.id DESC
+
+                LIMIT $3 OFFSET $4
+            `, [
+                ...parametros,
+                tamanhoPagina,
+                (pagina - 1) * tamanhoPagina
+            ])
+        ]);
+
+        return res.json({
+            usuarios: registros.rows,
+            total: contagem.rows[0].total,
+            pagina,
+            porPagina: tamanhoPagina
+        });
+
+    } catch (erro) {
+        console.error('Falha ao listar usuarios:', erro);
+
+        return res.status(500).json({
+            erro: 'Não foi possível carregar os usuários.'
+        });
+    }
+});
+
+
+// ==========================================
+// EDITAR DADOS DE IDENTIFICACAO
+// ==========================================
+
+app.put('/api/admin/dados/usuarios/:id', async (req, res) => {
+
+    const id = Number(req.params.id);
+
+    const nome =
+        typeof req.body?.nome === 'string'
+            ? req.body.nome.trim()
+            : '';
+
+    const email =
+        typeof req.body?.email === 'string'
+            ? req.body.email.trim().toLowerCase()
+            : '';
+
+    if (
+        !Number.isSafeInteger(id) ||
+        id < 1 ||
+        nome.length < 2 ||
+        nome.length > 100 ||
+        email.length > 254 ||
+        !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+    ) {
+        return res.status(400).json({
+            erro: 'Confira o nome e o e-mail.'
+        });
+    }
+
+    let cliente;
+
+    try {
+        cliente = await pool.connect();
+
+        await cliente.query('BEGIN');
+
+        // Localizar e bloquear o registro durante a edição.
+        const atual = await cliente.query(
+            `SELECT id, tipo_usuario
+             FROM usuario
+             WHERE id = $1
+             FOR UPDATE`,
+            [id]
+        );
+
+        if (!atual.rowCount) {
+            await cliente.query('ROLLBACK');
+
+            return res.status(404).json({
+                erro: 'Usuário não encontrado.'
+            });
+        }
+
+        // Não permitir alterar contas administrativas
+        // por esta interface.
+        if (
+            atual.rows[0].tipo_usuario === 'administrador'
+        ) {
+            await cliente.query('ROLLBACK');
+
+            return res.status(403).json({
+                erro:
+                    'Contas administrativas não podem ser editadas aqui.'
+            });
+        }
+
+        // Impedir a reutilização de um e-mail existente.
+        const repetido = await cliente.query(
+            `SELECT id
+             FROM usuario
+             WHERE LOWER(BTRIM(email)) = $1
+             AND id <> $2
+             LIMIT 1`,
+            [email, id]
+        );
+
+        if (repetido.rowCount) {
+            await cliente.query('ROLLBACK');
+
+            return res.status(409).json({
+                erro: 'Este e-mail já está cadastrado.'
+            });
+        }
+
+        const atualizado = await cliente.query(
+            `UPDATE usuario
+
+             SET
+                nome = $1,
+                email = $2
+
+             WHERE id = $3
+
+             RETURNING id, nome, email`,
+            [nome, email, id]
+        );
+
+        await cliente.query('COMMIT');
+
+        return res.json({
+            usuario: atualizado.rows[0]
+        });
+
+    } catch (erro) {
+
+        if (cliente) {
+            await cliente.query('ROLLBACK')
+                .catch(() => {});
+        }
+
+        if (erro.code === '23505') {
+            return res.status(409).json({
+                erro: 'Este e-mail já está cadastrado.'
+            });
+        }
+
+        console.error('Falha ao editar usuario:', erro);
+
+        return res.status(500).json({
+            erro: 'Não foi possível atualizar o usuário.'
+        });
+
+    } finally {
+        if (cliente) {
+            cliente.release();
+        }
+    }
+});
+
+
+// =====================================================
+// ADMIN - GERENCIAMENTO DE DISCIPLINAS
+// =====================================================
+
+function erroDisciplinaAdmin(res, erro) {
+    if (erro.code === '23505') {
+        return res.status(409).json({
+            erro: 'Disciplina já cadastrada.'
+        });
+    }
+
+    if (erro.code === '23503') {
+        return res.status(409).json({
+            erro: 'A disciplina possui registros vinculados.'
+        });
+    }
+
+    if (['22001', '22P02', '23502', '23514'].includes(erro.code)) {
+        return res.status(400).json({
+            erro: 'Confira os dados informados.'
+        });
+    }
+
+    console.error('Erro em disciplinas:', erro);
+
+    return res.status(500).json({
+        erro: 'Não foi possível concluir a operação.'
+    });
+}
+
+function validarDadosDisciplina(body) {
+    const nome =
+        typeof body?.nome === 'string'
+            ? body.nome.trim()
+            : '';
+
+    const area =
+        typeof body?.area_conhecimento === 'string'
+            ? body.area_conhecimento.trim()
+            : '';
+
+    if (!nome || nome.length > 120 || area.length > 120) {
+        return null;
+    }
+
+    return {
+        nome,
+        area: area || null
+    };
+}
+
+// -------------------------------------
+// CONSULTAR DISCIPLINAS
+// -------------------------------------
+
+app.get(
+    '/api/admin/dados/disciplinas',
+    async (_req, res) => {
+        try {
+            const dados = await pool.query(`
+                SELECT
+                    d.id,
+                    d.nome,
+                    d.area_conhecimento,
+                    COUNT(pc.id)::int AS total_planos
+
+                FROM disciplina d
+
+                LEFT JOIN plano_curso pc
+                    ON pc.disciplina_id = d.id
+
+                GROUP BY d.id
+
+                ORDER BY d.nome, d.id
+            `);
+
+            return res.json({
+                disciplinas: dados.rows
+            });
+
+        } catch (erro) {
+            return erroDisciplinaAdmin(res, erro);
+        }
+    }
+);
+
+// -------------------------------------
+// CADASTRAR DISCIPLINA
+// -------------------------------------
+
+app.post(
+    '/api/admin/dados/disciplinas',
+    async (req, res) => {
+        const d = validarDadosDisciplina(req.body);
+
+        if (!d) {
+            return res.status(400).json({
+                erro: 'Informe um nome válido (até 120 caracteres).'
+            });
+        }
+
+        try {
+            const existente = await pool.query(
+                `SELECT id
+                 FROM disciplina
+                 WHERE LOWER(BTRIM(nome)) = LOWER($1)
+                 LIMIT 1`,
+                [d.nome]
+            );
+
+            if (existente.rowCount) {
+                return res.status(409).json({
+                    erro: 'Já existe uma disciplina com esse nome.'
+                });
+            }
+
+            const dados = await pool.query(
+                `INSERT INTO disciplina (
+                    nome,
+                    area_conhecimento
+                )
+                VALUES ($1, $2)
+                RETURNING id, nome, area_conhecimento`,
+                [d.nome, d.area]
+            );
+
+            return res.status(201).json({
+                disciplina: dados.rows[0]
+            });
+
+        } catch (erro) {
+            return erroDisciplinaAdmin(res, erro);
+        }
+    }
+);
+
+// -------------------------------------
+// EDITAR DISCIPLINA
+// -------------------------------------
+
+app.put(
+    '/api/admin/dados/disciplinas/:id',
+    async (req, res) => {
+        const id = Number(req.params.id);
+        const d = validarDadosDisciplina(req.body);
+
+        if (
+            !Number.isSafeInteger(id) ||
+            id < 1 ||
+            !d
+        ) {
+            return res.status(400).json({
+                erro: 'Identificador ou dados inválidos.'
+            });
+        }
+
+        let client;
+
+        try {
+            client = await pool.connect();
+            await client.query('BEGIN');
+
+            const atual = await client.query(
+                `SELECT id
+                 FROM disciplina
+                 WHERE id = $1
+                 FOR UPDATE`,
+                [id]
+            );
+
+            if (!atual.rowCount) {
+                await client.query('ROLLBACK');
+
+                return res.status(404).json({
+                    erro: 'Disciplina não encontrada.'
+                });
+            }
+
+            const repetida = await client.query(
+                `SELECT id
+                 FROM disciplina
+                 WHERE LOWER(BTRIM(nome)) = LOWER($1)
+                   AND id <> $2
+                 LIMIT 1`,
+                [d.nome, id]
+            );
+
+            if (repetida.rowCount) {
+                await client.query('ROLLBACK');
+
+                return res.status(409).json({
+                    erro: 'Já existe uma disciplina com esse nome.'
+                });
+            }
+
+            const planos = await client.query(
+                `SELECT 1
+                 FROM plano_curso
+                 WHERE disciplina_id = $1
+                 LIMIT 1`,
+                [id]
+            );
+
+            if (
+                planos.rowCount &&
+                req.body.confirmar_alteracao_vinculada !== true
+            ) {
+                await client.query('ROLLBACK');
+
+                return res.status(409).json({
+                    erro:
+                        'Esta disciplina está vinculada a planos. ' +
+                        'Confirme a alteração.'
+                });
+            }
+
+            const dados = await client.query(
+                `UPDATE disciplina
+
+                 SET
+                    nome = $1,
+                    area_conhecimento = $2
+
+                 WHERE id = $3
+
+                 RETURNING
+                    id,
+                    nome,
+                    area_conhecimento`,
+                [d.nome, d.area, id]
+            );
+
+            await client.query('COMMIT');
+
+            return res.json({
+                disciplina: dados.rows[0]
+            });
+
+        } catch (erro) {
+            if (client) {
+                await client.query('ROLLBACK')
+                    .catch(() => {});
+            }
+
+            return erroDisciplinaAdmin(res, erro);
+
+        } finally {
+            if (client) {
+                client.release();
+            }
+        }
+    }
+);
+
+// -------------------------------------
+// EXCLUSÃO PROTEGIDA
+// -------------------------------------
+
+app.delete(
+    '/api/admin/dados/disciplinas/:id',
+    async (req, res) => {
+        const id = Number(req.params.id);
+
+        if (!Number.isSafeInteger(id) || id < 1) {
+            return res.status(400).json({
+                erro: 'Identificador inválido.'
+            });
+        }
+
+        let client;
+
+        try {
+            client = await pool.connect();
+            await client.query('BEGIN');
+
+            // Bloqueia alterações concorrentes
+            // enquanto os vínculos são verificados.
+            const atual = await client.query(
+                `SELECT id
+                 FROM disciplina
+                 WHERE id = $1
+                 FOR UPDATE`,
+                [id]
+            );
+
+            if (!atual.rowCount) {
+                await client.query('ROLLBACK');
+
+                return res.status(404).json({
+                    erro: 'Disciplina não encontrada.'
+                });
+            }
+
+            // Consultar relacionamentos registrados
+            // no PostgreSQL e colunas acadêmicas
+            // conhecidas, mesmo sem chave estrangeira.
+            const refs = await client.query(`
+                SELECT DISTINCT
+                    esquema,
+                    tabela,
+                    coluna,
+                    qtd,
+                    destino
+
+                FROM (
+                    SELECT
+                        n.nspname::text AS esquema,
+                        c.relname::text AS tabela,
+                        a.attname::text AS coluna,
+                        cardinality(f.conkey) AS qtd,
+                        destino.attname::text AS destino
+
+                    FROM pg_constraint f
+
+                    JOIN pg_class c
+                        ON c.oid = f.conrelid
+
+                    JOIN pg_namespace n
+                        ON n.oid = c.relnamespace
+
+                    JOIN pg_attribute a
+                        ON a.attrelid = f.conrelid
+                        AND a.attnum = f.conkey[1]
+
+                    JOIN pg_attribute destino
+                        ON destino.attrelid = f.confrelid
+                        AND destino.attnum = f.confkey[1]
+
+                    WHERE
+                        f.contype = 'f'
+                        AND f.confrelid =
+                            'public.disciplina'::regclass
+
+                    UNION
+
+                    SELECT
+                        col.table_schema::text,
+                        col.table_name::text,
+                        col.column_name::text,
+                        1,
+                        'id'::text
+
+                    FROM information_schema.columns col
+
+                    JOIN information_schema.tables t
+                        ON t.table_schema = col.table_schema
+                        AND t.table_name = col.table_name
+
+                    WHERE
+                        col.table_schema = 'public'
+                        AND t.table_type = 'BASE TABLE'
+                        AND col.table_name <> 'disciplina'
+                        AND col.column_name IN (
+                            'disciplina_id',
+                            'disciplina_nao_estuda_id'
+                        )
+                ) referencias
+            `);
+
+            // Identificadores vêm exclusivamente
+            // do catálogo do próprio PostgreSQL.
+            const citacaoSegura = valor =>
+                '"' + String(valor).replace(/"/g, '""') + '"';
+
+            for (const ref of refs.rows) {
+                // Não presumir que relacionamentos
+                // compostos são seguros para exclusão.
+                if (
+                    Number(ref.qtd) !== 1 ||
+                    ref.destino !== 'id'
+                ) {
+                    await client.query('ROLLBACK');
+
+                    return res.status(409).json({
+                        erro:
+                            'Exclusão bloqueada: ' +
+                            'referência curricular complexa.'
+                    });
+                }
+
+                const tabela =
+                    `${citacaoSegura(ref.esquema)}.` +
+                    `${citacaoSegura(ref.tabela)}`;
+
+                const coluna =
+                    citacaoSegura(ref.coluna);
+
+                const vinculo = await client.query(
+                    `SELECT 1
+                     FROM ${tabela}
+                     WHERE ${coluna} = $1
+                     LIMIT 1`,
+                    [id]
+                );
+
+                if (vinculo.rowCount) {
+                    await client.query('ROLLBACK');
+
+                    return res.status(409).json({
+                        erro:
+                            'Exclusão impedida: disciplina ' +
+                            'utilizada em outros registros.'
+                    });
+                }
+            }
+
+            await client.query(
+                'DELETE FROM disciplina WHERE id = $1',
+                [id]
+            );
+
+            await client.query('COMMIT');
+
+            return res.json({
+                sucesso: true
+            });
+
+        } catch (erro) {
+            if (client) {
+                await client.query('ROLLBACK')
+                    .catch(() => {});
+            }
+
+            return erroDisciplinaAdmin(res, erro);
+
+        } finally {
+            if (client) {
+                client.release();
+            }
+        }
+    }
+);
+
+
+// =====================================================
+// ADMIN - PLANOS DE CURSO E CONTEUDOS CURRICULARES
+// =====================================================
+
+function erroCurriculo(res, erro) {
+    if (erro.code === '23505') {
+        return res.status(409).json({
+            erro: 'Registro curricular duplicado.'
+        });
+    }
+
+    if (erro.code === '23503') {
+        return res.status(409).json({
+            erro: 'Registro relacionado a outros dados.'
+        });
+    }
+
+    if ([
+        '22P02',
+        '22001',
+        '23502',
+        '23514',
+        '22003'
+    ].includes(erro.code)) {
+        return res.status(400).json({
+            erro: 'Dados incompatíveis com o cadastro curricular.'
+        });
+    }
+
+    console.error('Erro no gerenciamento curricular:', erro);
+
+    return res.status(500).json({
+        erro: 'Não foi possível concluir a operação curricular.'
+    });
+}
+
+// Validar informações do plano.
+function validarCadastroPlano(body) {
+    const ano = Number(body?.ano_letivo);
+    const serie = Number(body?.serie);
+    const etapa = Number(body?.etapa);
+    const disciplinaId = Number(body?.disciplina_id);
+
+    const versao =
+        String(body?.versao ?? '').trim() || '1';
+
+    const trilha =
+        String(body?.trilha ?? '').trim() || null;
+
+    if (
+        !Number.isInteger(ano) ||
+        ano < 2000 ||
+        ano > 2100 ||
+
+        !Number.isInteger(serie) ||
+        serie < 1 ||
+        serie > 12 ||
+
+        !Number.isInteger(etapa) ||
+        etapa < 1 ||
+        etapa > 12 ||
+
+        !Number.isSafeInteger(disciplinaId) ||
+        disciplinaId < 1 ||
+
+        versao.length > 40 ||
+        (trilha && trilha.length > 40) ||
+
+        (
+            body?.ativo !== undefined &&
+            typeof body.ativo !== 'boolean'
+        )
+    ) {
+        return null;
+    }
+
+    return {
+        ano,
+        serie,
+        etapa,
+        disciplinaId,
+        versao,
+        trilha,
+        ativo: body?.ativo === true
+    };
+}
+
+// Validar os conteúdos associados.
+function validarConteudoPlano(body) {
+    const titulo =
+        String(body?.titulo ?? '').trim();
+
+    const descricao =
+        String(body?.descricao ?? '').trim() || null;
+
+    const ordem =
+        body?.ordem === '' || body?.ordem == null
+            ? null
+            : Number(body.ordem);
+
+    const carga =
+        body?.carga_horaria === '' ||
+        body?.carga_horaria == null
+            ? null
+            : Number(body.carga_horaria);
+
+    if (
+        !titulo ||
+        titulo.length > 200 ||
+
+        (
+            ordem !== null &&
+            (
+                !Number.isInteger(ordem) ||
+                ordem < 0
+            )
+        ) ||
+
+        (
+            carga !== null &&
+            (
+                !Number.isInteger(carga) ||
+                carga < 0
+            )
+        )
+    ) {
+        return null;
+    }
+
+    return {
+        titulo,
+        descricao,
+        ordem,
+        carga
+    };
+}
+
+// A proteção global /api/admin/ já exige
+// o cookie JWT da equipe.
+
+// -----------------------------------------
+// CONSULTAR DISCIPLINAS
+// -----------------------------------------
+
+app.get(
+    '/api/admin/dados/planos-curso/disciplinas',
+    async (_req, res) => {
+        try {
+            const dados = await pool.query(
+                'SELECT id, nome FROM disciplina ORDER BY nome'
+            );
+
+            return res.json({
+                disciplinas: dados.rows
+            });
+
+        } catch (erro) {
+            return erroCurriculo(res, erro);
+        }
+    }
+);
+
+// -----------------------------------------
+// LISTAR PLANOS DE CURSO
+// -----------------------------------------
+
+app.get(
+    '/api/admin/dados/planos-curso',
+    async (_req, res) => {
+        try {
+            const dados = await pool.query(`
+                SELECT
+                    pc.id,
+                    pc.ano_letivo,
+                    pc.serie,
+                    pc.etapa,
+                    pc.disciplina_id,
+                    pc.versao,
+                    pc.ativo,
+                    pc.trilha,
+                    d.nome AS disciplina,
+                    COUNT(cc.id)::int AS total_conteudos
+
+                FROM plano_curso pc
+
+                JOIN disciplina d
+                    ON d.id = pc.disciplina_id
+
+                LEFT JOIN conteudo_curricular cc
+                    ON cc.plano_curso_id = pc.id
+
+                GROUP BY
+                    pc.id,
+                    d.nome
+
+                ORDER BY
+                    pc.ano_letivo DESC,
+                    pc.serie,
+                    pc.etapa,
+                    d.nome,
+                    pc.id
+            `);
+
+            return res.json({
+                planos: dados.rows
+            });
+
+        } catch (erro) {
+            return erroCurriculo(res, erro);
+        }
+    }
+);
+
+// -----------------------------------------
+// CADASTRAR PLANO
+// -----------------------------------------
+
+app.post(
+    '/api/admin/dados/planos-curso',
+    async (req, res) => {
+        const p = validarCadastroPlano(req.body);
+
+        if (!p) {
+            return res.status(400).json({
+                erro: 'Confira os campos do plano.'
+            });
+        }
+
+        try {
+            // Novos planos começam inativos.
+            const dados = await pool.query(`
+                INSERT INTO plano_curso (
+                    ano_letivo,
+                    serie,
+                    etapa,
+                    disciplina_id,
+                    versao,
+                    trilha,
+                    ativo
+                )
+                VALUES (
+                    $1, $2, $3, $4, $5, $6, false
+                )
+                RETURNING id
+            `, [
+                p.ano,
+                p.serie,
+                p.etapa,
+                p.disciplinaId,
+                p.versao,
+                p.trilha
+            ]);
+
+            return res.status(201).json({
+                id: dados.rows[0].id
+            });
+
+        } catch (erro) {
+            return erroCurriculo(res, erro);
+        }
+    }
+);
+
+// -----------------------------------------
+// EDITAR E ATIVAR/DESATIVAR PLANO
+// -----------------------------------------
+
+app.put(
+    '/api/admin/dados/planos-curso/:id',
+    async (req, res) => {
+        const id = Number(req.params.id);
+        const p = validarCadastroPlano(req.body);
+
+        if (
+            !Number.isSafeInteger(id) ||
+            id < 1 ||
+            !p
+        ) {
+            return res.status(400).json({
+                erro: 'Identificador ou campos inválidos.'
+            });
+        }
+
+        let cliente;
+
+        try {
+            cliente = await pool.connect();
+            await cliente.query('BEGIN');
+
+            const anterior = await cliente.query(
+                `SELECT
+                    id,
+                    ativo,
+                    ano_letivo,
+                    serie,
+                    etapa,
+                    disciplina_id,
+                    versao,
+                    trilha
+                 FROM plano_curso
+                 WHERE id = $1
+                 FOR UPDATE`,
+                [id]
+            );
+
+            if (!anterior.rowCount) {
+                await cliente.query('ROLLBACK');
+
+                return res.status(404).json({
+                    erro: 'Plano não encontrado.'
+                });
+            }
+
+            const atual = anterior.rows[0];
+
+            // Proteger planos curriculares que já
+            // tenham sido usados pelos estudantes.
+            const mudouClassificacao =
+                Number(atual.ano_letivo) !== p.ano ||
+                Number(atual.serie) !== p.serie ||
+                Number(atual.etapa) !== p.etapa ||
+                Number(atual.disciplina_id) !==
+                    p.disciplinaId ||
+                (atual.trilha || null) !== p.trilha ||
+                (atual.versao || '1') !== p.versao;
+
+            if (mudouClassificacao) {
+                const usados = await cliente.query(`
+                    SELECT 1
+
+                    FROM plano_estudo_item pei
+
+                    JOIN conteudo_curricular cc
+                        ON cc.id =
+                            pei.conteudo_curricular_id
+
+                    WHERE cc.plano_curso_id = $1
+
+                    LIMIT 1
+                `, [id]);
+
+                if (usados.rowCount) {
+                    await cliente.query('ROLLBACK');
+
+                    return res.status(409).json({
+                        erro:
+                            'Este plano ja foi usado em planejamentos. ' +
+                            'Edite apenas seu status ou crie uma nova versao.'
+                    });
+                }
+            }
+
+            // Impedir a ativação inicial de
+            // um plano que ainda não tem conteúdos.
+            if (p.ativo && !atual.ativo) {
+                const conteudos = await cliente.query(
+                    `SELECT id
+                     FROM conteudo_curricular
+                     WHERE plano_curso_id = $1
+                     LIMIT 1`,
+                    [id]
+                );
+
+                if (!conteudos.rowCount) {
+                    await cliente.query('ROLLBACK');
+
+                    return res.status(409).json({
+                        erro:
+                            'Cadastre pelo menos um conteúdo antes de ativar.'
+                    });
+                }
+            }
+
+            await cliente.query(`
+                UPDATE plano_curso
+
+                SET
+                    ano_letivo = $1,
+                    serie = $2,
+                    etapa = $3,
+                    disciplina_id = $4,
+                    versao = $5,
+                    trilha = $6,
+                    ativo = $7
+
+                WHERE id = $8
+            `, [
+                p.ano,
+                p.serie,
+                p.etapa,
+                p.disciplinaId,
+                p.versao,
+                p.trilha,
+                p.ativo,
+                id
+            ]);
+
+            await cliente.query('COMMIT');
+
+            return res.json({
+                sucesso: true,
+                id
+            });
+
+        } catch (erro) {
+            if (cliente) {
+                await cliente.query('ROLLBACK')
+                    .catch(() => {});
+            }
+
+            return erroCurriculo(res, erro);
+
+        } finally {
+            if (cliente) {
+                cliente.release();
+            }
+        }
+    }
+);
+
+// -----------------------------------------
+// CONSULTAR CONTEÚDOS DE UM PLANO
+// -----------------------------------------
+
+app.get(
+    '/api/admin/dados/planos-curso/:id/conteudos',
+    async (req, res) => {
+        const id = Number(req.params.id);
+
+        if (
+            !Number.isSafeInteger(id) ||
+            id < 1
+        ) {
+            return res.sendStatus(400);
+        }
+
+        try {
+            const plano = await pool.query(
+                'SELECT id FROM plano_curso WHERE id = $1',
+                [id]
+            );
+
+            if (!plano.rowCount) {
+                return res.status(404).json({
+                    erro: 'Plano não encontrado.'
+                });
+            }
+
+            const dados = await pool.query(`
+                SELECT
+                    id,
+                    titulo,
+                    descricao,
+                    ordem,
+                    carga_horaria
+
+                FROM conteudo_curricular
+
+                WHERE plano_curso_id = $1
+
+                ORDER BY
+                    ordem NULLS LAST,
+                    id
+            `, [id]);
+
+            return res.json({
+                conteudos: dados.rows
+            });
+
+        } catch (erro) {
+            return erroCurriculo(res, erro);
+        }
+    }
+);
+
+// -----------------------------------------
+// CADASTRAR CONTEÚDO CURRICULAR
+// -----------------------------------------
+
+app.post(
+    '/api/admin/dados/planos-curso/:id/conteudos',
+    async (req, res) => {
+        const id = Number(req.params.id);
+        const c = validarConteudoPlano(req.body);
+
+        if (
+            !Number.isSafeInteger(id) ||
+            id < 1 ||
+            !c
+        ) {
+            return res.status(400).json({
+                erro: 'Confira os dados do conteúdo.'
+            });
+        }
+
+        try {
+            const plano = await pool.query(
+                'SELECT id FROM plano_curso WHERE id = $1',
+                [id]
+            );
+
+            if (!plano.rowCount) {
+                return res.status(404).json({
+                    erro: 'Plano não encontrado.'
+                });
+            }
+
+            const dados = await pool.query(`
+                INSERT INTO conteudo_curricular (
+                    plano_curso_id,
+                    titulo,
+                    descricao,
+                    ordem,
+                    carga_horaria
+                )
+                VALUES ($1, $2, $3, $4, $5)
+                RETURNING id
+            `, [
+                id,
+                c.titulo,
+                c.descricao,
+                c.ordem,
+                c.carga
+            ]);
+
+            return res.status(201).json({
+                id: dados.rows[0].id
+            });
+
+        } catch (erro) {
+            return erroCurriculo(res, erro);
+        }
+    }
+);
+
+// -----------------------------------------
+// EDITAR CONTEÚDO CURRICULAR
+// -----------------------------------------
+
+app.put(
+    '/api/admin/dados/planos-curso/:id/conteudos/:conteudoId',
+    async (req, res) => {
+        const id = Number(req.params.id);
+        const conteudoId =
+            Number(req.params.conteudoId);
+
+        const c = validarConteudoPlano(req.body);
+
+        if (
+            !Number.isSafeInteger(id) ||
+            id < 1 ||
+            !Number.isSafeInteger(conteudoId) ||
+            conteudoId < 1 ||
+            !c
+        ) {
+            return res.status(400).json({
+                erro: 'Confira os dados do conteúdo.'
+            });
+        }
+
+        try {
+            // Não modificar conteúdos já usados
+            // em planejamentos dos estudantes.
+            const usado = await pool.query(
+                `SELECT 1
+                 FROM plano_estudo_item
+                 WHERE conteudo_curricular_id = $1
+                 LIMIT 1`,
+                [conteudoId]
+            );
+
+            if (usado.rowCount) {
+                return res.status(409).json({
+                    erro:
+                        'Este conteudo ja aparece em planos gerados. ' +
+                        'Crie uma nova versao curricular.'
+                });
+            }
+
+            const dados = await pool.query(`
+                UPDATE conteudo_curricular
+
+                SET
+                    titulo = $1,
+                    descricao = $2,
+                    ordem = $3,
+                    carga_horaria = $4
+
+                WHERE
+                    id = $5
+                    AND plano_curso_id = $6
+
+                RETURNING id
+            `, [
+                c.titulo,
+                c.descricao,
+                c.ordem,
+                c.carga,
+                conteudoId,
+                id
+            ]);
+
+            if (!dados.rowCount) {
+                return res.status(404).json({
+                    erro:
+                        'Conteúdo não encontrado neste plano.'
+                });
+            }
+
+            return res.json({
+                sucesso: true
+            });
+
+        } catch (erro) {
+            return erroCurriculo(res, erro);
+        }
+    }
+);
 
 // =====================================================
 // ADMIN - FRASES MOTIVACIONAIS
@@ -8904,6 +10742,25 @@ require("./services/registrar-plano-v4")({
     anthropic,
     montarPayloadPlanoEstudo,
     prepararDadosClaude
+});
+
+
+// ==========================================
+// PROGRESSO REAL DO ESTUDANTE
+// ==========================================
+
+require("./services/registrar-progresso")({
+    app,
+    pool
+});
+
+// ==========================================
+// COMPROMISSOS DO ESTUDANTE
+// ==========================================
+
+require("./services/registrar-compromissos")({
+    app,
+    pool
 });
 
 

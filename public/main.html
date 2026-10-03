@@ -591,7 +591,7 @@
         <!-- EXCLUIR PERFIL -->
         <button
             type="button"
-            onclick="excluirPerfil()"
+            @click="abrirExclusaoConta(); profileMenuOpen = false"
             class="w-full flex items-center gap-3
                    px-4 py-3 text-sm text-left
                    text-red-600
@@ -754,6 +754,25 @@
                         <a href="perfil-visualizar.html" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-700 dark:text-slate-200 hc:text-white hover:bg-slate-100 dark:hover:bg-slate-800 hc:hover:bg-white hc:hover:text-black transition">
                             <i class="ph ph-graduation-cap text-base"></i> Perfil Acadêmico
                         </a>
+                        <!-- EXCLUIR CONTA - MENU MOBILE -->
+
+<button
+    type="button"
+    @click="
+        abrirExclusaoConta();
+        mobileMenuOpen = false
+    "
+    class="w-full flex items-center gap-3
+           px-3 py-2.5 rounded-xl
+           text-sm text-red-600
+           dark:text-red-400 hc:text-white
+           hover:bg-red-50
+           dark:hover:bg-red-900/20"
+>
+    <i class="ph ph-trash text-base"></i>
+
+    Excluir perfil
+</button>
                         <button @click="sair" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-red-600 dark:text-red-400 hc:text-white hover:bg-red-50 dark:hover:bg-red-900/20 hc:hover:bg-white hc:hover:text-black transition">
                             <i class="ph-bold ph-sign-out text-base"></i> Sair
                         </button>
@@ -1760,12 +1779,62 @@
                 <div x-show="currentTab === 'tasks'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4" x-transition:enter-end="opacity-100 translate-y-0" class="max-w-4xl mx-auto" x-cloak>
                     <div class="flex justify-between items-center mb-8">
                         <div>
-                            <h1 class="text-3xl font-bold tracking-tight mb-2 text-slate-900 dark:text-white hc:text-white">Tarefas</h1>
-                            <p class="text-slate-500 dark:text-slate-400 hc:text-yellow-300">Gerencie seus estudos e entregas.</p>
+                            <h1 class="text-3xl font-bold tracking-tight mb-2 text-slate-900 dark:text-white hc:text-white">Compromissos</h1>
+                            <p class="text-slate-500 dark:text-slate-400 hc:text-yellow-300">Organize suas tarefas, metas e eventos em um só lugar.</p>
                         </div>
-                        <button @click="showTaskModal = true" class="px-5 py-2.5 rounded-xl font-medium shadow-sm flex items-center gap-2 hover:-translate-y-0.5 transition-transform" :class="accentBg">
-                            <i class="ph-bold ph-plus-circle text-xl"></i> Nova Tarefa
-                        </button>
+                        <div class="flex flex-wrap gap-2">
+
+    <!-- NOVA TAREFA -->
+    <button
+        type="button"
+        @click="
+            newTask.date = newTask.date ||
+                new Date().toLocaleDateString('en-CA');
+            showTaskModal = true
+        "
+        class="px-4 py-2.5 rounded-xl font-medium
+               shadow-sm flex items-center gap-2"
+        :class="accentBg"
+    >
+        <i class="ph-bold ph-plus-circle"></i>
+        Nova Tarefa
+    </button>
+
+    <!-- NOVA META -->
+    <button
+        type="button"
+        @click="
+            newMeta.date = newMeta.date ||
+                new Date().toLocaleDateString('en-CA');
+            showMetaModal = true
+        "
+        class="px-4 py-2.5 rounded-xl font-medium
+               flex items-center gap-2
+               border border-violet-300
+               text-violet-600 hover:bg-violet-50"
+    >
+        <i class="ph-bold ph-flag"></i>
+        Nova Meta
+    </button>
+
+    <!-- NOVO EVENTO -->
+    <button
+        type="button"
+        @click="
+            newEvent.date = newEvent.date ||
+                new Date().toLocaleDateString('en-CA');
+            showEventModal = true
+        "
+        class="px-4 py-2.5 rounded-xl font-medium
+               flex items-center gap-2
+               border border-emerald-300
+               text-emerald-600 hover:bg-emerald-50"
+    >
+        <i class="ph-bold ph-calendar-plus"></i>
+        Novo Evento
+    </button>
+
+</div>
                     </div>
 
                     <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 hc:bg-black hc:border-2 hc:border-white shadow-sm overflow-hidden">
@@ -1790,7 +1859,18 @@
                                     <div class="flex-1">
                                         <p class="font-medium text-slate-800 dark:text-slate-200 hc:text-white transition-all" :class="task.done ? 'line-through text-slate-400 dark:text-slate-500 hc:text-gray-500' : ''" x-text="task.title"></p>
                                         <div class="flex items-center gap-3 mt-2 text-xs font-medium">
-                                            <span class="px-2 py-1 rounded-md" :class="task.subjectClass" x-text="task.subject"></span>
+                                            <span
+    class="px-2 py-1 rounded-md font-semibold"
+    :class="
+        task.tipo === 'meta'
+            ? 'bg-violet-100 text-violet-700'
+            : task.tipo === 'evento'
+                ? 'bg-amber-100 text-amber-700'
+                : 'bg-blue-100 text-blue-700'
+    "
+    x-text="task.categoria">
+</span>
+                                            <span    class="px-2 py-1 rounded-md"    :class="task.subjectClass"    x-show="task.tipo === 'tarefa'"     x-text="task.subject"></span>
                                             <span class="flex items-center gap-1 text-slate-500 dark:text-slate-400 hc:text-yellow-300">
                                                 <i class="ph-bold ph-clock"></i> <span x-text="task.deadline"></span>
                                             </span>
@@ -5347,11 +5427,27 @@
         <h2 class="text-base font-bold text-slate-900 dark:text-white">
             Informações educacionais
         </h2>
+        <button
+    type="button"
+    @click="abrirEdicaoEducacional()"
+    x-show="!perfilEditando"
+    class="ml-auto px-4 py-2 rounded-xl
+           border border-blue-200
+           text-blue-600 font-semibold
+           hover:bg-blue-50 transition"
+>
+    <i class="ph-bold ph-pencil-simple"></i>
+    Editar
+</button>
 
     </div>
 
     <!-- Dados -->
-    <div class="px-5 py-2">
+        <div
+        x-show="!perfilEditando"
+        x-cloak
+        class="px-5 py-2"
+        >
 
         <!-- LINHA 1 -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-x-10
@@ -5437,6 +5533,249 @@
         </div>
 
     </div>
+    <!-- FORMULÁRIO DE EDIÇÃO EDUCACIONAL -->
+
+<form
+    x-show="perfilEditando"
+    x-cloak
+    @submit.prevent="salvarEdicaoEducacional()"
+    class="p-5 border-t border-slate-200
+           dark:border-slate-700 space-y-4"
+>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+        <!-- NOME -->
+        <label class="block">
+            <span class="text-sm font-semibold">
+                Nome completo
+            </span>
+
+            <input
+                type="text"
+                maxlength="100"
+                required
+                x-model="perfilFormulario.nome"
+                class="w-full mt-2 p-3 border rounded-xl
+                       dark:bg-slate-800"
+            >
+        </label>
+
+        <!-- NASCIMENTO -->
+        <label class="block">
+            <span class="text-sm font-semibold">
+                Data de nascimento
+            </span>
+
+            <input
+                type="date"
+                required
+                x-model="perfilFormulario.dataNascimento"
+                class="w-full mt-2 p-3 border rounded-xl
+                       dark:bg-slate-800"
+            >
+        </label>
+
+        <!-- SÉRIE -->
+        <label class="block">
+            <span class="text-sm font-semibold">
+                Série/Ano
+            </span>
+
+            <select
+                required
+                x-model="perfilFormulario.serie"
+                class="w-full mt-2 p-3 border rounded-xl
+                       dark:bg-slate-800"
+            >
+                <option value="">Selecione...</option>
+
+                <option value="5_ef">5º EF</option>
+                <option value="6_ef">6º EF</option>
+                <option value="7_ef">7º EF</option>
+                <option value="8_ef">8º EF</option>
+                <option value="9_ef">9º EF</option>
+
+                <option value="1_em">1º EM</option>
+                <option value="2_em">2º EM</option>
+                <option value="3_em">3º EM</option>
+
+                <option value="4_em">
+                    Já me formei
+                </option>
+
+                <option value="5_em">
+                    Não estudo atualmente
+                </option>
+            </select>
+        </label>
+
+        <!-- ESCOLA -->
+        <label class="block">
+            <span class="text-sm font-semibold">
+                Escola
+            </span>
+
+            <input
+                type="text"
+                maxlength="100"
+                x-model="perfilFormulario.escola"
+                class="w-full mt-2 p-3 border rounded-xl
+                       dark:bg-slate-800"
+            >
+        </label>
+
+        <!-- REDE DE ENSINO -->
+        <label class="block md:col-span-2">
+            <span class="text-sm font-semibold">
+                Rede de ensino
+            </span>
+
+            <select
+                required
+                x-model="perfilFormulario.redeEnsino"
+                class="w-full mt-2 p-3 border rounded-xl
+                       dark:bg-slate-800"
+            >
+                <option value="">Selecione...</option>
+                <option value="publica">Pública</option>
+                <option value="particular">Particular</option>
+            </select>
+        </label>
+
+        <!-- CAMPOS EXCLUSIVOS DO ENSINO MÉDIO -->
+        <div
+            x-show="perfilFormulario.serie.endsWith('_em')"
+            class="md:col-span-2 grid grid-cols-1
+                   md:grid-cols-2 gap-4"
+        >
+
+            <label class="block">
+                <span class="text-sm font-semibold">
+                    Curso pretendido (opcional)
+                </span>
+
+                <input
+                    type="text"
+                    maxlength="100"
+                    x-model="perfilFormulario.curso"
+                    class="w-full mt-2 p-3 border rounded-xl
+                           dark:bg-slate-800"
+                >
+            </label>
+
+            <label class="block">
+                <span class="text-sm font-semibold">
+                    Universidade pretendida (opcional)
+                </span>
+
+                <input
+                    type="text"
+                    maxlength="100"
+                    x-model="perfilFormulario.universidade"
+                    class="w-full mt-2 p-3 border rounded-xl
+                           dark:bg-slate-800"
+                >
+            </label>
+
+            <label class="block">
+                <span class="text-sm font-semibold">
+                    Tipo de instituição
+                </span>
+
+                <select
+                    x-model="perfilFormulario.tipoInstituicao"
+                    class="w-full mt-2 p-3 border rounded-xl
+                           dark:bg-slate-800"
+                >
+                    <option value="">Não definido</option>
+                    <option value="publica">Pública</option>
+                    <option value="particular">Particular</option>
+                </select>
+            </label>
+
+            <label class="block">
+                <span class="text-sm font-semibold">
+                    Objetivo acadêmico
+                </span>
+
+                <select
+                    x-model="perfilFormulario.objetivo"
+                    :required="perfilFormulario.serie.endsWith('_em')"
+                    class="w-full mt-2 p-3 border rounded-xl
+                           dark:bg-slate-800"
+                >
+                    <option value="">Selecione...</option>
+                    <option value="1">Passar no ENEM</option>
+                    <option value="2">Passar no vestibular</option>
+                    <option value="3">Melhorar minhas notas</option>
+                    <option value="4">Organizar meus estudos</option>
+                    <option value="5">Recuperação escolar</option>
+                    <option value="6">Concurso</option>
+                    <option value="7">Outro</option>
+                </select>
+            </label>
+
+            <label
+                x-show="perfilFormulario.objetivo === '7'"
+                class="block md:col-span-2"
+            >
+                <span class="text-sm font-semibold">
+                    Descreva seu objetivo
+                </span>
+
+                <input
+                    type="text"
+                    maxlength="150"
+                    x-model="perfilFormulario.objetivoOutro"
+                    :required="perfilFormulario.serie.endsWith('_em')
+                        && perfilFormulario.objetivo === '7'"
+                    class="w-full mt-2 p-3 border rounded-xl
+                           dark:bg-slate-800"
+                >
+            </label>
+
+        </div>
+
+    </div>
+
+    <!-- MENSAGEM DE ERRO -->
+    <p
+        x-show="perfilErro"
+        x-text="perfilErro"
+        class="text-sm text-red-600"
+    ></p>
+
+    <!-- AÇÕES -->
+    <div class="flex justify-end gap-3">
+
+        <button
+            type="button"
+            @click="cancelarEdicaoEducacional()"
+            :disabled="perfilSalvando"
+            class="px-5 py-2.5 rounded-xl border
+                   font-semibold"
+        >
+            Cancelar
+        </button>
+
+        <button
+            type="submit"
+            :disabled="perfilSalvando"
+            class="px-5 py-2.5 rounded-xl
+                   bg-blue-600 text-white font-semibold
+                   disabled:opacity-50"
+        >
+            <span
+                x-text="perfilSalvando
+                    ? 'Salvando...'
+                    : 'Salvar alterações'"
+            ></span>
+        </button>
+
+    </div>
+
+</form>
 </div>
 
 <!-- ===================================================== -->
@@ -6312,61 +6651,323 @@
                     </div>
                 </div>
 
-                <!-- PROGRESSO TAB -->
-                <div x-show="currentTab === 'progresso'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4" x-transition:enter-end="opacity-100 translate-y-0" class="max-w-5xl mx-auto space-y-6" x-cloak>
-                    <div>
-                        <h1 class="text-3xl font-bold tracking-tight text-slate-900 dark:text-white hc:text-white">Progresso (REPRESENTAÇÃO VISUAL)</h1>
-                        <p class="text-slate-500 dark:text-slate-400 hc:text-yellow-300">Uma visão visual de como seu desempenho poderá ser acompanhado.</p>
+                <!-- ========================================== -->
+<!-- PAINEL DE PROGRESSO REAL DO ESTUDANTE -->
+<!-- ========================================== -->
+
+<div
+    x-show="currentTab === 'progresso'"
+    x-transition.opacity
+    x-cloak
+    class="max-w-5xl mx-auto space-y-6"
+>
+
+    <!-- CABEÇALHO -->
+
+    <div>
+
+        <h1
+            class="text-3xl font-bold
+                   text-slate-900 dark:text-white"
+        >
+            Meu Progresso
+        </h1>
+
+        <p class="mt-2 text-slate-500 dark:text-slate-400">
+            Acompanhe seus compromissos concluídos
+            e a organização dos seus estudos.
+        </p>
+
+    </div>
+
+
+    <!-- MENSAGEM DE ERRO -->
+
+    <div
+        x-show="progresso.erro"
+        x-text="progresso.erro"
+        class="rounded-xl border border-red-200
+               bg-red-50 p-4 text-red-700"
+    ></div>
+
+
+    <!-- CARREGAMENTO -->
+
+    <div
+        x-show="progresso.carregando"
+        class="rounded-xl border border-slate-200
+               bg-white dark:bg-slate-900
+               dark:border-slate-800 p-6"
+    >
+
+        <div class="flex items-center gap-3">
+
+            <i
+                class="ph ph-spinner-gap
+                       animate-spin text-blue-600
+                       text-2xl"
+            ></i>
+
+            <span class="text-slate-500 dark:text-slate-300">
+                Carregando seu progresso...
+            </span>
+
+        </div>
+
+    </div>
+
+
+    <!-- INDICADORES -->
+
+    <div
+        x-show="!progresso.carregando && !progresso.erro"
+        class="grid grid-cols-1 sm:grid-cols-3 gap-4"
+    >
+
+        <!-- TAREFAS CONCLUÍDAS -->
+
+        <div
+            class="bg-white dark:bg-slate-900
+                   rounded-2xl p-6
+                   border border-slate-200
+                   dark:border-slate-800 shadow-sm"
+        >
+
+            <div class="flex items-center gap-2 mb-3">
+
+                <i class="ph-bold ph-check-circle
+                          text-2xl text-emerald-600">
+                </i>
+
+                <p class="text-sm text-slate-500 dark:text-slate-400">
+                    Compromissos concluídos
+                </p>
+                <!-- DIVISÃO DOS COMPROMISSOS CONCLUÍDOS -->
+<div
+    class="mt-4 flex flex-wrap gap-3
+           text-xs text-slate-500
+           dark:text-slate-400"
+>
+    <span
+        x-text="`${progresso.resumo.tiposConcluidos?.tarefas ?? 0} tarefas`"
+    ></span>
+
+    <span
+        x-text="`${progresso.resumo.tiposConcluidos?.metas ?? 0} metas`"
+    ></span>
+
+    <span
+        x-text="`${progresso.resumo.tiposConcluidos?.eventos ?? 0} eventos`"
+    ></span>
+</div>
+            </div>
+
+            <p
+                class="text-4xl font-extrabold
+                       text-slate-900 dark:text-white"
+                x-text="progresso.resumo.compromissosConcluidos ?? '—'"
+            ></p>
+
+            <p
+                class="text-xs mt-3 text-slate-500 dark:text-slate-400"
+                x-text="
+                    `${progresso.resumo.variacaoSemanal >= 0 ? '+' : ''}
+                    ${progresso.resumo.variacaoSemanal}
+                    em relação à semana anterior`
+                "
+            ></p>
+
+        </div>
+
+
+        <!-- HORAS PREVISTAS -->
+
+        <div
+            class="bg-white dark:bg-slate-900
+                   rounded-2xl p-6
+                   border border-slate-200
+                   dark:border-slate-800 shadow-sm"
+        >
+
+            <div class="flex items-center gap-2 mb-3">
+
+                <i class="ph-bold ph-clock
+                          text-2xl text-blue-600">
+                </i>
+
+                <p class="text-sm text-slate-500 dark:text-slate-400">
+                    Horas previstas concluídas
+                </p>
+
+            </div>
+
+            <p
+                class="text-4xl font-extrabold
+                       text-slate-900 dark:text-white"
+                x-text="
+                    `${progresso.resumo.horasPlanejadasConcluidas}h`
+                "
+            ></p>
+
+            <p
+                class="text-xs mt-3 text-blue-600"
+                x-text="
+                    `${progresso.resumo.horasSemana}h
+                    previstas nesta semana`
+                "
+            ></p>
+
+        </div>
+
+
+        <!-- SEQUÊNCIA -->
+
+        <div
+            class="bg-white dark:bg-slate-900
+                   rounded-2xl p-6
+                   border border-slate-200
+                   dark:border-slate-800 shadow-sm"
+        >
+
+            <div class="flex items-center gap-2 mb-3">
+
+                <i class="ph-fill ph-fire
+                          text-2xl text-orange-500">
+                </i>
+
+                <p class="text-sm text-slate-500 dark:text-slate-400">
+                    Sequência de datas programadas
+                </p>
+
+            </div>
+
+            <p
+                class="text-4xl font-extrabold
+                       text-slate-900 dark:text-white"
+                x-text="
+                    `${progresso.resumo.sequenciaDias}
+                    ${progresso.resumo.sequenciaDias === 1 ? 'dia' : 'dias'}`
+                "
+            ></p>
+
+            <p class="text-xs mt-3 text-orange-500">
+                Datas consecutivas com compromissos
+programados marcados como concluídos.
+            </p>
+
+        </div>
+
+    </div>
+
+
+    <!-- PROGRESSO POR DISCIPLINA -->
+
+    <div
+        x-show="!progresso.carregando && !progresso.erro"
+        class="bg-white dark:bg-slate-900
+               rounded-2xl p-6
+               border border-slate-200
+               dark:border-slate-800 shadow-sm"
+    >
+
+        <h2 class="text-xl font-bold
+                   text-slate-900 dark:text-white mb-6">
+            Conclusão por disciplina e outros compromissos
+        </h2>
+
+
+        <!-- NENHUMA TAREFA -->
+
+        <div
+            x-show="progresso.resumo.disciplinas.length === 0"
+            class="text-center py-10
+                   text-slate-500 dark:text-slate-400"
+        >
+
+            <i class="ph ph-chart-bar
+                      text-5xl text-slate-300">
+            </i>
+
+            <p class="mt-4 font-medium">
+                Nenhum compromisso cadastrado.
+            </p>
+
+            <p class="text-sm mt-1">
+                Crie tarefas, metas ou eventos no calendário
+para acompanhar seu progresso.
+            </p>
+
+        </div>
+
+
+        <!-- LISTA DE DISCIPLINAS -->
+
+        <div class="space-y-6">
+
+            <template
+                x-for="disciplina in progresso.resumo.disciplinas"
+                :key="disciplina.nome"
+            >
+
+                <div>
+
+                    <div
+                        class="flex justify-between
+                               items-center gap-4 mb-2"
+                    >
+
+                        <span
+                            class="font-semibold text-slate-700
+                                   dark:text-slate-200"
+                            x-text="disciplina.nome"
+                        ></span>
+
+                        <span
+                            class="font-bold text-blue-600"
+                            x-text="`${disciplina.percentual}%`"
+                        ></span>
+
                     </div>
 
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 hc:bg-black hc:border-2 hc:border-white shadow-sm">
-                            <p class="text-xs text-slate-500 dark:text-slate-400 hc:text-yellow-300">Conteúdos concluídos</p>
-                            <p class="text-3xl font-extrabold mt-1 text-slate-900 dark:text-white">38</p>
-                            <p class="text-xs text-emerald-600 dark:text-emerald-400 mt-1">+6 esta semana</p>
-                        </div>
-                        <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 hc:bg-black hc:border-2 hc:border-white shadow-sm">
-                            <p class="text-xs text-slate-500 dark:text-slate-400 hc:text-yellow-300">Horas estudadas</p>
-                            <p class="text-3xl font-extrabold mt-1 text-slate-900 dark:text-white">24h</p>
-                            <p class="text-xs text-blue-600 dark:text-blue-400 mt-1">Meta semanal: 30h</p>
-                        </div>
-                        <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 hc:bg-black hc:border-2 hc:border-white shadow-sm">
-                            <p class="text-xs text-slate-500 dark:text-slate-400 hc:text-yellow-300">Sequência atual</p>
-                            <p class="text-3xl font-extrabold mt-1 text-slate-900 dark:text-white">12 dias</p>
-                            <p class="text-xs text-orange-500 mt-1"><i class="ph-fill ph-fire"></i> Continue estudando</p>
-                        </div>
+
+                    <!-- BARRA DE PROGRESSO -->
+
+                    <div
+                        class="h-3 bg-slate-100
+                               dark:bg-slate-800
+                               rounded-full overflow-hidden"
+                    >
+
+                        <div
+                            class="h-full bg-blue-600
+                                   rounded-full
+                                   transition-all duration-700"
+                            :style="
+                                `width: ${disciplina.percentual}%`
+                            "
+                        ></div>
+
                     </div>
 
-                    <div class="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 hc:bg-black hc:border-2 hc:border-white shadow-sm">
-                        <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-5">Progresso por disciplina</h3>
-                        <div class="space-y-5">
-                            <div>
-                                <div class="flex justify-between text-sm mb-2">
-                                    <span class="font-semibold text-slate-700 dark:text-slate-200 hc:text-white">Matemática</span><span class="font-bold text-slate-500 dark:text-slate-400 hc:text-yellow-300">72%</span>
-                                </div>
-                                <div class="h-3 rounded-full bg-slate-100 dark:bg-slate-800 hc:bg-gray-800 overflow-hidden"><div class="h-full rounded-full" :class="accentBg" style="width:72%"></div></div>
-                            </div>
-                            <div>
-                                <div class="flex justify-between text-sm mb-2">
-                                    <span class="font-semibold text-slate-700 dark:text-slate-200 hc:text-white">Física</span><span class="font-bold text-slate-500 dark:text-slate-400 hc:text-yellow-300">48%</span>
-                                </div>
-                                <div class="h-3 rounded-full bg-slate-100 dark:bg-slate-800 hc:bg-gray-800 overflow-hidden"><div class="h-full rounded-full bg-purple-500" style="width:48%"></div></div>
-                            </div>
-                            <div>
-                                <div class="flex justify-between text-sm mb-2">
-                                    <span class="font-semibold text-slate-700 dark:text-slate-200 hc:text-white">História</span><span class="font-bold text-slate-500 dark:text-slate-400 hc:text-yellow-300">83%</span>
-                                </div>
-                                <div class="h-3 rounded-full bg-slate-100 dark:bg-slate-800 hc:bg-gray-800 overflow-hidden"><div class="h-full rounded-full bg-amber-500" style="width:83%"></div></div>
-                            </div>
-                            <div>
-                                <div class="flex justify-between text-sm mb-2">
-                                    <span class="font-semibold text-slate-700 dark:text-slate-200 hc:text-white">Geografia</span><span class="font-bold text-slate-500 dark:text-slate-400 hc:text-yellow-300">95%</span>
-                                </div>
-                                <div class="h-3 rounded-full bg-slate-100 dark:bg-slate-800 hc:bg-gray-800 overflow-hidden"><div class="h-full rounded-full bg-emerald-500" style="width:95%"></div></div>
-                            </div>
-                        </div>
-                    </div>
+
+                    <!-- QUANTIDADE DE TAREFAS -->
+
+                    <p
+                        class="text-xs text-slate-500 mt-2"
+                        x-text="
+                            `${disciplina.concluidas} de
+                            ${disciplina.total} compromissos concluídos
+                        "
+                    ></p>
                 </div>
+
+            </template>
+
+        </div>
+
+    </div>
+
+</div>
 
                 <!-- METAS TAB -->
                 <div x-show="currentTab === 'metas'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4" x-transition:enter-end="opacity-100 translate-y-0" class="max-w-5xl mx-auto space-y-6" x-cloak>
@@ -6543,6 +7144,43 @@
         mobileMenuOpen: false,
         usuarioId: null,
         nome: '',
+        // Exclusao da propria conta
+
+exclusaoConta: {
+    aberta: false,
+    senha: '',
+    confirmacao: '',
+    processando: false,
+    erro: ''
+},
+        // ==========================================
+// PROGRESSO DO ESTUDANTE
+// ==========================================
+
+progresso: {
+
+    carregando: false,
+
+    erro: '',
+
+    resumo: {
+
+              compromissosConcluidos: 0,
+
+tiposConcluidos: {
+    tarefas: 0,
+    metas: 0,
+    eventos: 0
+},
+        variacaoSemanal: 0,
+        horasPlanejadasConcluidas: 0,
+        horasSemana: 0,
+        sequenciaDias: 0,
+        disciplinas: []
+
+    }
+
+},
         email: '',
         // Cores disponíveis nas configurações
 colors: [
@@ -6593,6 +7231,27 @@ get currentDate() {
         trilhaSesi: '',
         etapaSesi: '',
         secaoPerfilAberta: null,
+        // EDIÇÃO DAS INFORMAÇÕES EDUCACIONAIS
+
+perfilEditando: false,
+perfilSalvando: false,
+perfilErro: '',
+
+serieCodigo: '',
+objetivoOutroPerfil: '',
+
+perfilFormulario: {
+    nome: '',
+    dataNascimento: '',
+    serie: '',
+    escola: '',
+    redeEnsino: '',
+    curso: '',
+    universidade: '',
+    tipoInstituicao: '',
+    objetivo: '',
+    objetivoOutro: ''
+},
         avisoPerfil: '',
         avisoPerfilTitulo: 'Aviso',
         tipoAvisoPerfil: 'aviso',
@@ -6759,6 +7418,172 @@ get planoEstudoPodeGerar() {
         // ==========================================
         // TEMPO DISPONÍVEL PARA ESTUDOS
         // ==========================================
+
+
+// =====================================================
+// ABRIR EDIÇÃO DAS INFORMAÇÕES EDUCACIONAIS
+// =====================================================
+
+abrirEdicaoEducacional() {
+
+    const rede = valor => {
+
+        const v = String(valor || '').toLowerCase();
+
+        if (['1', 'publica', 'pública'].includes(v)) {
+            return 'publica';
+        }
+
+        if (['2', 'particular'].includes(v)) {
+            return 'particular';
+        }
+
+        return '';
+    };
+
+    this.perfilFormulario = {
+
+        nome: this.nome || '',
+
+        dataNascimento:
+            this.dataNascimento || '',
+
+        serie:
+            this.serieCodigo || '',
+
+        escola:
+            this.escola || '',
+
+        redeEnsino:
+            rede(this.redeEnsino),
+
+        curso:
+            this.cursoDesejado || '',
+
+        universidade:
+            this.universidadeDesejada || '',
+
+        tipoInstituicao:
+            rede(this.tipoUniversidade),
+
+        objetivo:
+            this.objetivoGeral == null
+                ? ''
+                : String(this.objetivoGeral),
+
+        objetivoOutro:
+            this.objetivoOutroPerfil || ''
+    };
+
+    this.perfilErro = '';
+    this.perfilEditando = true;
+},
+
+
+// =====================================================
+// CANCELAR EDIÇÃO
+// =====================================================
+
+cancelarEdicaoEducacional() {
+
+    this.perfilEditando = false;
+    this.perfilErro = '';
+
+},
+
+
+// =====================================================
+// SALVAR INFORMAÇÕES EDUCACIONAIS
+// =====================================================
+
+async salvarEdicaoEducacional() {
+
+    if (this.perfilSalvando) {
+        return;
+    }
+
+    const f = this.perfilFormulario;
+
+    const ehEM =
+        f.serie.endsWith('_em');
+
+    if (
+        !f.nome.trim() ||
+        !f.dataNascimento ||
+        !f.serie ||
+        !f.redeEnsino ||
+        (
+            ehEM &&
+            (
+                !f.objetivo ||
+                (
+                    f.objetivo === '7' &&
+                    !f.objetivoOutro.trim()
+                )
+            )
+        )
+    ) {
+
+        this.perfilErro =
+            'Preencha os campos obrigatórios.';
+
+        return;
+    }
+
+    this.perfilSalvando = true;
+    this.perfilErro = '';
+
+    try {
+
+        const resposta = await fetch(
+            `/api/perfil/${this.usuarioId}/educacional`,
+            {
+                method: 'PUT',
+
+                credentials: 'same-origin',
+
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+
+                body: JSON.stringify(f)
+            }
+        );
+
+        const dados = await resposta.json()
+            .catch(() => ({}));
+
+        if (
+            !resposta.ok ||
+            !dados.sucesso
+        ) {
+
+            throw new Error(
+                dados.erro ||
+                'Não foi possível atualizar o perfil.'
+            );
+        }
+
+        // Recuperar os dados atualizados do banco.
+
+        await this.carregarPerfilAcademico();
+
+        this.perfilEditando = false;
+
+    } catch (erro) {
+
+        this.perfilErro =
+            erro.message ||
+            'Erro de comunicação com o servidor.';
+
+    } finally {
+
+        this.perfilSalvando = false;
+
+    }
+},
+
+
 
 async salvarPerfilAcademico() {
  // =====================================================
@@ -7222,12 +8047,10 @@ async alternarConclusao(task) {
         // ==========================================
 
         await Promise.all([
-
-            this.carregarTarefas(),
-
-            this.carregarCalendario()
-
-        ]);
+    this.carregarTarefas(),
+    this.carregarCalendario(),
+    this.carregarProgresso()
+]);
 
 
         // ==========================================
@@ -7481,7 +8304,7 @@ async abrirAgendaHoje() {
 
         const resposta =
             await fetch(
-                `/api/tarefas/${this.usuarioId}`
+                `/api/compromissos/${this.usuarioId}`
             );
 
 
@@ -7499,9 +8322,7 @@ async abrirAgendaHoje() {
         }
 
 
-        this.taskItems =
-            dados.tarefas || [];
-
+        this.taskItems = dados.compromissos || [];
 
         console.log(
             '✅ Tarefas carregadas:',
@@ -7551,6 +8372,13 @@ get tasks() {
             return {
 
                 ...item,
+
+                categoria:
+                    item.tipo === 'tarefa'
+                    ? 'Tarefa'
+                    : item.tipo === 'meta'
+                    ? 'Meta'
+                    : 'Evento',
 
                 title:
                     item.titulo,
@@ -8172,7 +9000,8 @@ getCalendarItemClass(item) {
         // ATUALIZA O CALENDÁRIO
          this.selectedCalendarDate = null;
         await this.carregarCalendario();
-
+        // NOVO: atualiza também os compromissos
+        await this.carregarTarefas();
 
     } catch (erro) {
 
@@ -8298,6 +9127,8 @@ async addMeta() {
         // ATUALIZAR CALENDÁRIO
          this.selectedCalendarDate = null;
         await this.carregarCalendario();
+        // Atualizar também a listagem de compromissos
+        await this.carregarTarefas();
 
 
     } catch (erro) {
@@ -8730,6 +9561,72 @@ async nextMonth() {
             }
         },
 
+// ==========================================
+// CARREGAR PROGRESSO REAL
+// ==========================================
+
+async carregarProgresso() {
+
+    if (!this.usuarioId) {
+        return;
+    }
+
+    this.progresso.carregando = true;
+
+    this.progresso.erro = '';
+
+    try {
+
+        const resposta = await fetch(
+            `/api/progresso/${this.usuarioId}`,
+            {
+                credentials: 'same-origin'
+            }
+        );
+
+        // Sessão expirada
+        if (resposta.status === 401) {
+
+            sessionStorage.removeItem('usuarioId');
+
+            window.location.replace('login.html');
+
+            return;
+        }
+
+        const dados = await resposta.json();
+
+        if (!resposta.ok || !dados.sucesso) {
+
+            throw new Error(
+                dados.erro ||
+                'Não foi possível carregar seu progresso.'
+            );
+
+        }
+
+        this.progresso.resumo = dados.resumo;
+
+    } catch (erro) {
+
+        console.error(
+            'Erro ao carregar progresso:',
+            erro
+        );
+
+        this.progresso.erro =
+            erro.message ||
+            'Não foi possível carregar seu progresso.';
+
+    } finally {
+
+        this.progresso.carregando = false;
+
+    }
+
+},
+
+
         initApp() {
             // Exige login — sem usuarioId salvo, volta para a tela de entrada.
             
@@ -8778,6 +9675,13 @@ async nextMonth() {
                  if (novaAba === 'tasks') {
                 this.carregarTarefas();
                  }
+                 // Atualizar progresso ao abrir a seção
+
+if (novaAba === 'progresso') {
+
+    this.carregarProgresso();
+
+}
             }
         );
 
@@ -8836,6 +9740,150 @@ async nextMonth() {
     }
 
 },
+
+// ==========================================
+// EXCLUSAO DA PROPRIA CONTA
+// ==========================================
+
+// Abrir a janela de confirmação.
+
+abrirExclusaoConta() {
+
+    this.exclusaoConta = {
+        aberta: true,
+        senha: '',
+        confirmacao: '',
+        processando: false,
+        erro: ''
+    };
+
+    this.$nextTick(() => {
+        this.$refs.senhaExclusaoConta?.focus();
+    });
+
+},
+
+
+// Fechar a janela sem excluir a conta.
+
+fecharExclusaoConta() {
+
+    if (this.exclusaoConta.processando) {
+        return;
+    }
+
+    this.exclusaoConta.aberta = false;
+    this.exclusaoConta.senha = '';
+    this.exclusaoConta.confirmacao = '';
+    this.exclusaoConta.erro = '';
+
+},
+
+
+// Confirmar a exclusão junto ao servidor.
+
+async confirmarExclusaoConta() {
+
+    if (this.exclusaoConta.processando) {
+        return;
+    }
+
+    if (
+        !this.usuarioId ||
+        !this.exclusaoConta.senha ||
+        this.exclusaoConta.confirmacao !==
+            'EXCLUIR'
+    ) {
+
+        this.exclusaoConta.erro =
+            'Informe sua senha e digite EXCLUIR.';
+
+        return;
+    }
+
+    this.exclusaoConta.processando = true;
+    this.exclusaoConta.erro = '';
+
+    const idExcluido =
+        String(this.usuarioId);
+
+    try {
+
+        const resposta = await fetch(
+            `/api/usuario/${idExcluido}/excluir`,
+            {
+                method: 'DELETE',
+
+                credentials: 'same-origin',
+
+                headers: {
+                    'Content-Type':
+                        'application/json'
+                },
+
+                body: JSON.stringify({
+                    senha:
+                        this.exclusaoConta.senha,
+
+                    confirmacao:
+                        this.exclusaoConta.confirmacao
+                })
+            }
+        );
+
+        const dados = await resposta.json()
+            .catch(() => ({}));
+
+        if (
+            !resposta.ok ||
+            !dados.sucesso
+        ) {
+            throw new Error(
+                dados.erro ||
+                'Nao foi possivel excluir a conta.'
+            );
+        }
+
+        // Limpar os dados locais desta conta.
+        for (
+            const prefixo of [
+                'fraseData_',
+                'fraseTexto_',
+                'fraseAutor_'
+            ]
+        ) {
+            localStorage.removeItem(
+                prefixo + idExcluido
+            );
+        }
+
+        sessionStorage.removeItem(
+            'usuarioId'
+        );
+
+        sessionStorage.removeItem(
+            'tipoUsuario'
+        );
+
+        // Retornar à página inicial.
+        window.location.replace(
+            'index.html'
+        );
+
+    } catch (erro) {
+
+        this.exclusaoConta.erro =
+            erro.message ||
+            'Erro ao excluir conta.';
+
+    } finally {
+
+        this.exclusaoConta.processando = false;
+        this.exclusaoConta.senha = '';
+
+    }
+},
+
 
     async carregarDisciplinas() {
 
@@ -9795,6 +10843,7 @@ async carregarPerfilAcademico() {
 
         this.dataNascimento = dados.dataNascimento || '';
         this.serie = dados.serie || '';
+        this.serieCodigo = dados.serieCodigo || '';
         this.etapaAtual = dados.etapaAtual || '';
         this.escola = dados.escola || '';
         this.redeEnsino = dados.redeEnsino || '';
@@ -9803,6 +10852,8 @@ async carregarPerfilAcademico() {
         this.universidadeDesejada = dados.universidadeDesejada || '';
         this.tipoUniversidade = dados.tipoUniversidade || '';
         this.objetivoGeral = dados.objetivoGeral || '';
+        this.objetivoOutroPerfil =
+            dados.objetivoOutro || '';
         this.trilhaSesi = dados.trilhaSesi || '';
         this.etapaSesi = dados.etapaSesi || '';
 
@@ -10227,7 +11278,7 @@ async carregarFraseDoDia() {
                 icon: 'target',
                 items: [
                     { id: 'timer', label: 'Timer', icon: 'timer' },
-                    { id: 'tasks', label: 'Tarefas', icon: 'check-square-offset' },
+                    { id: 'tasks', label: 'Compromissos', icon: 'check-square-offset' },
                     { id: 'calendar', label: 'Calendário', icon: 'calendar-blank' },
                 ]
             },
@@ -13640,6 +14691,194 @@ document.addEventListener("DOMContentLoaded", () => {
         </div>
     </div>
 </div>
+
+<!-- MODAL EXCLUIR PROPRIA CONTA -->
+
+<div
+    x-show="exclusaoConta.aberta"
+    x-cloak
+    @keydown.escape.window="fecharExclusaoConta()"
+
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="tituloExcluirConta"
+
+    class="fixed inset-0 z-[210]
+           bg-slate-950/70 p-4
+           flex items-center justify-center"
+>
+
+    <form
+        @submit.prevent="confirmarExclusaoConta()"
+
+        class="w-full max-w-lg
+               rounded-2xl border border-red-200
+               bg-white dark:bg-slate-900
+               dark:border-red-900
+               hc:bg-black hc:border-2
+               hc:border-white
+               p-6 shadow-2xl space-y-4"
+    >
+
+        <!-- TÍTULO -->
+
+        <h2
+            id="tituloExcluirConta"
+
+            class="text-xl font-bold
+                   text-red-700
+                   dark:text-red-400
+                   hc:text-white"
+        >
+            Excluir permanentemente minha conta
+        </h2>
+
+        <!-- EXPLICAÇÃO -->
+
+        <p
+            class="text-sm text-slate-600
+                   dark:text-slate-300
+                   hc:text-white"
+        >
+            Seus dados vinculados à conta,
+            incluindo planos salvos e compromissos,
+            serão removidos.
+
+            Esta ação não pode ser desfeita.
+        </p>
+
+        <!-- SENHA -->
+
+        <label
+            class="block text-sm font-semibold
+                   text-slate-700
+                   dark:text-slate-200
+                   hc:text-white"
+        >
+
+            Confirme sua senha
+
+            <input
+                x-ref="senhaExclusaoConta"
+                x-model="exclusaoConta.senha"
+
+                type="password"
+                autocomplete="current-password"
+                required
+
+                :disabled="exclusaoConta.processando"
+
+                class="mt-2 w-full rounded-xl
+                       border border-slate-300
+                       p-3 text-slate-900
+                       dark:bg-slate-800
+                       dark:text-white
+                       hc:bg-black
+                       hc:border-white
+                       hc:text-white"
+            >
+
+        </label>
+
+        <!-- CONFIRMAÇÃO TEXTUAL -->
+
+        <label
+            class="block text-sm font-semibold
+                   text-slate-700
+                   dark:text-slate-200
+                   hc:text-white"
+        >
+
+            Digite EXCLUIR para confirmar
+
+            <input
+                x-model="exclusaoConta.confirmacao"
+
+                type="text"
+                autocomplete="off"
+                spellcheck="false"
+                required
+
+                :disabled="exclusaoConta.processando"
+
+                class="mt-2 w-full rounded-xl
+                       border border-slate-300
+                       p-3 text-slate-900
+                       dark:bg-slate-800
+                       dark:text-white
+                       hc:bg-black
+                       hc:border-white
+                       hc:text-white"
+            >
+
+        </label>
+
+        <!-- MENSAGEM DE ERRO -->
+
+        <p
+            x-show="exclusaoConta.erro"
+            x-text="exclusaoConta.erro"
+
+            role="alert"
+
+            class="rounded-lg bg-red-50
+                   p-3 text-sm text-red-700"
+        ></p>
+
+        <!-- BOTÕES -->
+
+        <div class="flex justify-end gap-3">
+
+            <button
+                type="button"
+
+                @click="fecharExclusaoConta()"
+
+                :disabled="exclusaoConta.processando"
+
+                class="rounded-xl border
+                       border-slate-300
+                       px-4 py-2
+                       dark:text-white
+                       hc:border-white
+                       disabled:opacity-50"
+            >
+                Cancelar
+            </button>
+
+            <button
+                type="submit"
+
+                :disabled="
+                    exclusaoConta.processando ||
+                    !exclusaoConta.senha ||
+                    exclusaoConta.confirmacao !==
+                        'EXCLUIR'
+                "
+
+                class="rounded-xl bg-red-600
+                       px-4 py-2 font-semibold
+                       text-white
+                       hover:bg-red-700
+                       disabled:opacity-50"
+            >
+
+                <span
+                    x-text="
+                        exclusaoConta.processando
+                        ? 'Excluindo...'
+                        : 'Excluir minha conta'
+                    "
+                ></span>
+
+            </button>
+
+        </div>
+
+    </form>
+
+</div>
+
 
 <!-- MODAL PARA AJUSTAR FOTO DE PERFIL -->
 <div

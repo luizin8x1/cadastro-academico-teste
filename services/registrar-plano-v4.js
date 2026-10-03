@@ -247,6 +247,67 @@ module.exports = function registrarPlanoV4({
         );
       }
 
+
+      // Localizar ou criar o objetivo na tabela utilizada
+// pelo sistema de gravação dos planos.
+
+const tipoObjetivo = meta.objetivo;
+
+const descricaoObjetivo =
+    tipoObjetivo === "outro"
+        ? String(meta.objetivo_outro || "Outro objetivo").trim()
+        : tipoObjetivo.replace(/_/g, " ");
+
+let objetivoRelacional = await pool.query(
+    `
+    SELECT id
+    FROM objetivo_estudo
+    WHERE usuario_id = $1
+      AND tipo_objetivo = $2
+      AND ativo = TRUE
+    ORDER BY objetivo_principal DESC NULLS LAST, id DESC
+    LIMIT 1
+    `,
+    [usuarioId, tipoObjetivo]
+);
+
+if (objetivoRelacional.rows.length === 0) {
+
+    objetivoRelacional = await pool.query(
+        `
+        INSERT INTO objetivo_estudo
+        (
+            usuario_id,
+            tipo_objetivo,
+            descricao,
+            objetivo_principal,
+            ativo
+        )
+        VALUES ($1, $2, $3, TRUE, TRUE)
+        RETURNING id
+        `,
+        [
+            usuarioId,
+            tipoObjetivo,
+            descricaoObjetivo
+        ]
+    );
+
+}
+
+const objetivoEstudoId =
+    Number(objetivoRelacional.rows[0]?.id);
+
+if (
+    !Number.isSafeInteger(objetivoEstudoId) ||
+    objetivoEstudoId <= 0
+) {
+    throw erroHttp(
+        "Não foi possível associar o objetivo.",
+        500
+    );
+}
+
       // Conversão comprovada pelo piloto: salvar usando o conversor transacional V3.
       const preparado = prepararV3({
         resultado: {
@@ -254,7 +315,7 @@ module.exports = function registrarPlanoV4({
           plano: { ...plano, versao: 3 }
         },
         usuarioId,
-        objetivoId: meta.id,
+        objetivoId: objetivoEstudoId,
         dadosClaude: dados,
         disciplinas,
         dataInicio: config.dataInicio,
@@ -269,7 +330,7 @@ module.exports = function registrarPlanoV4({
       }
       preparado.hashGeracao = crypto.createHash("sha256")
         .update(JSON.stringify({ formato: "V4", usuarioId,
-          objetivoId: meta.id, ...config, plano }))
+          objetivoId: objetivoEstudoId, ...config, plano }))
         .digest("hex");
       preparado.cabecalho.versao_esquema_ia = 4;
       preparado.cabecalho.diagnostico_ia = {

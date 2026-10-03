@@ -1142,11 +1142,1444 @@
     </section>
 
 
-    
+    <!-- GERENCIAMENTO ADMINISTRATIVO DE USUARIOS -->
+
+<section
+    x-show="currentTab === 'usuarios'"
+    x-cloak
+    class="p-6 md:p-10 space-y-6"
+>
+
+    <div>
+        <h1 class="text-2xl font-bold text-slate-900">
+            Usuários
+        </h1>
+
+        <p class="text-sm text-slate-500">
+            Consulte os cadastros e corrija nome e e-mail.
+            Os dados acadêmicos são somente para consulta
+            nesta tela.
+        </p>
+    </div>
+
+    <!-- PESQUISA -->
+
+    <form
+        @submit.prevent="pesquisarUsuariosAdmin()"
+        class="rounded-2xl border border-slate-200
+               bg-white p-4 flex flex-col md:flex-row gap-3"
+    >
+
+        <input
+            type="search"
+            x-model="buscaUsuariosAdmin"
+            placeholder="Nome, e-mail, ID, série ou escola"
+            aria-label="Pesquisar usuários"
+            class="min-w-0 flex-1 rounded-xl
+                   border border-slate-200 px-4 py-3 text-sm"
+        >
+
+        <select
+            x-model="situacaoUsuariosAdmin"
+            aria-label="Filtrar por situação"
+            class="rounded-xl border border-slate-200
+                   px-3 py-3 text-sm"
+        >
+            <option value="todos">
+                Todas as situações
+            </option>
+
+            <option value="ativo">
+                Ativos
+            </option>
+
+            <option value="outros">
+                Demais situações
+            </option>
+        </select>
+
+        <button
+            type="submit"
+            :disabled="carregandoUsuariosAdmin"
+            class="rounded-xl bg-blue-600
+                   px-5 py-3 text-sm font-semibold
+                   text-white disabled:opacity-50"
+        >
+            Pesquisar
+        </button>
+
+        <button
+            type="button"
+            @click="limparBuscaUsuariosAdmin()"
+            class="rounded-xl border border-slate-200
+                   px-5 py-3 text-sm"
+        >
+            Limpar
+        </button>
+
+    </form>
+
+    <!-- MENSAGENS -->
+
+    <p
+        x-show="erroUsuariosAdmin"
+        x-text="erroUsuariosAdmin"
+        role="alert"
+        class="rounded-xl bg-red-50
+               p-4 text-sm text-red-700"
+    ></p>
+
+    <div class="flex items-center
+                justify-between text-sm
+                text-slate-500 gap-3">
+
+        <span
+            x-text="
+                carregandoUsuariosAdmin
+                ? 'Carregando...'
+                : `${usuariosTotalAdmin} usuários encontrados`
+            "
+        ></span>
+
+        <button
+            type="button"
+            @click="carregarUsuariosAdmin(usuariosPaginaAdmin)"
+            :disabled="carregandoUsuariosAdmin"
+            class="text-blue-700 font-semibold
+                   disabled:opacity-50"
+        >
+            Atualizar lista
+        </button>
+
+    </div>
+
+    <!-- TABELA -->
+
+    <div class="overflow-x-auto rounded-2xl
+                border border-slate-200 bg-white">
+
+        <table class="w-full min-w-[820px]
+                      text-left text-sm">
+
+            <thead class="bg-slate-100 text-slate-600">
+
+                <tr>
+                    <th class="p-4">ID</th>
+                    <th class="p-4">Nome e e-mail</th>
+                    <th class="p-4">Série / escola</th>
+                    <th class="p-4">Situação</th>
+                    <th class="p-4">Ação</th>
+                </tr>
+
+            </thead>
+
+            <tbody>
+
+                <template
+                    x-for="usuario in usuariosAdmin"
+                    :key="usuario.id"
+                >
+
+                    <tr class="border-t border-slate-100">
+
+                        <td
+                            class="p-4 text-slate-500"
+                            x-text="usuario.id"
+                        ></td>
+
+                        <td class="p-4">
+
+                            <p
+                                class="font-semibold text-slate-800"
+                                x-text="usuario.nome"
+                            ></p>
+
+                            <p
+                                class="text-slate-500"
+                                x-text="usuario.email"
+                            ></p>
+
+                        </td>
+
+                        <td
+                            class="p-4"
+                            x-text="
+                                [usuario.serie, usuario.escola]
+                                .filter(Boolean)
+                                .join(' · ') || 'Não informado'
+                            "
+                        ></td>
+
+                        <td
+                            class="p-4"
+                            x-text="
+                                usuario.status || 'Não informado'
+                            "
+                        ></td>
+
+                        <td class="p-4">
+
+                            <button
+                                type="button"
+                                @click="abrirEdicaoUsuarioAdmin(usuario)"
+                                class="font-semibold text-blue-700
+                                       hover:underline"
+                            >
+                                Visualizar / editar
+                            </button>
+
+                        </td>
+
+                    </tr>
+
+                </template>
+
+                <tr
+                    x-show="
+                        !carregandoUsuariosAdmin &&
+                        usuariosAdmin.length === 0
+                    "
+                >
+                    <td
+                        colspan="5"
+                        class="p-6 text-center text-slate-500"
+                    >
+                        Nenhum usuário encontrado.
+                    </td>
+                </tr>
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+    <!-- PAGINAÇÃO -->
+
+    <div class="flex flex-wrap items-center
+                justify-end gap-3">
+
+        <span
+            class="text-sm text-slate-500"
+            x-text="
+                `Página ${usuariosPaginaAdmin}
+                 de ${totalPaginasUsuariosAdmin()}`
+            "
+        ></span>
+
+        <button
+            type="button"
+            @click="
+                carregarUsuariosAdmin(usuariosPaginaAdmin - 1)
+            "
+            :disabled="
+                carregandoUsuariosAdmin ||
+                usuariosPaginaAdmin <= 1
+            "
+            class="rounded-xl border
+                   px-4 py-2 text-sm
+                   disabled:opacity-40"
+        >
+            Anterior
+        </button>
+
+        <button
+            type="button"
+            @click="
+                carregarUsuariosAdmin(usuariosPaginaAdmin + 1)
+            "
+            :disabled="
+                carregandoUsuariosAdmin ||
+                usuariosPaginaAdmin >= totalPaginasUsuariosAdmin()
+            "
+            class="rounded-xl border
+                   px-4 py-2 text-sm
+                   disabled:opacity-40"
+        >
+            Próxima
+        </button>
+
+    </div>
+
+</section>
+
+<!-- GERENCIAMENTO DE DISCIPLINAS -->
+
+<section
+    x-show="currentTab === 'disciplinas'"
+    x-cloak
+    class="p-6 md:p-10 space-y-6"
+>
+
+    <!-- TÍTULO -->
+
+    <div class="flex flex-wrap items-center
+                justify-between gap-4">
+
+        <div>
+            <h1 class="text-2xl font-bold text-slate-900">
+                Disciplinas
+            </h1>
+
+            <p class="text-sm text-slate-500">
+                Gerencie as disciplinas disponíveis
+                no sistema acadêmico.
+            </p>
+        </div>
+
+        <button
+            type="button"
+            @click="abrirNovaDisciplina()"
+            class="rounded-xl bg-blue-600
+                   px-4 py-2 text-white font-semibold"
+        >
+            + Nova disciplina
+        </button>
+
+    </div>
+
+    <!-- MENSAGENS -->
+
+    <p
+        x-show="erroDisciplinasAdmin"
+        x-text="erroDisciplinasAdmin"
+        class="rounded-xl bg-red-50
+               p-4 text-sm text-red-700"
+    ></p>
+
+    <!-- CAMPO DE BUSCA -->
+
+    <div class="rounded-2xl border
+                border-slate-200 bg-white p-4">
+
+        <div class="flex flex-wrap items-center gap-3">
+
+            <input
+                type="search"
+                x-model="buscaDisciplinaAdmin"
+                placeholder="Pesquisar disciplina ou área do conhecimento..."
+                aria-label="Pesquisar disciplinas"
+                class="min-w-[220px] flex-1
+                       rounded-xl border border-slate-200
+                       bg-slate-50 px-4 py-3 text-sm"
+            >
+
+            <button
+                type="button"
+                @click="buscaDisciplinaAdmin = ''"
+                class="rounded-xl border
+                       px-4 py-3 text-sm"
+            >
+                Limpar
+            </button>
+
+        </div>
+
+        <p
+            x-show="!carregandoDisciplinasAdmin"
+            x-text="`${disciplinasAdminFiltradas().length} de ${disciplinasAdmin.length} disciplinas encontradas`"
+            class="mt-3 text-xs text-slate-500"
+        ></p>
+
+    </div>
+
+    <!-- CARREGAMENTO -->
+
+    <p
+        x-show="carregandoDisciplinasAdmin"
+        class="text-sm text-slate-500"
+    >
+        Carregando disciplinas...
+    </p>
+
+    <!-- TABELA -->
+
+    <div class="overflow-x-auto
+                rounded-2xl border border-slate-200
+                bg-white">
+
+        <table class="w-full min-w-[760px] text-sm">
+
+            <thead class="bg-slate-100 text-slate-600">
+
+                <tr>
+                    <th class="p-4 text-left">ID</th>
+
+                    <th class="p-4 text-left">
+                        Disciplina
+                    </th>
+
+                    <th class="p-4 text-left">
+                        Área do conhecimento
+                    </th>
+
+                    <th class="p-4 text-center">
+                        Planos vinculados
+                    </th>
+
+                    <th class="p-4 text-center">
+                        Ações
+                    </th>
+                </tr>
+
+            </thead>
+
+            <tbody>
+
+                <template
+                    x-for="d in disciplinasAdminFiltradas()"
+                    :key="d.id"
+                >
+
+                    <tr class="border-t border-slate-100">
+
+                        <td
+                            class="p-4 text-slate-500"
+                            x-text="d.id"
+                        ></td>
+
+                        <td
+                            class="p-4 font-semibold"
+                            x-text="d.nome"
+                        ></td>
+
+                        <td
+                            class="p-4"
+                            x-text="d.area_conhecimento || 'Não informada'"
+                        ></td>
+
+                        <td
+                            class="p-4 text-center"
+                            x-text="d.total_planos"
+                        ></td>
+
+                        <td class="p-4 text-center">
+
+                            <div class="flex items-center
+                                        justify-center gap-3">
+
+                                <button
+                                    type="button"
+                                    @click="abrirEdicaoDisciplina(d)"
+                                    class="text-blue-700 underline"
+                                >
+                                    Editar
+                                </button>
+
+                                <button
+                                    type="button"
+                                    @click="excluirDisciplinaAdmin(d)"
+                                    :disabled="
+                                        Number(d.total_planos) > 0 ||
+                                        excluindoDisciplinaId !== null
+                                    "
+                                    :title="
+                                        Number(d.total_planos) > 0
+                                        ? 'Disciplina vinculada a planos de curso'
+                                        : 'Excluir disciplina sem vínculos'
+                                    "
+                                    class="text-red-600 underline
+                                           disabled:text-slate-400
+                                           disabled:cursor-not-allowed"
+                                >
+                                    Excluir
+                                </button>
+
+                            </div>
+
+                        </td>
+
+                    </tr>
+
+                </template>
+
+                <tr
+                    x-show="
+                        !carregandoDisciplinasAdmin &&
+                        disciplinasAdmin.length === 0
+                    "
+                >
+                    <td
+                        colspan="5"
+                        class="p-6 text-center text-slate-500"
+                    >
+                        Nenhuma disciplina cadastrada.
+                    </td>
+                </tr>
+
+                <tr
+                    x-show="
+                        !carregandoDisciplinasAdmin &&
+                        disciplinasAdmin.length > 0 &&
+                        disciplinasAdminFiltradas().length === 0
+                    "
+                >
+                    <td
+                        colspan="5"
+                        class="p-6 text-center text-slate-500"
+                    >
+                        Nenhuma disciplina encontrada nesta pesquisa.
+                    </td>
+                </tr>
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+    <p class="text-xs text-slate-500">
+        Disciplinas vinculadas a planos de curso
+        não podem ser excluídas.
+        Outras vinculações acadêmicas também podem
+        impedir a exclusão.
+    </p>
+
+</section>
+
+
+<!-- PLANOS DE CURSO -->
+<section
+    x-show="currentTab === 'planos-curso'"
+    x-cloak
+    class="p-6 md:p-10 space-y-6"
+>
+    <div class="flex flex-wrap items-center justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-900">
+                Planos de curso
+            </h1>
+
+            <p class="text-sm text-slate-500">
+                Gerencie os planos e seus conteúdos curriculares.
+            </p>
+        </div>
+
+        <button
+            type="button"
+            @click="abrirNovoPlanoCurso()"
+            class="rounded-xl bg-blue-600 px-4 py-2 text-white font-semibold"
+        >
+            + Novo plano
+        </button>
+    </div>
+
+    <!-- MENSAGENS -->
+    <p
+        x-show="erroPlanoCurso"
+        x-text="erroPlanoCurso"
+        class="rounded-xl bg-red-50 p-4 text-sm text-red-700"
+    ></p>
+
+    <p
+        x-show="carregandoPlanosCurso"
+        class="text-sm text-slate-500"
+    >
+        Carregando planos...
+    </p>
+
+<!-- BUSCA E FILTROS DOS PLANOS -->
+
+<div class="rounded-2xl border border-slate-200
+            bg-white p-4 space-y-3">
+
+    <div class="flex flex-col md:flex-row gap-3">
+
+        <!-- Campo de pesquisa -->
+
+        <div class="relative flex-1">
+
+            <input
+                type="search"
+                x-model="buscaPlanoCurso"
+                placeholder="Buscar por disciplina, ano, série, trilha ou versão..."
+                aria-label="Buscar planos de curso"
+                class="w-full rounded-xl border
+                       border-slate-200 bg-slate-50
+                       px-4 py-3 text-sm
+                       focus:outline-none
+                       focus:ring-2 focus:ring-blue-500"
+            >
+
+        </div>
+
+        <!-- Filtro por situação -->
+
+        <select
+            x-model="filtroStatusPlanoCurso"
+            aria-label="Filtrar planos por situação"
+            class="rounded-xl border
+                   border-slate-200 bg-slate-50
+                   px-4 py-3 text-sm"
+        >
+            <option value="todos">
+                Todos os status
+            </option>
+
+            <option value="ativos">
+                Ativos
+            </option>
+
+            <option value="inativos">
+                Inativos
+            </option>
+        </select>
+
+        <!-- Limpar filtros -->
+
+        <button
+            type="button"
+            @click="
+                buscaPlanoCurso = '';
+                filtroStatusPlanoCurso = 'todos';
+            "
+            class="rounded-xl border border-slate-200
+                   px-4 py-3 text-sm font-medium
+                   text-slate-600 hover:bg-slate-100"
+        >
+            Limpar filtros
+        </button>
+
+    </div>
+
+    <!-- Quantidade de resultados -->
+
+    <p
+        x-show="!carregandoPlanosCurso"
+        class="text-xs text-slate-500"
+        x-text="`${planosCursoFiltrados().length} de ${planosCurso.length} planos encontrados`"
+    ></p>
+
+</div>
+
+
+    <!-- LISTAGEM DOS PLANOS -->
+    <div class="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
+
+        <table class="w-full min-w-[850px] text-left text-sm">
+
+            <thead class="bg-slate-100 text-slate-600">
+                <tr>
+                    <th class="p-3">Ano</th>
+                    <th class="p-3">Série / etapa</th>
+                    <th class="p-3">Disciplina</th>
+                    <th class="p-3">Trilha / versão</th>
+                    <th class="p-3">Conteúdos</th>
+                    <th class="p-3">Status</th>
+                    <th class="p-3">Ações</th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+                <template
+    x-for="plano in planosCursoFiltrados()"
+    :key="plano.id"
+>
+                    <tr class="border-t border-slate-100">
+
+                        <td
+                            class="p-3"
+                            x-text="plano.ano_letivo"
+                        ></td>
+
+                        <td
+                            class="p-3"
+                            x-text="`${plano.serie}ª / ${plano.etapa}`"
+                        ></td>
+
+                        <td
+                            class="p-3"
+                            x-text="plano.disciplina"
+                        ></td>
+
+                        <td
+                            class="p-3"
+                            x-text="`${plano.trilha || 'Sem trilha'} / v${plano.versao || '1'}`"
+                        ></td>
+
+                        <td
+                            class="p-3"
+                            x-text="plano.total_conteudos"
+                        ></td>
+
+                        <td
+                            class="p-3"
+                            x-text="plano.ativo ? 'Ativo' : 'Inativo'"
+                        ></td>
+
+                        <td class="p-3 space-x-2 whitespace-nowrap">
+
+                            <button
+                                type="button"
+                                @click="abrirConteudosPlano(plano)"
+                                class="text-blue-700 underline"
+                            >
+                                Conteúdos
+                            </button>
+
+                            <button
+                                type="button"
+                                @click="abrirEdicaoPlanoCurso(plano)"
+                                class="text-blue-700 underline"
+                            >
+                                Editar
+                            </button>
+
+                            <button
+                                type="button"
+                                @click="alternarAtivacaoPlano(plano)"
+                                class="text-slate-700 underline"
+                                x-text="plano.ativo ? 'Desativar' : 'Ativar'"
+                            ></button>
+
+                        </td>
+                    </tr>
+                </template>
+
+                <!-- Nenhum plano cadastrado no sistema -->
+
+<tr
+    x-show="!carregandoPlanosCurso && planosCurso.length === 0"
+>
+    <td
+        colspan="7"
+        class="p-6 text-center text-slate-500"
+    >
+        Nenhum plano cadastrado.
+    </td>
+</tr>
+
+<!-- Nenhum resultado corresponde aos filtros -->
+
+<tr
+    x-show="
+        !carregandoPlanosCurso &&
+        planosCurso.length > 0 &&
+        planosCursoFiltrados().length === 0
+    "
+>
+    <td
+        colspan="7"
+        class="p-6 text-center text-slate-500"
+    >
+        Nenhum plano encontrado para esta pesquisa.
+    </td>
+</tr>
+
+            </tbody>
+        </table>
+    </div>
+
+    <!-- GERENCIAMENTO DOS CONTEUDOS -->
+    <div
+        x-show="planoCursoSelecionado !== null"
+        x-cloak
+        class="rounded-2xl border border-slate-200 bg-white p-5 space-y-4"
+    >
+
+        <div class="flex justify-between gap-3">
+
+            <h2
+                class="text-lg font-bold"
+                x-text="planoCursoSelecionado ? `Conteúdos: ${planoCursoSelecionado.disciplina} (${planoCursoSelecionado.ano_letivo})` : ''"
+            ></h2>
+
+            <button
+                type="button"
+                @click="planoCursoSelecionado = null"
+                class="text-slate-600"
+            >
+                Fechar
+            </button>
+        </div>
+
+        <p
+            x-show="erroConteudoPlano"
+            x-text="erroConteudoPlano"
+            class="text-sm text-red-700"
+        ></p>
+
+        <p
+            x-show="carregandoConteudosPlano"
+            class="text-sm text-slate-500"
+        >
+            Carregando conteúdos...
+        </p>
+
+        <!-- CONTEUDOS CADASTRADOS -->
+        <div class="space-y-2">
+
+            <template
+                x-for="conteudo in conteudosPlano"
+                :key="conteudo.id"
+            >
+                <div
+                    class="flex justify-between gap-4 rounded-lg border border-slate-200 p-3"
+                >
+
+                    <div>
+                        <p
+                            class="font-semibold"
+                            x-text="conteudo.titulo"
+                        ></p>
+
+                        <p
+                            class="text-sm text-slate-500"
+                            x-text="`Ordem: ${conteudo.ordem ?? '—'} | Carga horária: ${conteudo.carga_horaria ?? '—'}`"
+                        ></p>
+
+                        <p
+                            class="text-sm"
+                            x-text="conteudo.descricao || ''"
+                        ></p>
+                    </div>
+
+                    <button
+                        type="button"
+                        @click="editarConteudoPlano(conteudo)"
+                        class="self-start text-blue-700 underline"
+                    >
+                        Editar
+                    </button>
+
+                </div>
+            </template>
+
+            <p
+                x-show="!carregandoConteudosPlano && conteudosPlano.length === 0"
+                class="text-sm text-slate-500"
+            >
+                Este plano ainda não possui conteúdos.
+            </p>
+        </div>
+
+        <!-- CADASTRO E EDICAO DE CONTEUDOS -->
+        <form
+            @submit.prevent="salvarConteudoPlano()"
+            class="grid gap-3 sm:grid-cols-2 border-t pt-4"
+        >
+
+            <h3
+                class="sm:col-span-2 font-semibold"
+                x-text="conteudoPlanoEditId ? 'Editar conteúdo' : 'Adicionar conteúdo'"
+            ></h3>
+
+            <label class="sm:col-span-2 text-sm">
+                Título
+
+                <input
+                    required
+                    maxlength="200"
+                    x-model="formConteudoPlano.titulo"
+                    class="block w-full rounded-lg border p-2"
+                >
+            </label>
+
+            <label class="sm:col-span-2 text-sm">
+                Descrição
+
+                <textarea
+                    x-model="formConteudoPlano.descricao"
+                    class="block w-full rounded-lg border p-2"
+                ></textarea>
+            </label>
+
+            <label class="text-sm">
+                Ordem
+
+                <input
+                    type="number"
+                    min="0"
+                    x-model="formConteudoPlano.ordem"
+                    class="block w-full rounded-lg border p-2"
+                >
+            </label>
+
+            <label class="text-sm">
+                Carga horária (horas)
+
+                <input
+                    type="number"
+                    min="0"
+                    x-model="formConteudoPlano.carga_horaria"
+                    class="block w-full rounded-lg border p-2"
+                >
+            </label>
+
+            <div class="sm:col-span-2 flex gap-3">
+
+                <button
+                    type="submit"
+                    :disabled="salvandoConteudoPlano"
+                    class="rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white disabled:opacity-50"
+                >
+                    Salvar conteúdo
+                </button>
+
+                <button
+                    type="button"
+                    @click="limparFormConteudoPlano()"
+                    class="rounded-lg border px-4 py-2"
+                >
+                    Limpar
+                </button>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</section>
 </div>
 
         </main>
 
+        <!-- MODAL DE CONSULTA E EDICAO DE USUARIOS -->
+
+<div
+    x-show="modalUsuarioAdminAberto"
+    x-cloak
+    role="dialog"
+    aria-modal="true"
+    aria-label="Dados do usuário"
+    class="fixed inset-0 z-[190]
+           flex items-center justify-center
+           bg-slate-900/60 p-4"
+>
+
+    <form
+        @submit.prevent="salvarUsuarioAdmin()"
+        class="w-full max-w-xl max-h-[90vh]
+               overflow-y-auto rounded-2xl
+               bg-white p-6 shadow-2xl space-y-4"
+    >
+
+        <div class="flex items-center
+                    justify-between gap-3">
+
+            <h2 class="text-xl font-bold text-slate-900">
+                Dados do usuário
+            </h2>
+
+            <button
+                type="button"
+                @click="modalUsuarioAdminAberto = false"
+                :disabled="salvandoUsuarioAdmin"
+                aria-label="Fechar"
+                class="text-xl text-slate-500"
+            >
+                ×
+            </button>
+
+        </div>
+
+        <!-- ERROS -->
+
+        <p
+            x-show="erroModalUsuarioAdmin"
+            x-text="erroModalUsuarioAdmin"
+            role="alert"
+            class="rounded-lg bg-red-50
+                   p-3 text-sm text-red-700"
+        ></p>
+
+        <!-- DADOS EDITÁVEIS -->
+
+        <label class="block text-sm font-medium">
+
+            Nome
+
+            <input
+                type="text"
+                required
+                minlength="2"
+                maxlength="100"
+                x-model="formUsuarioAdmin.nome"
+                class="mt-1 block w-full
+                       rounded-xl border p-3"
+            >
+
+        </label>
+
+        <label class="block text-sm font-medium">
+
+            E-mail
+
+            <input
+                type="email"
+                required
+                maxlength="254"
+                x-model="formUsuarioAdmin.email"
+                class="mt-1 block w-full
+                       rounded-xl border p-3"
+            >
+
+        </label>
+
+        <p class="text-xs text-amber-700">
+            Se alterar o e-mail, o estudante deverá
+            utilizar o novo endereço no próximo login.
+        </p>
+
+        <!-- PERFIL ACADÊMICO -->
+
+        <div class="rounded-xl border border-slate-200
+                    bg-slate-50 p-4 space-y-2 text-sm">
+
+            <h3 class="font-bold text-slate-800">
+                Perfil acadêmico — somente leitura
+            </h3>
+
+            <p>
+                <strong>ID:</strong>
+                <span x-text="usuarioDetalheAdmin?.id || '—'"></span>
+            </p>
+
+            <p>
+                <strong>Situação:</strong>
+                <span x-text="usuarioDetalheAdmin?.status || '—'"></span>
+            </p>
+
+            <p>
+                <strong>Série:</strong>
+                <span x-text="usuarioDetalheAdmin?.serie || '—'"></span>
+            </p>
+
+            <p>
+                <strong>Etapa:</strong>
+                <span x-text="usuarioDetalheAdmin?.etapa_atual ?? '—'"></span>
+            </p>
+
+            <p>
+                <strong>Escola:</strong>
+                <span x-text="usuarioDetalheAdmin?.escola || '—'"></span>
+            </p>
+
+            <p>
+                <strong>Rede:</strong>
+                <span x-text="usuarioDetalheAdmin?.rede_ensino || '—'"></span>
+            </p>
+
+            <p>
+                <strong>Curso desejado:</strong>
+                <span x-text="usuarioDetalheAdmin?.curso_desejado || '—'"></span>
+            </p>
+
+            <p>
+                <strong>Universidade:</strong>
+                <span x-text="usuarioDetalheAdmin?.universidade_desejada || '—'"></span>
+            </p>
+
+        </div>
+
+        <!-- BOTÕES -->
+
+        <div class="flex justify-end gap-3">
+
+            <button
+                type="button"
+                @click="modalUsuarioAdminAberto = false"
+                :disabled="salvandoUsuarioAdmin"
+                class="rounded-xl border px-4 py-2"
+            >
+                Cancelar
+            </button>
+
+            <button
+                type="submit"
+                :disabled="salvandoUsuarioAdmin"
+                class="rounded-xl bg-blue-600
+                       px-4 py-2 font-semibold
+                       text-white disabled:opacity-50"
+                x-text="
+                    salvandoUsuarioAdmin
+                    ? 'Salvando...'
+                    : 'Salvar alterações'
+                "
+            ></button>
+
+        </div>
+
+    </form>
+
+</div>
+
+<!-- MODAL DE CONFIRMAÇÃO DE DISCIPLINAS -->
+
+<div
+    x-show="confirmacaoDisciplina.aberta"
+    x-cloak
+    role="dialog"
+    aria-modal="true"
+    aria-label="Confirmação de disciplina"
+    @keydown.escape.window="
+        confirmacaoDisciplina.aberta = false
+    "
+    class="fixed inset-0 z-[200]
+           flex items-center justify-center
+           bg-slate-900/60 p-4"
+>
+    <div
+        class="w-full max-w-md rounded-2xl
+               bg-white p-6 shadow-2xl"
+    >
+
+        <!-- TÍTULO -->
+
+        <div class="flex items-center gap-3 mb-4">
+
+            <div
+                class="flex h-12 w-12
+                       items-center justify-center
+                       rounded-full bg-amber-100"
+            >
+                <span class="text-2xl text-amber-600">
+                    !
+                </span>
+            </div>
+
+            <h2
+                class="text-xl font-bold text-slate-900"
+                x-text="confirmacaoDisciplina.titulo"
+            ></h2>
+
+        </div>
+
+        <!-- MENSAGEM -->
+
+        <p
+            class="text-sm leading-relaxed text-slate-600"
+            x-text="confirmacaoDisciplina.mensagem"
+        ></p>
+
+        <!-- BOTÕES -->
+
+        <div
+            class="mt-6 flex flex-wrap
+                   justify-end gap-3"
+        >
+
+            <button
+                type="button"
+                @click="
+                    confirmacaoDisciplina.aberta = false
+                "
+                class="rounded-xl border
+                       border-slate-200 px-5 py-2.5
+                       text-sm font-semibold
+                       text-slate-600 hover:bg-slate-50"
+            >
+                Cancelar
+            </button>
+
+            <button
+                type="button"
+                @click="executarConfirmacaoDisciplina()"
+                :disabled="
+                    salvandoDisciplina ||
+                    excluindoDisciplinaId !== null
+                "
+                :class="
+                    confirmacaoDisciplina.tipo === 'excluir'
+                    ? 'bg-red-600 hover:bg-red-700'
+                    : 'bg-blue-600 hover:bg-blue-700'
+                "
+                class="rounded-xl px-5 py-2.5
+                       text-sm font-semibold text-white
+                       disabled:opacity-50"
+                x-text="
+                    confirmacaoDisciplina.tipo === 'excluir'
+                    ? 'Excluir disciplina'
+                    : 'Confirmar alteração'
+                "
+            ></button>
+
+        </div>
+
+    </div>
+</div>
+
+
+<!-- MODAL DE DISCIPLINAS -->
+
+<div
+    x-show="modalDisciplinaAberto"
+    x-cloak
+    class="fixed inset-0 z-[170]
+           flex items-center justify-center
+           bg-slate-900/60 p-4"
+>
+
+    <form
+        @submit.prevent="salvarDisciplinaAdmin()"
+        class="w-full max-w-lg
+               rounded-2xl bg-white
+               p-6 shadow-2xl space-y-5"
+    >
+
+        <div class="flex items-center
+                    justify-between gap-3">
+
+            <h2
+                class="text-xl font-bold"
+                x-text="
+                    disciplinaEditandoId === null
+                    ? 'Nova disciplina'
+                    : 'Editar disciplina'
+                "
+            ></h2>
+
+            <button
+                type="button"
+                :disabled="salvandoDisciplina"
+                @click="modalDisciplinaAberto = false"
+                class="text-xl"
+                aria-label="Fechar"
+            >
+                ×
+            </button>
+
+        </div>
+
+        <p
+            x-show="erroModalDisciplina"
+            x-text="erroModalDisciplina"
+            class="rounded-lg bg-red-50
+                   p-3 text-sm text-red-700"
+        ></p>
+
+        <label class="block text-sm font-medium">
+
+            Nome da disciplina
+
+            <input
+                required
+                maxlength="120"
+                x-model="formDisciplinaAdmin.nome"
+                placeholder="Ex.: História"
+                class="mt-2 block w-full
+                       rounded-xl border p-3"
+            >
+
+        </label>
+
+        <label class="block text-sm font-medium">
+
+            Área do conhecimento
+
+            <input
+                maxlength="120"
+                x-model="formDisciplinaAdmin.area_conhecimento"
+                placeholder="Ex.: Ciências Humanas"
+                class="mt-2 block w-full
+                       rounded-xl border p-3"
+            >
+
+        </label>
+
+        <p class="text-xs text-slate-500">
+            A área do conhecimento é opcional.
+            Verifique a existência da disciplina
+            antes de cadastrar outra semelhante.
+        </p>
+
+        <div class="flex justify-end gap-3">
+
+            <button
+                type="button"
+                :disabled="salvandoDisciplina"
+                @click="modalDisciplinaAberto = false"
+                class="rounded-xl border px-4 py-2"
+            >
+                Cancelar
+            </button>
+
+            <button
+                type="submit"
+                :disabled="salvandoDisciplina"
+                class="rounded-xl bg-blue-600
+                       px-4 py-2 font-semibold
+                       text-white disabled:opacity-50"
+                x-text="
+                    salvandoDisciplina
+                    ? 'Salvando...'
+                    : 'Salvar disciplina'
+                "
+            ></button>
+
+        </div>
+
+    </form>
+
+</div>
+
+
+        <!-- MODAL - CADASTRO / EDICAO DE PLANOS DE CURSO -->
+<div
+    x-show="modalPlanoCursoAberto"
+    x-cloak
+    class="fixed inset-0 z-[160] flex items-center justify-center overflow-y-auto bg-slate-900/60 p-4"
+>
+
+    <form
+        @submit.prevent="salvarPlanoCurso()"
+        class="w-full max-w-xl space-y-4 rounded-2xl bg-white p-6 shadow-2xl"
+    >
+
+        <div class="flex justify-between">
+
+            <h2
+                class="text-xl font-bold"
+                x-text="planoCursoEditId ? 'Editar plano de curso' : 'Novo plano de curso'"
+            ></h2>
+
+            <button
+                type="button"
+                @click="modalPlanoCursoAberto = false"
+                class="text-xl"
+            >
+                ×
+            </button>
+
+        </div>
+
+        <p
+            x-show="erroModalPlanoCurso"
+            x-text="erroModalPlanoCurso"
+            class="text-sm text-red-700"
+        ></p>
+
+        <div class="grid gap-3 sm:grid-cols-2">
+
+            <label class="text-sm">
+                Ano letivo
+
+                <input
+                    required
+                    type="number"
+                    min="2000"
+                    max="2100"
+                    x-model="formPlanoCurso.ano_letivo"
+                    class="block w-full rounded-lg border p-2"
+                >
+            </label>
+
+            <label class="text-sm">
+                Série
+
+                <input
+                    required
+                    type="number"
+                    min="1"
+                    max="12"
+                    x-model="formPlanoCurso.serie"
+                    class="block w-full rounded-lg border p-2"
+                >
+            </label>
+
+            <label class="text-sm">
+                Etapa
+
+                <input
+                    required
+                    type="number"
+                    min="1"
+                    max="12"
+                    x-model="formPlanoCurso.etapa"
+                    class="block w-full rounded-lg border p-2"
+                >
+            </label>
+
+            <label class="text-sm">
+                Disciplina
+
+                <select
+                    required
+                    x-model="formPlanoCurso.disciplina_id"
+                    class="block w-full rounded-lg border p-2"
+                >
+                    <option value="">
+                        Selecione
+                    </option>
+
+                    <template
+                        x-for="disciplina in disciplinasPlanoCurso"
+                        :key="disciplina.id"
+                    >
+                        <option
+                            :value="String(disciplina.id)"
+                            x-text="disciplina.nome"
+                        ></option>
+                    </template>
+
+                </select>
+            </label>
+
+            <label class="text-sm">
+                Versão
+
+                <input
+                    maxlength="40"
+                    x-model="formPlanoCurso.versao"
+                    class="block w-full rounded-lg border p-2"
+                >
+            </label>
+
+            <label class="text-sm">
+                Trilha (em branco para Fundamental)
+
+                <input
+                    maxlength="40"
+                    x-model="formPlanoCurso.trilha"
+                    class="block w-full rounded-lg border p-2"
+                >
+            </label>
+
+            <label
+                x-show="planoCursoEditId !== null"
+                class="sm:col-span-2 flex items-center gap-2 text-sm"
+            >
+                <input
+                    type="checkbox"
+                    x-model="formPlanoCurso.ativo"
+                >
+
+                Plano ativo
+            </label>
+
+        </div>
+
+        <p class="text-xs text-slate-500">
+            Novos planos começam inativos.
+            Para ativar, cadastre os conteúdos primeiro.
+            Alterações em planos ativos podem afetar futuros planejamentos.
+        </p>
+
+        <div class="flex justify-end gap-3">
+
+            <button
+                type="button"
+                @click="modalPlanoCursoAberto = false"
+                class="rounded-lg border px-4 py-2"
+            >
+                Cancelar
+            </button>
+
+            <button
+                type="submit"
+                :disabled="salvandoPlanoCurso"
+                class="rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white disabled:opacity-50"
+            >
+                Salvar plano
+            </button>
+
+        </div>
+
+    </form>
+
+</div>
 
         <!-- =========================================================
              MENU MOBILE
@@ -3152,6 +4585,96 @@ tipoResolucaoRealizada: '',
                     },
 
                 salvandoFrase: false,
+                // Gerenciamento curricular
+planosCurso: [],
+disciplinasPlanoCurso: [],
+
+// Gerenciamento de disciplinas
+
+disciplinasAdmin: [],
+// Gerenciamento administrativo de usuários
+
+usuariosAdmin: [],
+
+buscaUsuariosAdmin: '',
+situacaoUsuariosAdmin: 'todos',
+
+buscaUsuariosAplicada: '',
+situacaoUsuariosAplicada: 'todos',
+
+usuariosPaginaAdmin: 1,
+usuariosTotalAdmin: 0,
+
+carregandoUsuariosAdmin: false,
+erroUsuariosAdmin: '',
+
+modalUsuarioAdminAberto: false,
+usuarioDetalheAdmin: null,
+
+formUsuarioAdmin: {
+    nome: '',
+    email: ''
+},
+
+salvandoUsuarioAdmin: false,
+erroModalUsuarioAdmin: '',
+buscaDisciplinaAdmin: '',
+
+carregandoDisciplinasAdmin: false,
+erroDisciplinasAdmin: '',
+
+modalDisciplinaAberto: false,
+disciplinaEditandoId: null,
+
+formDisciplinaAdmin: {
+    nome: '',
+    area_conhecimento: ''
+},
+
+erroModalDisciplina: '',
+salvandoDisciplina: false,
+// Janela personalizada de confirmação
+confirmacaoDisciplina: {
+    aberta: false,
+    tipo: null,
+    disciplinaId: null,
+    titulo: '',
+    mensagem: ''
+},
+
+
+excluindoDisciplinaId: null,
+
+// Busca e filtros dos planos curriculares
+buscaPlanoCurso: '',
+filtroStatusPlanoCurso: 'todos',
+
+carregandoPlanosCurso: false,
+salvandoPlanoCurso: false,
+
+erroPlanoCurso: '',
+modalPlanoCursoAberto: false,
+
+planoCursoEditId: null,
+erroModalPlanoCurso: '',
+
+formPlanoCurso: {},
+
+planoCursoSelecionado: null,
+conteudosPlano: [],
+
+carregandoConteudosPlano: false,
+salvandoConteudoPlano: false,
+
+erroConteudoPlano: '',
+conteudoPlanoEditId: null,
+
+formConteudoPlano: {
+    titulo: '',
+    descricao: '',
+    ordem: '',
+    carga_horaria: ''
+},
 
                 async initApp() {
                     // Verifica se existe sessão
@@ -3233,6 +4756,826 @@ tipoResolucaoRealizada: '',
     }
 },
 
+// ==========================================
+// GERENCIAMENTO DOS PLANOS DE CURSO
+// ==========================================
+
+// Comunicação com as rotas administrativas.
+async apiCurriculo(url, opcoes = {}) {
+    const resposta = await fetch(url, {
+        ...opcoes,
+        credentials: 'same-origin',
+
+        headers: {
+            ...(opcoes.body
+                ? { 'Content-Type': 'application/json' }
+                : {}),
+
+            ...(opcoes.headers || {})
+        }
+    });
+
+    const dados = await resposta.json()
+        .catch(() => ({}));
+
+    if (!resposta.ok) {
+        throw new Error(
+            dados.erro ||
+            `Erro HTTP ${resposta.status}`
+        );
+    }
+
+    return dados;
+},
+
+// ==========================================
+// FILTROS DOS PLANOS DE CURSO
+// ==========================================
+
+planosCursoFiltrados() {
+
+    const normalizar = valor =>
+        String(valor ?? '')
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase()
+            .trim();
+
+    const termos = normalizar(this.buscaPlanoCurso)
+        .split(/\s+/)
+        .filter(Boolean);
+
+    return this.planosCurso.filter(plano => {
+
+        // Filtrar pela situação
+        if (
+            this.filtroStatusPlanoCurso === 'ativos' &&
+            !plano.ativo
+        ) {
+            return false;
+        }
+
+        if (
+            this.filtroStatusPlanoCurso === 'inativos' &&
+            plano.ativo
+        ) {
+            return false;
+        }
+
+        // Informações disponíveis para pesquisa
+        const campos = [
+            plano.ano_letivo,
+            plano.serie,
+            `${plano.serie}º ano`,
+            `${plano.serie}ª serie`,
+            plano.etapa,
+            plano.disciplina,
+            plano.trilha || 'sem trilha',
+            plano.versao,
+            `v${plano.versao || '1'}`
+        ].map(normalizar);
+
+        // Permite combinar palavras de campos diferentes
+        return termos.every(termo =>
+            campos.some(campo =>
+                campo.includes(termo)
+            )
+        );
+
+    });
+},
+
+
+// ==========================================
+// GERENCIAMENTO ADMINISTRATIVO DE USUARIOS
+// ==========================================
+
+// Calcular quantidade de páginas.
+
+totalPaginasUsuariosAdmin() {
+
+    return Math.max(
+        1,
+        Math.ceil(this.usuariosTotalAdmin / 25)
+    );
+
+},
+
+
+// Recuperar usuários do servidor.
+
+async carregarUsuariosAdmin(pagina = 1) {
+
+    if (this.carregandoUsuariosAdmin) {
+        return;
+    }
+
+    this.carregandoUsuariosAdmin = true;
+    this.erroUsuariosAdmin = '';
+
+    try {
+
+        const parametros = new URLSearchParams({
+
+            busca: this.buscaUsuariosAplicada,
+
+            situacao: this.situacaoUsuariosAplicada,
+
+            pagina: String(pagina)
+
+        });
+
+        const dados = await this.apiCurriculo(
+            `/api/admin/dados/usuarios?${parametros.toString()}`
+        );
+
+        this.usuariosAdmin =
+            dados.usuarios || [];
+
+        this.usuariosTotalAdmin =
+            Number(dados.total || 0);
+
+        this.usuariosPaginaAdmin =
+            Number(dados.pagina || 1);
+
+    } catch (erro) {
+
+        this.erroUsuariosAdmin =
+            erro.message;
+
+    } finally {
+
+        this.carregandoUsuariosAdmin = false;
+
+    }
+
+},
+
+
+// Aplicar pesquisa e filtros.
+
+pesquisarUsuariosAdmin() {
+
+    this.buscaUsuariosAplicada =
+        this.buscaUsuariosAdmin.trim();
+
+    this.situacaoUsuariosAplicada =
+        this.situacaoUsuariosAdmin;
+
+    this.carregarUsuariosAdmin(1);
+
+},
+
+
+// Limpar pesquisa.
+
+limparBuscaUsuariosAdmin() {
+
+    this.buscaUsuariosAdmin = '';
+
+    this.situacaoUsuariosAdmin = 'todos';
+
+    this.pesquisarUsuariosAdmin();
+
+},
+
+
+// Abrir formulário de edição.
+
+abrirEdicaoUsuarioAdmin(usuario) {
+
+    this.usuarioDetalheAdmin = usuario;
+
+    this.formUsuarioAdmin = {
+
+        nome: usuario.nome || '',
+
+        email: usuario.email || ''
+
+    };
+
+    this.erroModalUsuarioAdmin = '';
+
+    this.modalUsuarioAdminAberto = true;
+
+},
+
+
+// Salvar alterações de identificação.
+
+async salvarUsuarioAdmin() {
+
+    if (
+        this.salvandoUsuarioAdmin ||
+        !this.usuarioDetalheAdmin
+    ) {
+        return;
+    }
+
+    this.erroModalUsuarioAdmin = '';
+
+    this.salvandoUsuarioAdmin = true;
+
+    try {
+
+        await this.apiCurriculo(
+
+            `/api/admin/dados/usuarios/${this.usuarioDetalheAdmin.id}`,
+
+            {
+
+                method: 'PUT',
+
+                body: JSON.stringify(
+                    this.formUsuarioAdmin
+                )
+
+            }
+
+        );
+
+        this.modalUsuarioAdminAberto = false;
+
+        await this.carregarUsuariosAdmin(
+            this.usuariosPaginaAdmin
+        );
+
+    } catch (erro) {
+
+        this.erroModalUsuarioAdmin =
+            erro.message;
+
+    } finally {
+
+        this.salvandoUsuarioAdmin = false;
+
+    }
+
+},
+
+
+
+// ==========================================
+// GERENCIAMENTO DE DISCIPLINAS
+// ==========================================
+
+// Filtrar disciplinas cadastradas.
+
+disciplinasAdminFiltradas() {
+
+    const normalizar = valor =>
+        String(valor ?? '')
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase();
+
+    const termos = normalizar(
+        this.buscaDisciplinaAdmin
+    )
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean);
+
+    return this.disciplinasAdmin.filter(d =>
+
+        termos.every(termo =>
+
+            normalizar(
+                `${d.nome} ${d.area_conhecimento || ''}`
+            ).includes(termo)
+
+        )
+
+    );
+},
+
+// Consultar disciplinas no servidor.
+
+async carregarDisciplinasAdmin() {
+
+    this.carregandoDisciplinasAdmin = true;
+    this.erroDisciplinasAdmin = '';
+
+    try {
+
+        const dados = await this.apiCurriculo(
+            '/api/admin/dados/disciplinas'
+        );
+
+        this.disciplinasAdmin =
+            dados.disciplinas || [];
+
+    } catch (erro) {
+
+        this.erroDisciplinasAdmin =
+            erro.message;
+
+    } finally {
+
+        this.carregandoDisciplinasAdmin = false;
+
+    }
+},
+
+// Abrir cadastro.
+
+abrirNovaDisciplina() {
+
+    this.disciplinaEditandoId = null;
+
+    this.formDisciplinaAdmin = {
+        nome: '',
+        area_conhecimento: ''
+    };
+
+    this.erroModalDisciplina = '';
+    this.modalDisciplinaAberto = true;
+},
+
+// Abrir edição.
+
+abrirEdicaoDisciplina(d) {
+
+    this.disciplinaEditandoId = d.id;
+
+    this.formDisciplinaAdmin = {
+        nome: d.nome,
+        area_conhecimento:
+            d.area_conhecimento || ''
+    };
+
+    this.erroModalDisciplina = '';
+    this.modalDisciplinaAberto = true;
+},
+
+// Salvar cadastro ou edição.
+
+async salvarDisciplinaAdmin(confirmado = false) {
+
+    if (this.salvandoDisciplina) {
+        return;
+    }
+
+    const id = this.disciplinaEditandoId;
+
+    const vinculada =
+        id !== null &&
+        this.disciplinasAdmin.some(
+            d =>
+                d.id === id &&
+                Number(d.total_planos) > 0
+        );
+
+    // Avisar sobre alterações que afetam
+    // a identificação de planos existentes.
+
+    if (vinculada && !confirmado) {
+
+    this.confirmacaoDisciplina = {
+        aberta: true,
+        tipo: 'editar',
+        disciplinaId: id,
+        titulo: 'Confirmar alteração',
+        mensagem:
+            'Esta disciplina está associada a planos de curso. ' +
+            'A alteração também aparecerá nesses planos. ' +
+            'Deseja continuar?'
+    };
+
+    return;
+}
+
+    this.erroModalDisciplina = '';
+    this.salvandoDisciplina = true;
+
+    try {
+
+        await this.apiCurriculo(
+
+            id === null
+                ? '/api/admin/dados/disciplinas'
+                : `/api/admin/dados/disciplinas/${id}`,
+
+            {
+                method:
+                    id === null
+                        ? 'POST'
+                        : 'PUT',
+
+                body: JSON.stringify({
+                    ...this.formDisciplinaAdmin,
+
+                    confirmar_alteracao_vinculada:
+                        vinculada
+                })
+            }
+
+        );
+
+        this.modalDisciplinaAberto = false;
+
+        await this.carregarDisciplinasAdmin();
+
+        // Atualizar nomes também na listagem
+        // curricular, se ela já foi carregada.
+
+        if (
+            id !== null &&
+            this.planosCurso.length
+        ) {
+            await this.carregarPlanosCurso();
+        }
+
+    } catch (erro) {
+
+        this.erroModalDisciplina =
+            erro.message;
+
+    } finally {
+
+        this.salvandoDisciplina = false;
+
+    }
+},
+
+// Executar a ação confirmada
+executarConfirmacaoDisciplina() {
+
+    const { tipo, disciplinaId } =
+        this.confirmacaoDisciplina;
+
+    this.confirmacaoDisciplina.aberta = false;
+
+    // Confirmação de edição
+    if (tipo === 'editar') {
+
+        if (
+            this.disciplinaEditandoId !==
+            disciplinaId
+        ) {
+            return;
+        }
+
+        this.salvarDisciplinaAdmin(true);
+        return;
+    }
+
+    // Confirmação de exclusão
+    if (tipo === 'excluir') {
+
+        const disciplina =
+            this.disciplinasAdmin.find(
+                d => d.id === disciplinaId
+            );
+
+        if (disciplina) {
+            this.excluirDisciplinaAdmin(
+                disciplina,
+                true
+            );
+        }
+    }
+},
+
+
+// Exclusão de disciplina sem vínculos.
+
+async excluirDisciplinaAdmin(d, confirmado = false) {
+
+    if (this.excluindoDisciplinaId !== null) {
+        return;
+    }
+
+    if (Number(d.total_planos) > 0) {
+
+        this.erroDisciplinasAdmin =
+            'Disciplina vinculada a planos de curso: exclusão bloqueada.';
+
+        return;
+    }
+
+    if (!confirmado) {
+
+    this.confirmacaoDisciplina = {
+        aberta: true,
+        tipo: 'excluir',
+        disciplinaId: d.id,
+        titulo: 'Excluir disciplina?',
+        mensagem:
+            `Deseja excluir definitivamente "${d.nome}"? ` +
+            'Esta ação não poderá ser desfeita.'
+    };
+
+    return;
+}
+
+    this.excluindoDisciplinaId = d.id;
+    this.erroDisciplinasAdmin = '';
+
+    try {
+
+        await this.apiCurriculo(
+            `/api/admin/dados/disciplinas/${d.id}`,
+            {
+                method: 'DELETE'
+            }
+        );
+
+        await this.carregarDisciplinasAdmin();
+
+    } catch (erro) {
+
+        this.erroDisciplinasAdmin =
+            erro.message;
+
+    } finally {
+
+        this.excluindoDisciplinaId = null;
+
+    }
+},
+
+
+// Recuperar planos e disciplinas.
+async carregarPlanosCurso() {
+    this.carregandoPlanosCurso = true;
+    this.erroPlanoCurso = '';
+
+    try {
+        const [planos, disciplinas] =
+            await Promise.all([
+
+                this.apiCurriculo(
+                    '/api/admin/dados/planos-curso'
+                ),
+
+                this.apiCurriculo(
+                    '/api/admin/dados/planos-curso/disciplinas'
+                )
+
+            ]);
+
+        this.planosCurso =
+            planos.planos || [];
+
+        this.disciplinasPlanoCurso =
+            disciplinas.disciplinas || [];
+
+        if (this.planoCursoSelecionado) {
+            this.planoCursoSelecionado =
+                this.planosCurso.find(
+                    p => p.id ===
+                        this.planoCursoSelecionado.id
+                ) || null;
+        }
+
+    } catch (erro) {
+        this.erroPlanoCurso = erro.message;
+
+    } finally {
+        this.carregandoPlanosCurso = false;
+    }
+},
+
+// Abrir cadastro de novo plano.
+abrirNovoPlanoCurso() {
+    this.planoCursoEditId = null;
+
+    this.formPlanoCurso = {
+        ano_letivo: new Date().getFullYear(),
+        serie: '',
+        etapa: '',
+        disciplina_id: '',
+        versao: '1',
+        trilha: '',
+        ativo: false
+    };
+
+    this.erroModalPlanoCurso = '';
+    this.modalPlanoCursoAberto = true;
+},
+
+// Abrir edição de plano existente.
+abrirEdicaoPlanoCurso(plano) {
+    this.planoCursoEditId = plano.id;
+
+    this.formPlanoCurso = {
+        ano_letivo: plano.ano_letivo,
+        serie: plano.serie,
+        etapa: plano.etapa,
+        disciplina_id: String(plano.disciplina_id),
+        versao: plano.versao || '1',
+        trilha: plano.trilha || '',
+        ativo: Boolean(plano.ativo)
+    };
+
+    this.erroModalPlanoCurso = '';
+    this.modalPlanoCursoAberto = true;
+},
+
+// Salvar novo plano ou alterações.
+async salvarPlanoCurso() {
+    if (this.salvandoPlanoCurso) return;
+
+    this.salvandoPlanoCurso = true;
+    this.erroModalPlanoCurso = '';
+
+    const editando =
+        this.planoCursoEditId !== null;
+
+    const url = editando
+        ? `/api/admin/dados/planos-curso/${this.planoCursoEditId}`
+        : '/api/admin/dados/planos-curso';
+
+    try {
+        await this.apiCurriculo(url, {
+            method: editando ? 'PUT' : 'POST',
+
+            body: JSON.stringify(
+                this.formPlanoCurso
+            )
+        });
+
+        this.modalPlanoCursoAberto = false;
+
+        await this.carregarPlanosCurso();
+
+    } catch (erro) {
+        this.erroModalPlanoCurso =
+            erro.message;
+
+    } finally {
+        this.salvandoPlanoCurso = false;
+    }
+},
+
+// Ativar ou desativar plano sem excluí-lo.
+async alternarAtivacaoPlano(plano) {
+    if (
+        !plano.ativo &&
+        !plano.total_conteudos
+    ) {
+        this.erroPlanoCurso =
+            'Cadastre pelo menos um conteúdo antes de ativar.';
+
+        return;
+    }
+
+    const acao =
+        plano.ativo ? 'DESATIVAR' : 'ATIVAR';
+
+    if (
+        !confirm(
+            `${acao} o plano de ${plano.disciplina}? ` +
+            'Isso pode afetar novos planejamentos.'
+        )
+    ) {
+        return;
+    }
+
+    try {
+        await this.apiCurriculo(
+            `/api/admin/dados/planos-curso/${plano.id}`,
+            {
+                method: 'PUT',
+
+                body: JSON.stringify({
+                    ano_letivo: plano.ano_letivo,
+                    serie: plano.serie,
+                    etapa: plano.etapa,
+                    disciplina_id:
+                        plano.disciplina_id,
+                    versao: plano.versao || '1',
+                    trilha: plano.trilha || '',
+                    ativo: !plano.ativo
+                })
+            }
+        );
+
+        await this.carregarPlanosCurso();
+
+    } catch (erro) {
+        this.erroPlanoCurso =
+            erro.message;
+    }
+},
+
+// ==========================================
+// GERENCIAMENTO DOS CONTEUDOS
+// ==========================================
+
+// Limpar formulário.
+limparFormConteudoPlano() {
+    this.conteudoPlanoEditId = null;
+
+    this.formConteudoPlano = {
+        titulo: '',
+        descricao: '',
+        ordem: '',
+        carga_horaria: ''
+    };
+},
+
+// Consultar conteúdos de um plano.
+async abrirConteudosPlano(plano) {
+    this.planoCursoSelecionado = plano;
+
+    this.conteudosPlano = [];
+    this.erroConteudoPlano = '';
+
+    this.limparFormConteudoPlano();
+
+    this.carregandoConteudosPlano = true;
+
+    try {
+        const dados =
+            await this.apiCurriculo(
+                `/api/admin/dados/planos-curso/${plano.id}/conteudos`
+            );
+
+        if (
+            this.planoCursoSelecionado?.id ===
+            plano.id
+        ) {
+            this.conteudosPlano =
+                dados.conteudos || [];
+        }
+
+    } catch (erro) {
+        this.erroConteudoPlano =
+            erro.message;
+
+    } finally {
+        this.carregandoConteudosPlano = false;
+    }
+},
+
+// Preparar edição de conteúdo.
+editarConteudoPlano(conteudo) {
+    this.conteudoPlanoEditId =
+        conteudo.id;
+
+    this.formConteudoPlano = {
+        titulo: conteudo.titulo || '',
+        descricao: conteudo.descricao || '',
+        ordem: conteudo.ordem ?? '',
+        carga_horaria:
+            conteudo.carga_horaria ?? ''
+    };
+
+    this.erroConteudoPlano = '';
+},
+
+// Salvar conteúdo novo ou editado.
+async salvarConteudoPlano() {
+    if (
+        !this.planoCursoSelecionado ||
+        this.salvandoConteudoPlano
+    ) {
+        return;
+    }
+
+    this.salvandoConteudoPlano = true;
+    this.erroConteudoPlano = '';
+
+    const plano =
+        this.planoCursoSelecionado;
+
+    const base =
+        `/api/admin/dados/planos-curso/${plano.id}/conteudos`;
+
+    try {
+        await this.apiCurriculo(
+            this.conteudoPlanoEditId
+                ? `${base}/${this.conteudoPlanoEditId}`
+                : base,
+
+            {
+                method:
+                    this.conteudoPlanoEditId
+                        ? 'PUT'
+                        : 'POST',
+
+                body: JSON.stringify(
+                    this.formConteudoPlano
+                )
+            }
+        );
+
+        this.limparFormConteudoPlano();
+
+        await this.abrirConteudosPlano(plano);
+
+        await this.carregarPlanosCurso();
+
+    } catch (erro) {
+        this.erroConteudoPlano =
+            erro.message;
+
+    } finally {
+        this.salvandoConteudoPlano = false;
+    }
+},
 
             async carregarFrases() {
     try {
@@ -3975,6 +6318,16 @@ prepararSalvarValidacaoErro() {
 selecionarMenu(menu) {
 
     this.currentTab = menu;
+    if (menu === 'usuarios') {
+    this.carregarUsuariosAdmin(1);
+}
+    if (menu === 'disciplinas') {
+    this.carregarDisciplinasAdmin();
+}
+
+    if (menu === 'planos-curso') {
+    this.carregarPlanosCurso();
+}
 
     if (menu === 'frases') {
         this.carregarFrases();
@@ -3988,9 +6341,18 @@ selecionarMenu(menu) {
                 {
                         this.currentTab = menu;
                         this.mobileMenuOpen = false;
-                    if (menu === 'frases') {
-                        this.carregarFrases();
-                    }
+                        if (menu === 'usuarios') {
+                            this.carregarUsuariosAdmin(1);
+                        }
+                        if (menu === 'disciplinas') {
+                            this.carregarDisciplinasAdmin();
+                        }
+                        if (menu === 'planos-curso') {
+                            this.carregarPlanosCurso();
+                        }
+                        if (menu === 'frases') {
+                            this.carregarFrases();
+                        }
                 },
 
                 classeMenu(menu) {
